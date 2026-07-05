@@ -1,0 +1,16 @@
+{
+  "short_name": "시월의마지막밤",
+  "name": "시월의 마지막 밤",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#070b19",
+  "theme_color": "#070b19",
+  "display": "standalone",
+  "orientation": "portrait"
+}
