@@ -3,6 +3,13 @@ import { supabase } from '../utils/supabaseClient';
 import { Search, Plus, ThumbsUp, Eye, MessageSquare, X, UploadCloud, MessageCircle } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
+const isVideoUrl = (url) => {
+  if (!url) return false;
+  if (url.startsWith('data:video/')) return true;
+  const extensions = ['.mp4', '.webm', '.ogg', '.mov', '.avi'];
+  return extensions.some(ext => url.toLowerCase().includes(ext));
+};
+
 export default function Gallery({ session, alumniProfile }) {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -161,7 +168,7 @@ export default function Gallery({ session, alumniProfile }) {
   const handleUploadSubmit = async (e) => {
     e.preventDefault();
     if (!uploadFile) {
-      setUploadError('사진 파일을 선택해 주세요.');
+      setUploadError('파일을 선택해 주세요.');
       return;
     }
     setUploading(true);
@@ -492,11 +499,38 @@ export default function Gallery({ session, alumniProfile }) {
                 width: '100%',
                 paddingBottom: '70%',
                 position: 'relative',
-                backgroundImage: `url(${post.image_url})`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
+                overflow: 'hidden',
                 backgroundColor: 'rgba(0,0,0,0.1)'
-              }} />
+              }}>
+                {isVideoUrl(post.image_url) ? (
+                  <video
+                    src={post.image_url}
+                    muted
+                    loop
+                    playsInline
+                    autoPlay
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover'
+                    }}
+                  />
+                ) : (
+                  <div style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    backgroundImage: `url(${post.image_url})`,
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center'
+                  }} />
+                )}
+              </div>
 
               {/* Tags inside card overlay */}
               <div style={{
@@ -605,7 +639,7 @@ export default function Gallery({ session, alumniProfile }) {
                 }}>
                   <input
                     type="file"
-                    accept="image/*"
+                    accept="image/*,video/*"
                     required
                     onChange={handleFileChange}
                     style={{
@@ -623,7 +657,7 @@ export default function Gallery({ session, alumniProfile }) {
                     {uploadFile ? uploadFile.name : '이곳을 클릭하거나 파일을 끌어다 놓으세요.'}
                   </p>
                   <span style={{ fontSize: '12px', color: 'var(--color-secondary)', marginTop: '6px', display: 'block' }}>
-                    JPG, PNG, GIF 파일 지원 (최대 10MB)
+                    이미지 및 동영상 파일 지원 (최대 30MB)
                   </span>
                 </div>
               </div>
@@ -702,11 +736,21 @@ export default function Gallery({ session, alumniProfile }) {
                 position: 'relative',
                 flex: 1.2
               }}>
-                <img 
-                  src={selectedPost.image_url} 
-                  alt={selectedPost.title}
-                  style={{ width: '100%', maxHeight: '550px', objectFit: 'contain', display: 'block' }}
-                />
+                {isVideoUrl(selectedPost.image_url) ? (
+                  <video 
+                    src={selectedPost.image_url} 
+                    controls
+                    autoPlay
+                    playsInline
+                    style={{ width: '100%', maxHeight: '550px', objectFit: 'contain', display: 'block', outline: 'none' }}
+                  />
+                ) : (
+                  <img 
+                    src={selectedPost.image_url} 
+                    alt={selectedPost.title}
+                    style={{ width: '100%', maxHeight: '550px', objectFit: 'contain', display: 'block' }}
+                  />
+                )}
                 
                 {/* Close Button on Image */}
                 <button
