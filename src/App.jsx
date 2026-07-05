@@ -16,6 +16,46 @@ export default function App() {
   const [loadingProfile, setLoadingProfile] = useState(false);
   const [authKey, setAuthKey] = useState(0);
 
+  // PWA Install Prompt State
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [isIOS, setIsIOS] = useState(false);
+
+  useEffect(() => {
+    // Check if device is iOS
+    const userAgent = window.navigator.userAgent.toLowerCase();
+    const iosDevice = /iphone|ipad|ipod/.test(userAgent);
+    setIsIOS(iosDevice);
+
+    const handleBeforeInstallPrompt = (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, []);
+
+  const handleInstallApp = async () => {
+    if (isIOS) {
+      alert('아이폰(iOS) 설치 안내:\n\n사파리(Safari) 브라우저 하단의 [공유] (📤) 아이콘을 클릭한 뒤, 아래로 스크롤하여 [홈 화면에 추가] (➕) 버튼을 눌러주시면 바탕화면에 앱 아이콘이 설치됩니다!');
+      return;
+    }
+
+    if (!deferredPrompt) {
+      alert('설치 안내:\n\n1. 모바일(크롬/삼성인터넷) 또는 PC(크롬/웨일): 브라우저 주소창 우측 끝에 있는 [앱 설치] 아이콘(또는 점 3개 메뉴 ➔ 홈 화면에 추가)을 클릭하여 설치하실 수 있습니다.\n\n2. 아이폰(Safari): 하단의 공유(📤) 버튼을 누르고 [홈 화면에 추가](➕)를 터치해 주세요!\n\n(이미 설치가 완료된 경우 바탕화면의 아이콘을 클릭해 재접속해 주세요.)');
+      return;
+    }
+
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setDeferredPrompt(null);
+    }
+  };
+
   // Supabase Setup Form (if env variables not configured yet)
   const [setupUrl, setSetupUrl] = useState('');
   const [setupKey, setSetupKey] = useState('');
@@ -288,6 +328,7 @@ export default function App() {
         session={session} 
         alumniProfile={alumniProfile} 
         onLogout={handleLogout} 
+        onInstallApp={handleInstallApp}
       />
 
       {/* Main Pages Container */}

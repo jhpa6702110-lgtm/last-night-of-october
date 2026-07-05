@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../utils/supabaseClient';
-import { Image, Users, BookOpen, AlertCircle, X, ChevronRight, Download } from 'lucide-react';
+import { Image, Users, BookOpen, AlertCircle, X, ChevronRight } from 'lucide-react';
 
 const DEFAULT_HEROS = [
   'https://images.unsplash.com/photo-1509114397022-ed747cca3f65?auto=format&fit=crop&q=80&w=1600', // Starry night
@@ -17,60 +17,7 @@ export default function Home({ session, alumniProfile, setActiveTab }) {
   const [noticeContent, setNoticeContent] = useState('');
   const [dontShowNoticeToday, setDontShowNoticeToday] = useState(false);
 
-  // PWA Install Prompt State
-  const [deferredPrompt, setDeferredPrompt] = useState(null);
-  const [showInstallBtn, setShowInstallBtn] = useState(false);
-  const [isIOS, setIsIOS] = useState(false);
-  const [isStandalone, setIsStandalone] = useState(false);
 
-  useEffect(() => {
-    // Check if running in standalone mode
-    const standaloneMode = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
-    setIsStandalone(!!standaloneMode);
-
-    // Check if device is iOS
-    const userAgent = window.navigator.userAgent.toLowerCase();
-    const iosDevice = /iphone|ipad|ipod/.test(userAgent);
-    setIsIOS(iosDevice);
-
-    const handleBeforeInstallPrompt = (e) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-      setShowInstallBtn(true);
-    };
-
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-
-    window.addEventListener('appinstalled', () => {
-      setDeferredPrompt(null);
-      setShowInstallBtn(false);
-      setIsStandalone(true);
-    });
-
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    };
-  }, []);
-
-  const handleInstallClick = async () => {
-    if (isIOS) {
-      alert('아이폰(iOS) 설치 안내:\n\n사파리(Safari) 브라우저 하단의 [공유] (📤) 아이콘을 클릭한 뒤, 아래로 스크롤하여 [홈 화면에 추가] (➕) 버튼을 눌러주시면 바탕화면에 앱 아이콘이 설치됩니다!');
-      return;
-    }
-
-    if (!deferredPrompt) {
-      alert('이미 앱이 설치되어 있거나, 설치를 지원하지 않는 브라우저입니다. 모바일 크롬(Chrome) 또는 삼성인터넷 브라우저로 접속해 주세요.');
-      return;
-    }
-
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === 'accepted') {
-      setDeferredPrompt(null);
-      setShowInstallBtn(false);
-      setIsStandalone(true);
-    }
-  };
 
   // Background Slider interval
   useEffect(() => {
@@ -244,25 +191,6 @@ export default function Home({ session, alumniProfile, setActiveTab }) {
           >
             최근 사진 보기
           </a>
-
-          {(showInstallBtn || (isIOS && !isStandalone)) && (
-            <button
-              onClick={handleInstallClick}
-              className="btn btn-secondary"
-              style={{ 
-                padding: '14px 24px', 
-                borderColor: 'var(--accent-cyan)',
-                color: 'var(--accent-cyan)',
-                background: 'rgba(34, 211, 238, 0.05)',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}
-            >
-              <Download size={18} />
-              바탕화면에 앱 설치
-            </button>
-          )}
         </div>
       </div>
 

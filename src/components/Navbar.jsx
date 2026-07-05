@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Home, Image, BookOpen, Users, Lock, LogOut, LogIn, Menu, X } from 'lucide-react';
+import { Home, Image, BookOpen, Users, Lock, LogOut, LogIn, Menu, X, Download } from 'lucide-react';
 
-export default function Navbar({ activeTab, setActiveTab, session, alumniProfile, onLogout }) {
+export default function Navbar({ activeTab, setActiveTab, session, alumniProfile, onLogout, onInstallApp }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const isAdmin = alumniProfile?.is_president || alumniProfile?.is_treasurer;
@@ -94,6 +94,33 @@ export default function Navbar({ activeTab, setActiveTab, session, alumniProfile
             </button>
           );
         })}
+
+        <button
+          onClick={onInstallApp}
+          style={{
+            background: 'transparent',
+            color: 'var(--accent-cyan)',
+            border: '1px solid rgba(34, 211, 238, 0.3)',
+            borderRadius: '10px',
+            padding: '8px 16px',
+            fontSize: '15px',
+            fontWeight: '500',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            cursor: 'pointer',
+            transition: 'var(--transition-smooth)'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'rgba(34, 211, 238, 0.08)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'transparent';
+          }}
+        >
+          <Download size={16} />
+          앱 설치
+        </button>
 
         <div style={{ width: '1px', height: '20px', background: 'rgba(255, 255, 255, 0.1)', margin: '0 8px' }} />
 
@@ -193,6 +220,30 @@ export default function Navbar({ activeTab, setActiveTab, session, alumniProfile
           })}
           
           <div style={{ height: '1px', background: 'rgba(255, 255, 255, 0.1)', margin: '8px 0' }} />
+          
+          <div style={{ padding: '0 8px', marginBottom: '8px' }}>
+            <button
+              onClick={() => {
+                onInstallApp();
+                setIsMenuOpen(false);
+              }}
+              className="btn btn-secondary"
+              style={{ 
+                width: '100%', 
+                minHeight: '44px',
+                borderColor: 'var(--accent-cyan)',
+                color: 'var(--accent-cyan)',
+                background: 'rgba(34, 211, 238, 0.05)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '12px'
+              }}
+            >
+              <Download size={18} />
+              바탕화면에 앱 설치
+            </button>
+          </div>
 
           {session ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '0 8px' }}>
