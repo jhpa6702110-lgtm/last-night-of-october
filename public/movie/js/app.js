@@ -478,11 +478,11 @@ function updateModeBanner() {
     
     if (elements.apiStatusAlert) {
         if (isLive) {
-            elements.apiStatusAlert.innerHTML = `<i class="fas fa-wifi text-emerald-400 mr-2 animate-pulse"></i><span>${t['live-mode-active']}</span>`;
-            elements.apiStatusAlert.className = "flex items-center text-xs bg-emerald-500/10 text-emerald-300 border border-emerald-500/30 px-3 py-1.5 rounded-full backdrop-blur-md";
+            elements.apiStatusAlert.innerHTML = `<i class="fas fa-wifi text-emerald-400 sm:mr-2 animate-pulse"></i><span class="hidden md:inline">${t['live-mode-active']}</span><span class="inline md:hidden text-[10px] font-bold">LIVE</span>`;
+            elements.apiStatusAlert.className = "flex items-center gap-1 text-xs bg-emerald-500/10 text-emerald-300 border border-emerald-500/30 px-2 py-1.5 sm:px-3 sm:py-1.5 rounded-full backdrop-blur-md";
         } else {
-            elements.apiStatusAlert.innerHTML = `<i class="fas fa-exclamation-triangle text-amber-400 mr-2"></i><span>${t['demo-mode-active']}</span>`;
-            elements.apiStatusAlert.className = "flex items-center text-xs bg-amber-500/10 text-amber-300 border border-amber-500/20 px-3 py-1.5 rounded-full backdrop-blur-md cursor-pointer hover:bg-amber-500/20 transition-all";
+            elements.apiStatusAlert.innerHTML = `<i class="fas fa-exclamation-triangle text-amber-400 sm:mr-2"></i><span class="hidden md:inline">${t['demo-mode-active']}</span><span class="inline md:hidden text-[10px] font-bold">DEMO</span>`;
+            elements.apiStatusAlert.className = "flex items-center gap-1 text-xs bg-amber-500/10 text-amber-300 border border-amber-500/20 px-2 py-1.5 sm:px-3 sm:py-1.5 rounded-full backdrop-blur-md cursor-pointer hover:bg-amber-500/20 transition-all";
             elements.apiStatusAlert.onclick = openApiModal;
         }
     }

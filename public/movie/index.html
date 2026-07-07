@@ -34,20 +34,20 @@
                 <div class="flex items-center gap-3">
                     <div class="text-3xl cursor-pointer hover:scale-110 transition-transform" onclick="openSplashModal()" title="스플래시 화면 열기">🎬</div>
                     <div>
-                        <h1 class="text-xl md:text-2xl tracking-tight flex items-baseline gap-2">
+                        <h1 class="text-base sm:text-xl md:text-2xl tracking-tight flex items-baseline gap-2">
                             <span class="font-extrabold bg-gradient-to-r from-sky-400 via-blue-500 to-indigo-500 bg-clip-text text-transparent font-[Outfit]" data-i18n="brand-name">톱니바꿈의</span>
                             <span class="font-light app-title-sub hidden sm:inline" data-i18n="app-title-thin">영화 개봉 정보</span>
                         </h1>
                     </div>
                 </div>
                 
-                <div class="flex items-center gap-3.5">
+                <div class="flex items-center gap-1.5 sm:gap-3">
                     <!-- API 상태 표시 배너 -->
                     <div id="api-status-alert"></div>
 
                     <!-- 다국어 및 테마 토글 모듈 -->
                     <div class="flex items-center bg-slate-800/40 dark:bg-slate-800/40 light:bg-slate-200/50 backdrop-blur-md rounded-full p-1 border border-slate-700/30">
-                        <button id="lang-toggle" class="px-2.5 py-1 rounded-full text-[10px] font-black transition-all hover:bg-slate-700/50 w-10 text-center">
+                        <button id="lang-toggle" class="px-2 py-1 rounded-full text-[10px] font-black transition-all hover:bg-slate-700/50 w-10 text-center">
                             KO
                         </button>
                         <div class="w-[1px] h-3.5 bg-slate-700/50 mx-1"></div>
@@ -67,9 +67,9 @@
                         <span id="current-week"></span>
                     </div>
 
-                    <button id="filter-btn" class="px-4 py-1.5 bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/20 hover:border-sky-500/30 text-sky-400 rounded-full text-xs font-bold transition-all flex items-center gap-1.5">
+                    <button id="filter-btn" class="px-2.5 py-1.5 sm:px-4 bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/20 hover:border-sky-500/30 text-sky-400 rounded-full text-xs font-bold transition-all flex items-center gap-1.5">
                         <i class="fas fa-filter"></i>
-                        <span data-i18n="filter">필터</span>
+                        <span class="hidden sm:inline" data-i18n="filter">필터</span>
                     </button>
                 </div>
             </div>
