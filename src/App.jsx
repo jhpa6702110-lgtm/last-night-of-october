@@ -24,6 +24,20 @@ export default function App() {
   const [alumniProfile, setAlumniProfile] = useState(null);
   const [loadingProfile, setLoadingProfile] = useState(false);
   const [authKey, setAuthKey] = useState(0);
+  const [isKakaoTalk, setIsKakaoTalk] = useState(false);
+  const [isInAppBrowser, setIsInAppBrowser] = useState(false);
+
+  useEffect(() => {
+    const ua = navigator.userAgent.toLowerCase();
+    const isKakao = ua.includes('kakaotalk');
+    const isInApp = ua.includes('instagram') || ua.includes('fb') || ua.includes('line') || ua.includes('everytimeapp');
+    
+    if (isKakao) {
+      setIsKakaoTalk(true);
+    } else if (isInApp) {
+      setIsInAppBrowser(true);
+    }
+  }, []);
 
   // Sync hashchange event (for back/forward buttons)
   useEffect(() => {
@@ -353,8 +367,80 @@ export default function App() {
     }
   };
 
+  const hasBanner = isKakaoTalk || isInAppBrowser;
+
   return (
-    <div className="app-container">
+    <div className="app-container" style={{ paddingTop: hasBanner ? '40px' : '0' }}>
+      {/* KakaoTalk Warning Banner */}
+      {isKakaoTalk && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          background: 'linear-gradient(90deg, #fee500, #fcd34d)',
+          color: '#1e293b',
+          zIndex: 9999,
+          padding: '8px 16px',
+          fontSize: '13px',
+          fontWeight: '600',
+          textAlign: 'center',
+          boxShadow: '0 2px 10px rgba(0,0,0,0.15)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          gap: '10px',
+          flexWrap: 'wrap',
+          minHeight: '40px'
+        }}>
+          <span>📢 카카오톡에서는 모바일 기기 사양에 따라 사진 업로드 시 화면이 새로고침될 수 있습니다.</span>
+          <button
+            onClick={() => {
+              window.location.href = 'kakaotalk://web/openExternalApp?url=' + encodeURIComponent(window.location.href);
+            }}
+            style={{
+              background: '#1e293b',
+              color: '#f8fafc',
+              border: 'none',
+              padding: '4px 10px',
+              borderRadius: '6px',
+              fontSize: '12px',
+              fontWeight: '700',
+              cursor: 'pointer'
+            }}
+          >
+            기본 브라우저로 열기
+          </button>
+        </div>
+      )}
+
+      {/* General In-App Browser Warning Banner */}
+      {isInAppBrowser && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          background: 'linear-gradient(90deg, #f43f5e, #ec4899)',
+          color: '#f8fafc',
+          zIndex: 9999,
+          padding: '8px 16px',
+          fontSize: '13px',
+          fontWeight: '600',
+          textAlign: 'center',
+          boxShadow: '0 2px 10px rgba(0,0,0,0.15)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          gap: '10px',
+          flexWrap: 'wrap',
+          minHeight: '40px'
+        }}>
+          <span>📢 인앱 브라우저(인스타/페북 등)에서는 기기 사양에 따라 사진 업로드 시 화면이 새로고침될 수 있습니다.</span>
+          <span style={{ fontSize: '12px', opacity: 0.9 }}>우측 상단 메뉴를 눌러 [다른 브라우저로 열기]를 권장합니다.</span>
+        </div>
+      )}
+
       {/* Sticky Header Navbar */}
       <Navbar 
         activeTab={activeTab} 
@@ -363,10 +449,12 @@ export default function App() {
         alumniProfile={alumniProfile} 
         onLogout={handleLogout} 
         onInstallApp={handleInstallApp}
+        isKakaoTalk={isKakaoTalk}
+        isInAppBrowser={isInAppBrowser}
       />
 
       {/* Main Pages Container */}
-      <main className="main-content">
+      <main className="main-content" style={{ paddingTop: hasBanner ? '150px' : '110px' }}>
         {loadingProfile ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '60vh' }}>
             <div style={{ display: 'inline-block', width: '30px', height: '30px', border: '3px solid rgba(255,255,255,0.1)', borderTopColor: 'var(--accent-cyan)', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />

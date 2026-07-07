@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Home, Image, BookOpen, Users, Lock, LogOut, LogIn, Menu, X, Download, Film, Radio } from 'lucide-react';
 
-export default function Navbar({ activeTab, setActiveTab, session, alumniProfile, onLogout, onInstallApp }) {
+export default function Navbar({ activeTab, setActiveTab, session, alumniProfile, onLogout, onInstallApp, isKakaoTalk, isInAppBrowser }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const isAdmin = alumniProfile?.is_president || alumniProfile?.is_treasurer;
@@ -21,10 +21,12 @@ export default function Navbar({ activeTab, setActiveTab, session, alumniProfile
     setIsMenuOpen(false);
   };
 
+  const hasBanner = isKakaoTalk || isInAppBrowser;
+
   return (
     <nav className="glass" style={{
       position: 'fixed',
-      top: '15px',
+      top: hasBanner ? '55px' : '15px',
       left: '50%',
       transform: 'translateX(-50%)',
       width: 'calc(100% - 40px)',
