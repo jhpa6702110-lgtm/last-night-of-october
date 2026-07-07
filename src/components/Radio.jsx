@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Play, Pause, Square, Volume2, VolumeX, Sparkles, Radio as RadioIcon, HelpCircle, X, Loader2 } from 'lucide-react';
+import { Play, Pause, Square, Volume2, VolumeX, Sparkles, Radio as RadioIcon, HelpCircle, X, Loader2, Sliders, Check } from 'lucide-react';
 
 const CHANNELS = [
   { id: 'kbs_classic', name: 'KBS 클래식FM', freq: '93.1 MHz', desc: '고품격 클래식, 국악 전문 채널', apiUrl: 'https://cfpwwwapi.kbs.co.kr/api/v1/landing/live/channel_code/24', logoText: 'KBS', logoColor: '#dc2626' },
@@ -118,6 +118,252 @@ const THEMES = {
   }
 };
 
+// 3D Three.js Visualizer Sub-component
+function ThreeVisualizer({ isPlaying, isLoading, theme, settings }) {
+  const mountRef = useRef(null);
+
+  useEffect(() => {
+    if (!window.THREE) return;
+
+    const THREE = window.THREE;
+    const container = mountRef.current;
+    if (!container) return;
+
+    const width = container.clientWidth;
+    const height = container.clientHeight;
+
+    // 1. Create Scene, Camera, Renderer
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
+    camera.position.z = 16;
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(width, height);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    container.appendChild(renderer.domElement);
+
+    // 2. Add Spheres (5 music-reactive spheres)
+    const spheres = [];
+    const sphereCount = 5;
+    const baseRadius = 0.8 * settings.sphereSize;
+    const sphereSpacing = 2.6;
+
+    const getColorsForTheme = (themeId) => {
+      switch (themeId) {
+        case 'classic':
+          return [0xd97706, 0xf59e0b, 0xd97706, 0xf59e0b, 0xd97706];
+        case 'mono':
+          return [0xffffff, 0xaaaaaa, 0x777777, 0xaaaaaa, 0xffffff];
+        case 'dark':
+          return [0xef4444, 0xb91c1c, 0xef4444, 0xb91c1c, 0xef4444];
+        case 'line':
+          return [0xffffff, 0xffffff, 0xffffff, 0xffffff, 0xffffff];
+        case 'gold':
+          return [0xeab308, 0xca8a04, 0xeab308, 0xca8a04, 0xeab308];
+        case 'mint':
+          return [0x34d399, 0x10b981, 0x059669, 0x10b981, 0x34d399];
+        case 'navy':
+        default:
+          return [0x06b6d4, 0x3b82f6, 0x8b5cf6, 0xec4899, 0x06b6d4];
+      }
+    };
+
+    const colors = getColorsForTheme(theme.id);
+
+    for (let i = 0; i < sphereCount; i++) {
+      const geometry = new THREE.SphereGeometry(baseRadius, 32, 32);
+      
+      const material = new THREE.MeshPhongMaterial({
+        color: colors[i],
+        emissive: colors[i],
+        emissiveIntensity: theme.id === 'line' ? 0.8 : 0.15,
+        shininess: 100,
+        specular: 0xffffff,
+        wireframe: theme.id === 'line'
+      });
+      
+      const sphere = new THREE.Mesh(geometry, material);
+      
+      // Responsive horizontal positioning
+      sphere.position.x = (i - (sphereCount - 1) / 2) * sphereSpacing;
+      scene.add(sphere);
+      spheres.push(sphere);
+    }
+
+    // 3. Add Orbiting Nebula Particles
+    let particleSystem;
+    if (settings.preset !== 'minimal' && settings.particleCount > 0) {
+      const pCount = settings.particleCount;
+      const pGeometry = new THREE.BufferGeometry();
+      const positions = new Float32Array(pCount * 3);
+      const colorsArr = new Float32Array(pCount * 3);
+      
+      const pColor = new THREE.Color(colors[0]);
+      const sColor = new THREE.Color(colors[2]);
+
+      for (let i = 0; i < pCount; i++) {
+        const x = (Math.random() - 0.5) * 20;
+        const y = (Math.random() - 0.5) * 8;
+        const z = (Math.random() - 0.5) * 8;
+        
+        positions[i * 3] = x;
+        positions[i * 3 + 1] = y;
+        positions[i * 3 + 2] = z;
+
+        const mix = Math.random();
+        const mixedColor = pColor.clone().lerp(sColor, mix);
+        colorsArr[i * 3] = mixedColor.r;
+        colorsArr[i * 3 + 1] = mixedColor.g;
+        colorsArr[i * 3 + 2] = mixedColor.b;
+      }
+
+      pGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      pGeometry.setAttribute('color', new THREE.BufferAttribute(colorsArr, 3));
+
+      // Circular glow texture using Canvas
+      const pCanvas = document.createElement('canvas');
+      pCanvas.width = 16;
+      pCanvas.height = 16;
+      const pCtx = pCanvas.getContext('2d');
+      const grad = pCtx.createRadialGradient(8, 8, 0, 8, 8, 8);
+      grad.addColorStop(0, 'rgba(255,255,255,1)');
+      grad.addColorStop(1, 'rgba(255,255,255,0)');
+      pCtx.fillStyle = grad;
+      pCtx.fillRect(0, 0, 16, 16);
+      
+      const pTexture = new THREE.CanvasTexture(pCanvas);
+
+      const pMaterial = new THREE.PointsMaterial({
+        size: 0.18,
+        map: pTexture,
+        transparent: true,
+        vertexColors: true,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false
+      });
+
+      particleSystem = new THREE.Points(pGeometry, pMaterial);
+      scene.add(particleSystem);
+    }
+
+    // 4. Lights
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.45);
+    scene.add(ambientLight);
+
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.85);
+    dirLight.position.set(0, 10, 10);
+    scene.add(dirLight);
+
+    const pointLights = [];
+    for (let i = 0; i < sphereCount; i++) {
+      const pl = new THREE.PointLight(colors[i], 1.5, 8);
+      pl.position.set((i - (sphereCount - 1) / 2) * sphereSpacing, 0, 2);
+      scene.add(pl);
+      pointLights.push(pl);
+    }
+
+    // 5. Render loop variables
+    let reqId;
+    let clock = new THREE.Clock();
+
+    const animate = () => {
+      const elapsedTime = clock.getElapsedTime();
+      const speedMult = settings.speed;
+      const sensitivity = settings.sensitivity;
+
+      // Rotate particles
+      if (particleSystem) {
+        particleSystem.rotation.y = elapsedTime * 0.04 * speedMult;
+        particleSystem.rotation.x = Math.sin(elapsedTime * 0.02) * 0.08 * speedMult;
+      }
+
+      // Animate spheres based on simulated frequencies (representing Bass to Treble)
+      for (let i = 0; i < sphereCount; i++) {
+        const sphere = spheres[i];
+        
+        let freq = 0.15;
+        if (isPlaying && !isLoading) {
+          if (i === 0) {
+            // Bass
+            freq = Math.sin(elapsedTime * 7.5) * 0.35 + 0.5 + Math.random() * 0.15;
+          } else if (i === 1) {
+            // Low-Mid
+            freq = Math.cos(elapsedTime * 10) * 0.3 + 0.4 + Math.random() * 0.12;
+          } else if (i === 2) {
+            // Mid
+            freq = Math.sin(elapsedTime * 13) * 0.25 + 0.35 + Math.random() * 0.1;
+          } else if (i === 3) {
+            // High-Mid
+            freq = Math.cos(elapsedTime * 17) * 0.2 + 0.3 + Math.random() * 0.08;
+          } else {
+            // Treble
+            freq = Math.sin(elapsedTime * 23) * 0.15 + 0.2 + Math.random() * 0.08;
+          }
+        }
+
+        // Apply scale pulse
+        const targetScale = 1.0 + freq * 0.45 * sensitivity;
+        const currentScale = sphere.scale.x;
+        const s = currentScale + (targetScale - currentScale) * 0.25;
+        sphere.scale.set(s, s, s);
+
+        // Spin
+        sphere.rotation.y = elapsedTime * (0.35 + i * 0.08) * speedMult;
+        sphere.rotation.x = elapsedTime * (0.15 - i * 0.04) * speedMult;
+
+        // Glow intensity
+        if (theme.id !== 'line') {
+          sphere.material.emissiveIntensity = 0.1 + freq * 0.35 * sensitivity;
+        }
+
+        // Apply visual deforms (floating Y axis bounce for beat mode)
+        if (settings.preset === 'beat') {
+          sphere.position.y = Math.sin(elapsedTime * (5 + i) * speedMult) * freq * 0.35 * sensitivity;
+        } else {
+          sphere.position.y = 0;
+        }
+      }
+
+      renderer.render(scene, camera);
+      reqId = requestAnimationFrame(animate);
+    };
+
+    animate();
+
+    // Resize and spacing handler
+    const handleResize = () => {
+      if (!container) return;
+      const w = container.clientWidth;
+      const h = container.clientHeight;
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+      renderer.setSize(w, h);
+
+      // Compress layout spacing for narrower screens (mobiles)
+      const shrinkFactor = w < 480 ? 0.58 : (w < 640 ? 0.78 : 1.0);
+      for (let i = 0; i < sphereCount; i++) {
+        spheres[i].position.x = (i - (sphereCount - 1) / 2) * sphereSpacing * shrinkFactor;
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    handleResize();
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      cancelAnimationFrame(reqId);
+      if (container.contains(renderer.domElement)) {
+        container.removeChild(renderer.domElement);
+      }
+      scene.clear();
+      renderer.dispose();
+    };
+  }, [isPlaying, isLoading, theme, settings]);
+
+  return <div ref={mountRef} style={{ width: '100%', height: '100%' }} />;
+}
+
+// Main Radio Component
 export default function Radio() {
   const [selectedChannel, setSelectedChannel] = useState(CHANNELS[0]);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -125,9 +371,20 @@ export default function Radio() {
   const [volume, setVolume] = useState(70);
   const [isMuted, setIsMuted] = useState(false);
   const [themeKey, setThemeKey] = useState('navy');
+  const [threeLoaded, setThreeLoaded] = useState(!!window.THREE);
   const [showSplash, setShowSplash] = useState(false);
   const [dontShowSplashToday, setDontShowSplashToday] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+
+  // 3D visualizer settings
+  const [visualizerSettings, setVisualizerSettings] = useState({
+    preset: 'nebula',
+    particleCount: 500,
+    sensitivity: 1.0,
+    speed: 1.0,
+    sphereSize: 1.0
+  });
+  const [showSettings, setShowSettings] = useState(false);
 
   const audioRef = useRef(null);
   const hlsRef = useRef(null);
@@ -136,20 +393,20 @@ export default function Radio() {
 
   const theme = THEMES[themeKey];
 
-  // 1. Dynamic Script Import for hls.js
+  // 1. Dynamic Script Import for Three.js
   useEffect(() => {
-    if (window.Hls) {
-      setHlsLoaded(true);
+    if (window.THREE) {
+      setThreeLoaded(true);
       return;
     }
     const script = document.createElement('script');
-    script.src = 'https://cdn.jsdelivr.net/npm/hls.js@1.4.12/dist/hls.min.js';
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
     script.async = true;
     script.onload = () => {
-      setHlsLoaded(true);
+      setThreeLoaded(true);
     };
     script.onerror = () => {
-      console.error('Failed to load hls.js from CDN.');
+      console.error('Failed to load Three.js from CDN.');
     };
     document.body.appendChild(script);
   }, []);
@@ -169,7 +426,6 @@ export default function Radio() {
 
   // 3. Audio Source Management and Cleanup
   useEffect(() => {
-    // If it was playing, restart playing on channel change
     if (isPlaying) {
       playStream(selectedChannel);
     } else {
@@ -189,7 +445,7 @@ export default function Radio() {
     }
   }, [volume, isMuted]);
 
-  // 5. Visualizer Loop
+  // 5. Bottom tiny visualizer loop
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -218,17 +474,14 @@ export default function Radio() {
 
       for (let i = 0; i < barCount; i++) {
         if (isPlaying && !isLoading) {
-          // Generate realistic target height oscillations
           if (Math.random() < 0.12) {
             targetHeights[i] = Math.random() * (canvas.height - 10) + 5;
             speeds[i] = 0.08 + Math.random() * 0.12;
           }
-          // Linear interpolation for smooth springy transition
           const currentH = bars[i] || 2;
           const targetH = targetHeights[i] || 2;
           bars[i] = currentH + (targetH - currentH) * speeds[i];
         } else {
-          // Flatten visualizer when stopped or loading
           bars[i] = (bars[i] || 2) * 0.85;
           if (bars[i] < 2) bars[i] = 2;
           targetHeights[i] = 2;
@@ -238,7 +491,6 @@ export default function Radio() {
         const y = canvas.height - bars[i];
         
         ctx.fillStyle = gradient;
-        // Rounded corner bars
         ctx.beginPath();
         ctx.roundRect(x, y, barWidth, bars[i], 3);
         ctx.fill();
@@ -264,7 +516,6 @@ export default function Radio() {
     try {
       let streamUrl = channel.streamUrl;
 
-      // Handle APIs for SBS/KBS
       if (channel.apiUrl) {
         streamUrl = await fetchStreamUrl(channel);
       }
@@ -276,10 +527,8 @@ export default function Radio() {
       const audio = audioRef.current;
       if (!audio) return;
 
-      // Set volume immediately
       audio.volume = isMuted ? 0 : volume / 100;
 
-      // Play based on file type and HLS support
       if (streamUrl.includes('.m3u8')) {
         if (window.Hls && window.Hls.isSupported()) {
           const hls = new window.Hls({
@@ -306,14 +555,12 @@ export default function Radio() {
             }
           });
         } else if (audio.canPlayType('application/vnd.apple.mpegurl')) {
-          // Native Safari playback
           audio.src = streamUrl;
           audio.play().catch(e => console.warn('Audio play error:', e));
         } else {
           throw new Error('이 브라우저는 실시간 라디오 스트리밍(HLS) 재생을 지원하지 않습니다.');
         }
       } else {
-        // Fallback for standard direct streams (e.g. mp3/aac direct url)
         audio.src = streamUrl;
         audio.play().catch(e => console.warn('Audio play error:', e));
       }
@@ -363,7 +610,6 @@ export default function Radio() {
       return null;
     };
 
-    // Attempt 1: Direct Fetch
     try {
       const response = await fetch(directUrl);
       if (!response.ok) throw new Error('Direct fetch failed');
@@ -373,7 +619,6 @@ export default function Radio() {
       console.warn('Direct API fetch failed, trying proxy...', directErr);
     }
 
-    // Attempt 2: CORS Proxy Fetch
     try {
       const response = await fetch(proxyUrl);
       if (!response.ok) throw new Error('Proxy fetch failed');
@@ -416,6 +661,28 @@ export default function Radio() {
     setShowSplash(false);
   };
 
+  // Change preset configs
+  const applyPreset = (presetName) => {
+    let settings = { preset: presetName };
+    if (presetName === 'nebula') {
+      settings.particleCount = 500;
+      settings.sensitivity = 1.0;
+      settings.speed = 1.0;
+      settings.sphereSize = 1.0;
+    } else if (presetName === 'beat') {
+      settings.particleCount = 200;
+      settings.sensitivity = 1.4;
+      settings.speed = 1.3;
+      settings.sphereSize = 0.9;
+    } else if (presetName === 'minimal') {
+      settings.particleCount = 0;
+      settings.sensitivity = 0.8;
+      settings.speed = 0.6;
+      settings.sphereSize = 1.1;
+    }
+    setVisualizerSettings(settings);
+  };
+
   return (
     <div className="fade-in" style={{
       width: '100%',
@@ -426,7 +693,7 @@ export default function Radio() {
       padding: '24px',
       display: 'flex',
       flexDirection: 'column',
-      gap: '24px',
+      gap: '20px',
       marginBottom: '40px',
       border: theme.id === 'line' ? theme.border : '1px solid rgba(255, 255, 255, 0.05)',
       boxShadow: '0 20px 50px rgba(0, 0, 0, 0.6)',
@@ -463,8 +730,8 @@ export default function Radio() {
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        borderBottom: theme.id === 'line' ? '1px solid rgba(255, 255, 255, 0.2)' : '1px solid rgba(255, 255, 255, 0.08)',
-        paddingBottom: '16px'
+        borderBottom: theme.id === 'line' ? '1px solid rgba(255,255,255,0.2)' : '1px solid rgba(255, 255, 255, 0.08)',
+        paddingBottom: '14px'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <div style={{
@@ -539,8 +806,8 @@ export default function Radio() {
       </div>
 
       {/* Main content body: Horizontal scrolling channel selector */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        <h3 style={{ fontSize: '14px', fontWeight: '700', color: theme.textSecondary, display: 'flex', alignItems: 'center', gap: '6px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <h3 style={{ fontSize: '13px', fontWeight: '700', color: theme.textSecondary, display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
           <span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', background: theme.accent }} />
           방송 채널 선택
         </h3>
@@ -562,7 +829,7 @@ export default function Radio() {
                 key={ch.id}
                 onClick={() => setSelectedChannel(ch)}
                 style={{
-                  flex: '0 0 190px',
+                  flex: '0 0 195px',
                   scrollSnapAlign: 'start',
                   background: isSelected ? theme.cardActiveBg : theme.cardBg,
                   borderRadius: '16px',
@@ -574,7 +841,7 @@ export default function Radio() {
                   boxShadow: isSelected ? `0 8px 24px ${theme.accent}15` : 'none',
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: '12px',
+                  gap: '10px',
                   justifyContent: 'space-between',
                   transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
                 }}
@@ -608,8 +875,8 @@ export default function Radio() {
                   </span>
                 </div>
 
-                <div style={{ marginTop: '4px' }}>
-                  <h4 style={{ fontSize: '15px', fontWeight: '700', color: theme.text, marginBottom: '4px', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                <div style={{ marginTop: '2px' }}>
+                  <h4 style={{ fontSize: '15px', fontWeight: '700', color: theme.text, marginBottom: '2px', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
                     {ch.name}
                   </h4>
                   <p style={{ fontSize: '11px', color: theme.textSecondary, lineHeight: '1.4', height: '32px', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
@@ -620,6 +887,190 @@ export default function Radio() {
             );
           })}
         </div>
+      </div>
+
+      {/* 3D Visualizer Stage (Center Space) */}
+      <div style={{
+        flex: '1',
+        minHeight: '320px',
+        maxHeight: '400px',
+        position: 'relative',
+        borderRadius: '20px',
+        overflow: 'hidden',
+        background: 'rgba(0, 0, 0, 0.25)',
+        border: theme.id === 'line' ? '1px solid rgba(255,255,255,0.4)' : '1px solid rgba(255, 255, 255, 0.05)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        boxShadow: 'inset 0 4px 30px rgba(0, 0, 0, 0.4)'
+      }}>
+        {threeLoaded ? (
+          <ThreeVisualizer 
+            isPlaying={isPlaying} 
+            isLoading={isLoading} 
+            theme={theme} 
+            settings={visualizerSettings}
+          />
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+            <Loader2 size={36} className="spin-animation" style={{ color: theme.accent }} />
+            <span style={{ fontSize: '13px', color: theme.textSecondary }}>3D 그래픽 엔진 로딩 중...</span>
+          </div>
+        )}
+
+        {/* Floating Settings Toggle Button */}
+        <button
+          onClick={() => setShowSettings(!showSettings)}
+          style={{
+            position: 'absolute',
+            top: '12px',
+            right: '12px',
+            background: theme.cardBg,
+            border: theme.id === 'line' ? '1px solid #fff' : '1px solid rgba(255,255,255,0.1)',
+            color: theme.text,
+            width: '36px',
+            height: '36px',
+            borderRadius: '10px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            zIndex: 10,
+            transition: 'background 0.2s'
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+          onMouseLeave={(e) => e.currentTarget.style.background = theme.cardBg}
+        >
+          <Sliders size={18} />
+        </button>
+
+        {/* 3D Visualizer Control Panel (Sliders overlay) */}
+        {showSettings && (
+          <div className="glass fade-in" style={{
+            position: 'absolute',
+            top: '56px',
+            right: '12px',
+            width: '260px',
+            background: 'rgba(10, 15, 30, 0.95)',
+            border: `1px solid ${theme.border}`,
+            borderRadius: '16px',
+            padding: '16px',
+            zIndex: 10,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '12px',
+            boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
+            backdropFilter: 'blur(16px)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '8px' }}>
+              <span style={{ fontSize: '13px', fontWeight: '800', color: theme.text }}>3D 시각화 설정</span>
+              <button onClick={() => setShowSettings(false)} style={{ background: 'transparent', border: 'none', color: '#888', cursor: 'pointer' }}>
+                <X size={14} />
+              </button>
+            </div>
+
+            {/* Presets */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <span style={{ fontSize: '11px', color: '#888', fontWeight: '700' }}>테마 프리셋</span>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
+                {['nebula', 'beat', 'minimal'].map((p) => (
+                  <button
+                    key={p}
+                    onClick={() => applyPreset(p)}
+                    style={{
+                      padding: '6px 0',
+                      fontSize: '11px',
+                      fontWeight: '700',
+                      borderRadius: '6px',
+                      border: 'none',
+                      background: visualizerSettings.preset === p ? theme.accent : 'rgba(255,255,255,0.05)',
+                      color: visualizerSettings.preset === p ? theme.accentText : theme.text,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '2px',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    {visualizerSettings.preset === p && <Check size={10} />}
+                    {p === 'nebula' ? '성운' : p === 'beat' ? '비트' : '미니멀'}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Sensitivity Slider */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
+                <span style={{ color: '#888' }}>반응형 감도</span>
+                <span style={{ color: theme.accent, fontWeight: '700' }}>{visualizerSettings.sensitivity.toFixed(1)}x</span>
+              </div>
+              <input
+                type="range"
+                min="0.5"
+                max="2.0"
+                step="0.1"
+                value={visualizerSettings.sensitivity}
+                onChange={(e) => setVisualizerSettings(prev => ({ ...prev, sensitivity: parseFloat(e.target.value) }))}
+                style={{ accentColor: theme.accent, height: '4px', background: 'rgba(255,255,255,0.1)', outline: 'none', cursor: 'pointer' }}
+              />
+            </div>
+
+            {/* Speed Slider */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
+                <span style={{ color: '#888' }}>회전 속도</span>
+                <span style={{ color: theme.accent, fontWeight: '700' }}>{visualizerSettings.speed.toFixed(1)}x</span>
+              </div>
+              <input
+                type="range"
+                min="0.2"
+                max="2.0"
+                step="0.1"
+                value={visualizerSettings.speed}
+                onChange={(e) => setVisualizerSettings(prev => ({ ...prev, speed: parseFloat(e.target.value) }))}
+                style={{ accentColor: theme.accent, height: '4px', background: 'rgba(255,255,255,0.1)', outline: 'none', cursor: 'pointer' }}
+              />
+            </div>
+
+            {/* Density (Particles) Slider */}
+            {visualizerSettings.preset !== 'minimal' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
+                  <span style={{ color: '#888' }}>성운 입자 수</span>
+                  <span style={{ color: theme.accent, fontWeight: '700' }}>{visualizerSettings.particleCount}개</span>
+                </div>
+                <input
+                  type="range"
+                  min="50"
+                  max="1200"
+                  step="50"
+                  value={visualizerSettings.particleCount}
+                  onChange={(e) => setVisualizerSettings(prev => ({ ...prev, particleCount: parseInt(e.target.value, 10) }))}
+                  style={{ accentColor: theme.accent, height: '4px', background: 'rgba(255,255,255,0.1)', outline: 'none', cursor: 'pointer' }}
+                />
+              </div>
+            )}
+
+            {/* Sphere Size Slider */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
+                <span style={{ color: '#888' }}>구체 크기</span>
+                <span style={{ color: theme.accent, fontWeight: '700' }}>{visualizerSettings.sphereSize.toFixed(1)}x</span>
+              </div>
+              <input
+                type="range"
+                min="0.6"
+                max="1.4"
+                step="0.1"
+                value={visualizerSettings.sphereSize}
+                onChange={(e) => setVisualizerSettings(prev => ({ ...prev, sphereSize: parseFloat(e.target.value) }))}
+                style={{ accentColor: theme.accent, height: '4px', background: 'rgba(255,255,255,0.1)', outline: 'none', cursor: 'pointer' }}
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Bottom fixed controller card */}
@@ -850,7 +1301,7 @@ export default function Radio() {
                 </div>
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <span style={{ color: theme.accent }}>•</span>
-                  <span><strong>기술 스택:</strong> React 19, Hls.js (M3U8 스트림 복호화 재생), Web Audio API Simulation (애니메이션 비주얼라이저), Dual CORS-Proxy (KBS/SBS 전송 오류 우회 기술)</span>
+                  <span><strong>기술 스택:</strong> React 19, Three.js(3D 렌더링), Hls.js(M3U8 디코딩), Web Audio API Simulation (5밴드 애니메이션 비주얼라이저), Dual CORS-Proxy 우회 기술</span>
                 </div>
               </div>
 
