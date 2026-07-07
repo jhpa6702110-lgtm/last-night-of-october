@@ -11,11 +11,44 @@ import { supabase, isSupabaseConfigured, saveSupabaseCredentials } from './utils
 import { Database, ShieldAlert, KeyRound, Save } from 'lucide-react';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('home');
+  // Get initial tab from URL hash
+  const getTabFromHash = () => {
+    const hash = window.location.hash;
+    if (!hash || hash === '#/') return 'home';
+    return hash.replace(/^#\/?/, '');
+  };
+
+  const [activeTab, setActiveTabState] = useState(getTabFromHash());
   const [session, setSession] = useState(null);
   const [alumniProfile, setAlumniProfile] = useState(null);
   const [loadingProfile, setLoadingProfile] = useState(false);
   const [authKey, setAuthKey] = useState(0);
+
+  // Sync hashchange event (for back/forward buttons)
+  useEffect(() => {
+    const handleHashChange = () => {
+      const tab = getTabFromHash();
+      setActiveTabState(tab || 'home');
+    };
+
+    window.addEventListener('hashchange', handleHashChange);
+
+    // If there is no hash when entering the site, default to #/home
+    if (!window.location.hash || window.location.hash === '#/') {
+      window.location.hash = '#/home';
+    }
+
+    return () => {
+      window.removeEventListener('hashchange', handleHashChange);
+    };
+  }, []);
+
+  const setActiveTab = (tab) => {
+    if (tab === 'login') {
+      setAuthKey(prev => prev + 1);
+    }
+    window.location.hash = '#/' + tab;
+  };
 
   // PWA Install Prompt State
   const [deferredPrompt, setDeferredPrompt] = useState(null);
@@ -316,19 +349,12 @@ export default function App() {
     }
   };
 
-  const handleSetActiveTab = (tab) => {
-    if (tab === 'login') {
-      setAuthKey(prev => prev + 1);
-    }
-    setActiveTab(tab);
-  };
-
   return (
     <div className="app-container">
       {/* Sticky Header Navbar */}
       <Navbar 
         activeTab={activeTab} 
-        setActiveTab={handleSetActiveTab} 
+        setActiveTab={setActiveTab} 
         session={session} 
         alumniProfile={alumniProfile} 
         onLogout={handleLogout} 
