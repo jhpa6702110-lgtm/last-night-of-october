@@ -121,87 +121,122 @@ const THEMES = {
 // 3D Three.js Visualizer Sub-component
 function ThreeVisualizer({ isPlaying, isLoading, theme, settings }) {
   const mountRef = useRef(null);
+  const [initError, setInitError] = useState(null);
+
+  // Use refs to store changing states to prevent WebGL renderer creation/destruction loops
+  const isPlayingRef = useRef(isPlaying);
+  const isLoadingRef = useRef(isLoading);
+  const themeRef = useRef(theme);
+  const settingsRef = useRef(settings);
 
   useEffect(() => {
-    if (!window.THREE) return;
+    isPlayingRef.current = isPlaying;
+  }, [isPlaying]);
+
+  useEffect(() => {
+    isLoadingRef.current = isLoading;
+  }, [isLoading]);
+
+  useEffect(() => {
+    themeRef.current = theme;
+  }, [theme]);
+
+  useEffect(() => {
+    settingsRef.current = settings;
+  }, [settings]);
+
+  useEffect(() => {
+    if (!window.THREE) {
+      setInitError('Three.js 라이브러리가 로드되지 않았습니다.');
+      return;
+    }
 
     const THREE = window.THREE;
     const container = mountRef.current;
     if (!container) return;
 
-    const width = container.clientWidth;
-    const height = container.clientHeight;
-
-    // 1. Create Scene, Camera, Renderer
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
-    camera.position.z = 16;
-
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    renderer.setSize(width, height);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    container.appendChild(renderer.domElement);
-
-    // 2. Add Spheres (5 music-reactive spheres)
-    const spheres = [];
-    const sphereCount = 5;
-    const baseRadius = 0.8 * settings.sphereSize;
-    const sphereSpacing = 2.6;
-
-    const getColorsForTheme = (themeId) => {
-      switch (themeId) {
-        case 'classic':
-          return [0xd97706, 0xf59e0b, 0xd97706, 0xf59e0b, 0xd97706];
-        case 'mono':
-          return [0xffffff, 0xaaaaaa, 0x777777, 0xaaaaaa, 0xffffff];
-        case 'dark':
-          return [0xef4444, 0xb91c1c, 0xef4444, 0xb91c1c, 0xef4444];
-        case 'line':
-          return [0xffffff, 0xffffff, 0xffffff, 0xffffff, 0xffffff];
-        case 'gold':
-          return [0xeab308, 0xca8a04, 0xeab308, 0xca8a04, 0xeab308];
-        case 'mint':
-          return [0x34d399, 0x10b981, 0x059669, 0x10b981, 0x34d399];
-        case 'navy':
-        default:
-          return [0x06b6d4, 0x3b82f6, 0x8b5cf6, 0xec4899, 0x06b6d4];
-      }
-    };
-
-    const colors = getColorsForTheme(theme.id);
-
-    for (let i = 0; i < sphereCount; i++) {
-      const geometry = new THREE.SphereGeometry(baseRadius, 32, 32);
-      
-      const material = new THREE.MeshPhongMaterial({
-        color: colors[i],
-        emissive: colors[i],
-        emissiveIntensity: theme.id === 'line' ? 0.8 : 0.15,
-        shininess: 100,
-        specular: 0xffffff,
-        wireframe: theme.id === 'line'
-      });
-      
-      const sphere = new THREE.Mesh(geometry, material);
-      
-      // Responsive horizontal positioning
-      sphere.position.x = (i - (sphereCount - 1) / 2) * sphereSpacing;
-      scene.add(sphere);
-      spheres.push(sphere);
+    // Safety dimensions with fallback values
+    let width = container.clientWidth;
+    let height = container.clientHeight;
+    if (!width || !height) {
+      const rect = container.getBoundingClientRect();
+      width = rect.width || 600;
+      height = rect.height || 350;
     }
+    if (width < 100) width = 600;
+    if (height < 100) height = 350;
 
-    // 3. Add Orbiting Nebula Particles
-    let particleSystem;
-    if (settings.preset !== 'minimal' && settings.particleCount > 0) {
-      const pCount = settings.particleCount;
+    let reqId;
+    let renderer;
+    let scene;
+
+    try {
+      // 1. Create Scene, Camera, Renderer
+      scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
+      camera.position.z = 16;
+
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, failIfMajorPerformanceCaveat: false });
+      renderer.setSize(width, height);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      container.appendChild(renderer.domElement);
+
+      // 2. Add Spheres (5 music-reactive spheres)
+      const spheres = [];
+      const sphereCount = 5;
+      const sphereSpacing = 2.6;
+
+      const getColorsForTheme = (themeId) => {
+        switch (themeId) {
+          case 'classic':
+            return [0xd97706, 0xf59e0b, 0xd97706, 0xf59e0b, 0xd97706];
+          case 'mono':
+            return [0xffffff, 0xaaaaaa, 0x777777, 0xaaaaaa, 0xffffff];
+          case 'dark':
+            return [0xef4444, 0xb91c1c, 0xef4444, 0xb91c1c, 0xef4444];
+          case 'line':
+            return [0xffffff, 0xffffff, 0xffffff, 0xffffff, 0xffffff];
+          case 'gold':
+            return [0xeab308, 0xca8a04, 0xeab308, 0xca8a04, 0xeab308];
+          case 'mint':
+            return [0x34d399, 0x10b981, 0x059669, 0x10b981, 0x34d399];
+          case 'navy':
+          default:
+            return [0x06b6d4, 0x3b82f6, 0x8b5cf6, 0xec4899, 0x06b6d4];
+        }
+      };
+
+      const initialThemeId = themeRef.current.id;
+      const colors = getColorsForTheme(initialThemeId);
+
+      for (let i = 0; i < sphereCount; i++) {
+        const geometry = new THREE.SphereGeometry(0.8, 32, 32);
+        
+        const material = new THREE.MeshPhongMaterial({
+          color: colors[i],
+          emissive: colors[i],
+          emissiveIntensity: initialThemeId === 'line' ? 0.8 : 0.15,
+          shininess: 100,
+          specular: 0xffffff,
+          wireframe: initialThemeId === 'line'
+        });
+        
+        const sphere = new THREE.Mesh(geometry, material);
+        sphere.position.x = (i - (sphereCount - 1) / 2) * sphereSpacing;
+        scene.add(sphere);
+        spheres.push(sphere);
+      }
+
+      // 3. Add Orbiting Nebula Particles (Max 1200)
+      const maxParticles = 1200;
       const pGeometry = new THREE.BufferGeometry();
-      const positions = new Float32Array(pCount * 3);
-      const colorsArr = new Float32Array(pCount * 3);
+      const positions = new Float32Array(maxParticles * 3);
+      const colorsArr = new Float32Array(maxParticles * 3);
       
       const pColor = new THREE.Color(colors[0]);
       const sColor = new THREE.Color(colors[2]);
 
-      for (let i = 0; i < pCount; i++) {
+      for (let i = 0; i < maxParticles; i++) {
         const x = (Math.random() - 0.5) * 20;
         const y = (Math.random() - 0.5) * 8;
         const z = (Math.random() - 0.5) * 8;
@@ -242,99 +277,132 @@ function ThreeVisualizer({ isPlaying, isLoading, theme, settings }) {
         depthWrite: false
       });
 
-      particleSystem = new THREE.Points(pGeometry, pMaterial);
+      const particleSystem = new THREE.Points(pGeometry, pMaterial);
       scene.add(particleSystem);
-    }
 
-    // 4. Lights
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.45);
-    scene.add(ambientLight);
+      // 4. Lights
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.45);
+      scene.add(ambientLight);
 
-    const dirLight = new THREE.DirectionalLight(0xffffff, 0.85);
-    dirLight.position.set(0, 10, 10);
-    scene.add(dirLight);
+      const dirLight = new THREE.DirectionalLight(0xffffff, 0.85);
+      dirLight.position.set(0, 10, 10);
+      scene.add(dirLight);
 
-    const pointLights = [];
-    for (let i = 0; i < sphereCount; i++) {
-      const pl = new THREE.PointLight(colors[i], 1.5, 8);
-      pl.position.set((i - (sphereCount - 1) / 2) * sphereSpacing, 0, 2);
-      scene.add(pl);
-      pointLights.push(pl);
-    }
-
-    // 5. Render loop variables
-    let reqId;
-    let clock = new THREE.Clock();
-
-    const animate = () => {
-      const elapsedTime = clock.getElapsedTime();
-      const speedMult = settings.speed;
-      const sensitivity = settings.sensitivity;
-
-      // Rotate particles
-      if (particleSystem) {
-        particleSystem.rotation.y = elapsedTime * 0.04 * speedMult;
-        particleSystem.rotation.x = Math.sin(elapsedTime * 0.02) * 0.08 * speedMult;
+      const pointLights = [];
+      for (let i = 0; i < sphereCount; i++) {
+        const pl = new THREE.PointLight(colors[i], 1.5, 8);
+        pl.position.set((i - (sphereCount - 1) / 2) * sphereSpacing, 0, 2);
+        scene.add(pl);
+        pointLights.push(pl);
       }
 
-      // Animate spheres based on simulated frequencies (representing Bass to Treble)
-      for (let i = 0; i < sphereCount; i++) {
-        const sphere = spheres[i];
-        
-        let freq = 0.15;
-        if (isPlaying && !isLoading) {
-          if (i === 0) {
-            // Bass
-            freq = Math.sin(elapsedTime * 7.5) * 0.35 + 0.5 + Math.random() * 0.15;
-          } else if (i === 1) {
-            // Low-Mid
-            freq = Math.cos(elapsedTime * 10) * 0.3 + 0.4 + Math.random() * 0.12;
-          } else if (i === 2) {
-            // Mid
-            freq = Math.sin(elapsedTime * 13) * 0.25 + 0.35 + Math.random() * 0.1;
-          } else if (i === 3) {
-            // High-Mid
-            freq = Math.cos(elapsedTime * 17) * 0.2 + 0.3 + Math.random() * 0.08;
-          } else {
-            // Treble
-            freq = Math.sin(elapsedTime * 23) * 0.15 + 0.2 + Math.random() * 0.08;
+      // 5. Render loop variables
+      let clock = new THREE.Clock();
+      let lastThemeId = initialThemeId;
+
+      const animate = () => {
+        const elapsedTime = clock.getElapsedTime();
+        const currentIsPlaying = isPlayingRef.current;
+        const currentIsLoading = isLoadingRef.current;
+        const currentTheme = themeRef.current;
+        const currentSettings = settingsRef.current;
+
+        // Theme dynamic updates without rebuilding context
+        if (currentTheme.id !== lastThemeId) {
+          lastThemeId = currentTheme.id;
+          const newColors = getColorsForTheme(currentTheme.id);
+          const colorPrimary = new THREE.Color(newColors[0]);
+          const colorSecondary = new THREE.Color(newColors[2]);
+          
+          // Update particle vertex colors dynamically
+          const colorsAttr = pGeometry.getAttribute && pGeometry.getAttribute('color');
+          if (colorsAttr) {
+            for (let k = 0; k < maxParticles; k++) {
+              const mix = Math.random();
+              const mixedColor = colorPrimary.clone().lerp(colorSecondary, mix);
+              colorsAttr.setXYZ(k, mixedColor.r, mixedColor.g, mixedColor.b);
+            }
+            colorsAttr.needsUpdate = true;
+          }
+
+          for (let i = 0; i < sphereCount; i++) {
+            spheres[i].material.color.setHex(newColors[i]);
+            if (currentTheme.id === 'line') {
+              spheres[i].material.emissive.setHex(0xffffff);
+              spheres[i].material.emissiveIntensity = 0.8;
+              spheres[i].material.wireframe = true;
+            } else {
+              spheres[i].material.emissive.setHex(newColors[i]);
+              spheres[i].material.emissiveIntensity = 0.15;
+              spheres[i].material.wireframe = false;
+            }
+            pointLights[i].color.setHex(newColors[i]);
           }
         }
 
-        // Apply scale pulse
-        const targetScale = 1.0 + freq * 0.45 * sensitivity;
-        const currentScale = sphere.scale.x;
-        const s = currentScale + (targetScale - currentScale) * 0.25;
-        sphere.scale.set(s, s, s);
-
-        // Spin
-        sphere.rotation.y = elapsedTime * (0.35 + i * 0.08) * speedMult;
-        sphere.rotation.x = elapsedTime * (0.15 - i * 0.04) * speedMult;
-
-        // Glow intensity
-        if (theme.id !== 'line') {
-          sphere.material.emissiveIntensity = 0.1 + freq * 0.35 * sensitivity;
+        // Sync settings
+        if (particleSystem) {
+          particleSystem.visible = currentSettings.preset !== 'minimal';
+          if (particleSystem.visible) {
+            pGeometry.setDrawRange(0, currentSettings.particleCount);
+            particleSystem.rotation.y = elapsedTime * 0.04 * currentSettings.speed;
+            particleSystem.rotation.x = Math.sin(elapsedTime * 0.02) * 0.08 * currentSettings.speed;
+          }
         }
 
-        // Apply visual deforms (floating Y axis bounce for beat mode)
-        if (settings.preset === 'beat') {
-          sphere.position.y = Math.sin(elapsedTime * (5 + i) * speedMult) * freq * 0.35 * sensitivity;
-        } else {
-          sphere.position.y = 0;
+        // Animate spheres based on simulated frequencies (representing Bass to Treble)
+        for (let i = 0; i < sphereCount; i++) {
+          const sphere = spheres[i];
+          let freq = 0.15;
+
+          if (currentIsPlaying && !currentIsLoading) {
+            if (i === 0) freq = Math.sin(elapsedTime * 7.5) * 0.35 + 0.5 + Math.random() * 0.15;
+            else if (i === 1) freq = Math.cos(elapsedTime * 10) * 0.3 + 0.4 + Math.random() * 0.12;
+            else if (i === 2) freq = Math.sin(elapsedTime * 13) * 0.25 + 0.35 + Math.random() * 0.1;
+            else if (i === 3) freq = Math.cos(elapsedTime * 17) * 0.2 + 0.3 + Math.random() * 0.08;
+            else freq = Math.sin(elapsedTime * 23) * 0.15 + 0.2 + Math.random() * 0.08;
+          }
+
+          // Apply scale pulse
+          const targetScale = 1.0 + freq * 0.45 * currentSettings.sensitivity;
+          const currentScale = sphere.scale.x;
+          const baseSize = currentSettings.sphereSize;
+          const s = currentScale + (targetScale - currentScale) * 0.25;
+          
+          sphere.scale.set(s * baseSize, s * baseSize, s * baseSize);
+
+          // Spin
+          sphere.rotation.y = elapsedTime * (0.35 + i * 0.08) * currentSettings.speed;
+          sphere.rotation.x = elapsedTime * (0.15 - i * 0.04) * currentSettings.speed;
+
+          // Glow intensity
+          if (currentTheme.id !== 'line') {
+            sphere.material.emissiveIntensity = 0.1 + freq * 0.35 * currentSettings.sensitivity;
+          }
+
+          // Apply deforms (floating Y axis bounce for beat mode)
+          if (currentSettings.preset === 'beat') {
+            sphere.position.y = Math.sin(elapsedTime * (5 + i) * currentSettings.speed) * freq * 0.35 * currentSettings.sensitivity;
+          } else {
+            sphere.position.y = 0;
+          }
         }
-      }
 
-      renderer.render(scene, camera);
-      reqId = requestAnimationFrame(animate);
-    };
+        renderer.render(scene, camera);
+        reqId = requestAnimationFrame(animate);
+      };
 
-    animate();
+      animate();
+    } catch (e) {
+      console.error('Three.js Init Error:', e);
+      setInitError(e.message || e.toString());
+    }
 
     // Resize and spacing handler
     const handleResize = () => {
-      if (!container) return;
-      const w = container.clientWidth;
-      const h = container.clientHeight;
+      if (!container || !renderer || !scene) return;
+      const w = container.clientWidth || 800;
+      const h = container.clientHeight || 350;
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
       renderer.setSize(w, h);
@@ -342,23 +410,56 @@ function ThreeVisualizer({ isPlaying, isLoading, theme, settings }) {
       // Compress layout spacing for narrower screens (mobiles)
       const shrinkFactor = w < 480 ? 0.58 : (w < 640 ? 0.78 : 1.0);
       for (let i = 0; i < sphereCount; i++) {
-        spheres[i].position.x = (i - (sphereCount - 1) / 2) * sphereSpacing * shrinkFactor;
+        if (spheres[i]) {
+          spheres[i].position.x = (i - (sphereCount - 1) / 2) * sphereSpacing * shrinkFactor;
+        }
       }
     };
 
     window.addEventListener('resize', handleResize);
-    handleResize();
+    
+    // Trigger resize after a small delay to make sure layout has settled
+    const resizeTimeout = setTimeout(handleResize, 100);
 
     return () => {
       window.removeEventListener('resize', handleResize);
+      clearTimeout(resizeTimeout);
       cancelAnimationFrame(reqId);
-      if (container.contains(renderer.domElement)) {
-        container.removeChild(renderer.domElement);
+      if (renderer) {
+        if (container.contains(renderer.domElement)) {
+          container.removeChild(renderer.domElement);
+        }
+        renderer.dispose();
       }
-      scene.clear();
-      renderer.dispose();
+      if (scene) {
+        scene.clear();
+      }
     };
-  }, [isPlaying, isLoading, theme, settings]);
+  }, []); // Empty dependency array forces single creation on mount!
+
+  if (initError) {
+    return (
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '24px',
+        textAlign: 'center',
+        gap: '12px',
+        color: '#f87171'
+      }}>
+        <span style={{ fontSize: '24px' }}>⚠️</span>
+        <h4 style={{ fontSize: '15px', fontWeight: '800', margin: 0 }}>3D 그래픽 초기화 실패</h4>
+        <p style={{ fontSize: '11px', opacity: 0.8, maxWidth: '300px', margin: 0, wordBreak: 'break-all' }}>
+          {initError}
+        </p>
+        <span style={{ fontSize: '11px', color: '#94a3b8' }}>
+          브라우저의 WebGL 설정이나 가속 기능이 켜져 있는지 확인해 주세요.
+        </span>
+      </div>
+    );
+  }
 
   return <div ref={mountRef} style={{ width: '100%', height: '100%' }} />;
 }
@@ -492,7 +593,11 @@ export default function Radio() {
         
         ctx.fillStyle = gradient;
         ctx.beginPath();
-        ctx.roundRect(x, y, barWidth, bars[i], 3);
+        if (ctx.roundRect) {
+          ctx.roundRect(x, y, barWidth, bars[i], 3);
+        } else {
+          ctx.rect(x, y, barWidth, bars[i]);
+        }
         ctx.fill();
       }
 
