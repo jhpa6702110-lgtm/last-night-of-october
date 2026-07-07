@@ -181,10 +181,28 @@ function ThreeVisualizer({ isPlaying, isLoading, theme, settings }) {
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
       container.appendChild(renderer.domElement);
 
-      // 2. Add Spheres (5 music-reactive spheres)
+      // Create glowing circular particle texture using Canvas
+      const pCanvas = document.createElement('canvas');
+      pCanvas.width = 16;
+      pCanvas.height = 16;
+      const pCtx = pCanvas.getContext('2d');
+      const grad = pCtx.createRadialGradient(8, 8, 0, 8, 8, 8);
+      grad.addColorStop(0, 'rgba(255,255,255,1)');
+      grad.addColorStop(1, 'rgba(255,255,255,0)');
+      pCtx.fillStyle = grad;
+      pCtx.fillRect(0, 0, 16, 16);
+      
+      const pTexture = new THREE.CanvasTexture(pCanvas);
+
+      // 2. Add Spheres (5 music-reactive particle spheres)
       const spheres = [];
       const sphereCount = 5;
       const sphereSpacing = 2.6;
+      
+      // Store original coordinates and geometry buffer arrays to animate them smoothly
+      const sphereOriginalPositions = [];
+      const spherePositionsAttrs = [];
+      const particleCountPerSphere = 1000;
 
       const getColorsForTheme = (themeId) => {
         switch (themeId) {
@@ -210,21 +228,60 @@ function ThreeVisualizer({ isPlaying, isLoading, theme, settings }) {
       const colors = getColorsForTheme(initialThemeId);
 
       for (let i = 0; i < sphereCount; i++) {
-        const geometry = new THREE.SphereGeometry(0.8, 32, 32);
+        const pGeometry = new THREE.BufferGeometry();
+        const positions = new Float32Array(particleCountPerSphere * 3);
+        const originalPos = new Float32Array(particleCountPerSphere * 3);
+        const colorsArr = new Float32Array(particleCountPerSphere * 3);
         
-        const material = new THREE.MeshPhongMaterial({
-          color: colors[i],
-          emissive: colors[i],
-          emissiveIntensity: initialThemeId === 'line' ? 0.8 : 0.15,
-          shininess: 100,
-          specular: 0xffffff,
-          wireframe: initialThemeId === 'line'
+        const baseColor = new THREE.Color(colors[i]);
+        
+        for (let j = 0; j < particleCountPerSphere; j++) {
+          // Distribute points on sphere surface + some thickness depth
+          const u = Math.random();
+          const v = Math.random();
+          const theta = u * 2.0 * Math.PI;
+          const phi = Math.acos(2.0 * v - 1.0);
+          
+          const r = 0.75 + Math.random() * 0.22; // radius between 0.75 and 0.97
+          
+          const x = r * Math.sin(phi) * Math.cos(theta);
+          const y = r * Math.sin(phi) * Math.sin(theta);
+          const z = r * Math.cos(phi);
+          
+          positions[j * 3] = x;
+          positions[j * 3 + 1] = y;
+          positions[j * 3 + 2] = z;
+          
+          originalPos[j * 3] = x;
+          originalPos[j * 3 + 1] = y;
+          originalPos[j * 3 + 2] = z;
+          
+          const c = baseColor.clone().multiplyScalar(0.75 + Math.random() * 0.4);
+          colorsArr[j * 3] = c.r;
+          colorsArr[j * 3 + 1] = c.g;
+          colorsArr[j * 3 + 2] = c.b;
+        }
+        
+        pGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        pGeometry.setAttribute('color', new THREE.BufferAttribute(colorsArr, 3));
+        
+        const material = new THREE.PointsMaterial({
+          size: initialThemeId === 'line' ? 0.1 : 0.14,
+          map: pTexture,
+          transparent: true,
+          opacity: 0.9,
+          vertexColors: true,
+          blending: THREE.AdditiveBlending,
+          depthWrite: false
         });
         
-        const sphere = new THREE.Mesh(geometry, material);
-        sphere.position.x = (i - (sphereCount - 1) / 2) * sphereSpacing;
-        scene.add(sphere);
-        spheres.push(sphere);
+        const particleSphere = new THREE.Points(pGeometry, material);
+        particleSphere.position.x = (i - (sphereCount - 1) / 2) * sphereSpacing;
+        scene.add(particleSphere);
+        spheres.push(particleSphere);
+        
+        sphereOriginalPositions.push(originalPos);
+        spherePositionsAttrs.push(pGeometry.getAttribute('position'));
       }
 
       // 3. Add Orbiting Nebula Particles (Max 1200)
@@ -254,19 +311,6 @@ function ThreeVisualizer({ isPlaying, isLoading, theme, settings }) {
 
       pGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
       pGeometry.setAttribute('color', new THREE.BufferAttribute(colorsArr, 3));
-
-      // Circular glow texture using Canvas
-      const pCanvas = document.createElement('canvas');
-      pCanvas.width = 16;
-      pCanvas.height = 16;
-      const pCtx = pCanvas.getContext('2d');
-      const grad = pCtx.createRadialGradient(8, 8, 0, 8, 8, 8);
-      grad.addColorStop(0, 'rgba(255,255,255,1)');
-      grad.addColorStop(1, 'rgba(255,255,255,0)');
-      pCtx.fillStyle = grad;
-      pCtx.fillRect(0, 0, 16, 16);
-      
-      const pTexture = new THREE.CanvasTexture(pCanvas);
 
       const pMaterial = new THREE.PointsMaterial({
         size: 0.18,
@@ -314,7 +358,7 @@ function ThreeVisualizer({ isPlaying, isLoading, theme, settings }) {
           const colorPrimary = new THREE.Color(newColors[0]);
           const colorSecondary = new THREE.Color(newColors[2]);
           
-          // Update particle vertex colors dynamically
+          // Update space dust particles colors
           const colorsAttr = pGeometry.getAttribute && pGeometry.getAttribute('color');
           if (colorsAttr) {
             for (let k = 0; k < maxParticles; k++) {
@@ -325,22 +369,34 @@ function ThreeVisualizer({ isPlaying, isLoading, theme, settings }) {
             colorsAttr.needsUpdate = true;
           }
 
+          // Update particle spheres colors and sizes
           for (let i = 0; i < sphereCount; i++) {
-            spheres[i].material.color.setHex(newColors[i]);
-            if (currentTheme.id === 'line') {
-              spheres[i].material.emissive.setHex(0xffffff);
-              spheres[i].material.emissiveIntensity = 0.8;
-              spheres[i].material.wireframe = true;
-            } else {
-              spheres[i].material.emissive.setHex(newColors[i]);
-              spheres[i].material.emissiveIntensity = 0.15;
-              spheres[i].material.wireframe = false;
+            const sphereColors = getColorsForTheme(currentTheme.id);
+            const sphereColor = new THREE.Color(sphereColors[i]);
+            
+            const sphereGeometry = spheres[i].geometry;
+            const sphereColorsAttr = sphereGeometry.getAttribute && sphereGeometry.getAttribute('color');
+            
+            if (sphereColorsAttr) {
+              for (let j = 0; j < particleCountPerSphere; j++) {
+                const c = sphereColor.clone().multiplyScalar(0.75 + Math.random() * 0.4);
+                sphereColorsAttr.setXYZ(j, c.r, c.g, c.b);
+              }
+              sphereColorsAttr.needsUpdate = true;
             }
+            
+            // Alter sizes based on theme (Line Art uses sharper points)
+            if (currentTheme.id === 'line') {
+              spheres[i].material.size = 0.1;
+            } else {
+              spheres[i].material.size = 0.14;
+            }
+            
             pointLights[i].color.setHex(newColors[i]);
           }
         }
 
-        // Sync settings
+        // Sync settings for surrounding space dust
         if (particleSystem) {
           particleSystem.visible = currentSettings.preset !== 'minimal';
           if (particleSystem.visible) {
@@ -350,11 +406,13 @@ function ThreeVisualizer({ isPlaying, isLoading, theme, settings }) {
           }
         }
 
-        // Animate spheres based on simulated frequencies (representing Bass to Treble)
+        // Animate individual particles in the spheres (Bass to Treble ripples)
         for (let i = 0; i < sphereCount; i++) {
           const sphere = spheres[i];
+          const originalPos = sphereOriginalPositions[i];
+          const posAttr = spherePositionsAttrs[i];
+          
           let freq = 0.15;
-
           if (currentIsPlaying && !currentIsLoading) {
             if (i === 0) freq = Math.sin(elapsedTime * 7.5) * 0.35 + 0.5 + Math.random() * 0.15;
             else if (i === 1) freq = Math.cos(elapsedTime * 10) * 0.3 + 0.4 + Math.random() * 0.12;
@@ -363,26 +421,43 @@ function ThreeVisualizer({ isPlaying, isLoading, theme, settings }) {
             else freq = Math.sin(elapsedTime * 23) * 0.15 + 0.2 + Math.random() * 0.08;
           }
 
-          // Apply scale pulse
-          const targetScale = 1.0 + freq * 0.45 * currentSettings.sensitivity;
-          const currentScale = sphere.scale.x;
           const baseSize = currentSettings.sphereSize;
-          const s = currentScale + (targetScale - currentScale) * 0.25;
-          
-          sphere.scale.set(s * baseSize, s * baseSize, s * baseSize);
+          const sensitivity = currentSettings.sensitivity;
+          const speed = currentSettings.speed;
 
-          // Spin
-          sphere.rotation.y = elapsedTime * (0.35 + i * 0.08) * currentSettings.speed;
-          sphere.rotation.x = elapsedTime * (0.15 - i * 0.04) * currentSettings.speed;
-
-          // Glow intensity
-          if (currentTheme.id !== 'line') {
-            sphere.material.emissiveIntensity = 0.1 + freq * 0.35 * currentSettings.sensitivity;
+          // Perform vertex-level wave deformation
+          const positions = posAttr.array;
+          for (let j = 0; j < particleCountPerSphere; j++) {
+            const x = originalPos[j * 3];
+            const y = originalPos[j * 3 + 1];
+            const z = originalPos[j * 3 + 2];
+            
+            const length = Math.sqrt(x*x + y*y + z*z);
+            
+            // Ripple wave noise math based on coordinates, time, and speed multiplier
+            const noise = Math.sin(x * 2.5 + elapsedTime * 3.5 * speed) * 
+                          Math.cos(y * 2.5 + elapsedTime * 2.5 * speed) * 
+                          Math.sin(z * 2.5 + elapsedTime * 4.0 * speed) * 0.16;
+            
+            const wave = noise * freq * sensitivity;
+            
+            // Pulsing radius
+            const currentRadius = length * (1.0 + freq * 0.35 * sensitivity) + wave;
+            
+            // Normalize direction vector and scale by size
+            positions[j * 3] = (x / length) * currentRadius * baseSize;
+            positions[j * 3 + 1] = (y / length) * currentRadius * baseSize;
+            positions[j * 3 + 2] = (z / length) * currentRadius * baseSize;
           }
+          posAttr.needsUpdate = true;
+
+          // Spin the entire particle sphere slightly
+          sphere.rotation.y = elapsedTime * (0.2 + i * 0.05) * speed;
+          sphere.rotation.x = elapsedTime * (0.1 - i * 0.03) * speed;
 
           // Apply deforms (floating Y axis bounce for beat mode)
           if (currentSettings.preset === 'beat') {
-            sphere.position.y = Math.sin(elapsedTime * (5 + i) * currentSettings.speed) * freq * 0.35 * currentSettings.sensitivity;
+            sphere.position.y = Math.sin(elapsedTime * (5 + i) * speed) * freq * 0.35 * sensitivity;
           } else {
             sphere.position.y = 0;
           }
