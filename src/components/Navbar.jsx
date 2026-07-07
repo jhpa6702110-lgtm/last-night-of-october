@@ -57,7 +57,8 @@ export default function Navbar({ activeTab, setActiveTab, session, alumniProfile
         <span style={{
           fontSize: '20px',
           fontWeight: '700',
-          letterSpacing: '-0.5px'
+          letterSpacing: '-0.5px',
+          whiteSpace: 'nowrap'
         }} className="text-gradient">
           시월의 마지막 밤
         </span>
@@ -279,7 +280,7 @@ export default function Navbar({ activeTab, setActiveTab, session, alumniProfile
 
       {/* Responsive Inline CSS */}
       <style>{`
-        @media (max-width: 768px) {
+        @media (max-width: 1080px) {
           .desktop-nav {
             display: none !important;
           }
