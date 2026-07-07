@@ -78,9 +78,69 @@ export default function Friends({ session, alumniProfile }) {
     fetchFriends();
   }, []);
 
-  const handleAvatarFileChange = (e) => {
+  const compressAvatar = (file) => {
+    return new Promise((resolve) => {
+      if (!file.type.startsWith('image/')) {
+        resolve(file);
+        return;
+      }
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target.result;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 300;
+          const MAX_HEIGHT = 300;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+
+          canvas.toBlob((blob) => {
+            if (blob) {
+              const origName = file.name;
+              const dotIndex = origName.lastIndexOf('.');
+              const baseName = dotIndex !== -1 ? origName.substring(0, dotIndex) : origName;
+              const compressedFile = new File([blob], `${baseName}_avatar.jpg`, {
+                type: 'image/jpeg',
+                lastModified: Date.now(),
+              });
+              resolve(compressedFile);
+            } else {
+              resolve(file);
+            }
+          }, 'image/jpeg', 0.8);
+        };
+        img.onerror = () => resolve(file);
+      };
+      reader.onerror = () => resolve(file);
+    });
+  };
+
+  const handleAvatarFileChange = async (e) => {
     if (e.target.files && e.target.files[0]) {
-      setFormAvatarFile(e.target.files[0]);
+      const originalFile = e.target.files[0];
+      setFormAvatarFile(originalFile); // Set immediate filename
+      
+      const compressed = await compressAvatar(originalFile);
+      setFormAvatarFile(compressed);
     }
   };
 

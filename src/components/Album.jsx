@@ -92,9 +92,68 @@ export default function Album({ session, alumniProfile }) {
     setActiveImageIndex(null);
   };
 
-  const handleCoverFileChange = (e) => {
+  const compressImage = (file) => {
+    return new Promise((resolve) => {
+      if (!file.type.startsWith('image/')) {
+        resolve(file);
+        return;
+      }
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target.result;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 1200;
+          const MAX_HEIGHT = 1200;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+
+          canvas.toBlob((blob) => {
+            if (blob) {
+              const origName = file.name;
+              const dotIndex = origName.lastIndexOf('.');
+              const baseName = dotIndex !== -1 ? origName.substring(0, dotIndex) : origName;
+              const compressedFile = new File([blob], `${baseName}_compressed.jpg`, {
+                type: 'image/jpeg',
+                lastModified: Date.now(),
+              });
+              resolve(compressedFile);
+            } else {
+              resolve(file);
+            }
+          }, 'image/jpeg', 0.7);
+        };
+        img.onerror = () => resolve(file);
+      };
+      reader.onerror = () => resolve(file);
+    });
+  };
+
+  const handleCoverFileChange = async (e) => {
     if (e.target.files && e.target.files[0]) {
-      setAlbumCoverFile(e.target.files[0]);
+      const originalFile = e.target.files[0];
+      setAlbumCoverFile(originalFile);
+      const compressed = await compressImage(originalFile);
+      setAlbumCoverFile(compressed);
     }
   };
 
@@ -249,6 +308,15 @@ export default function Album({ session, alumniProfile }) {
         ? prev.filter(id => id !== photoId) 
         : [...prev, photoId]
     );
+  };
+
+  const handleAlbumPhotoFileChange = async (e) => {
+    if (e.target.files && e.target.files[0]) {
+      const originalFile = e.target.files[0];
+      setAlbumPhotoFile(originalFile);
+      const compressed = await compressImage(originalFile);
+      setAlbumPhotoFile(compressed);
+    }
   };
 
   // Upload photo directly to album
@@ -779,11 +847,7 @@ export default function Album({ session, alumniProfile }) {
                     type="file"
                     accept="image/*"
                     required
-                    onChange={(e) => {
-                      if (e.target.files && e.target.files[0]) {
-                        setAlbumPhotoFile(e.target.files[0]);
-                      }
-                    }}
+                    onChange={handleAlbumPhotoFileChange}
                     style={{
                       position: 'absolute',
                       top: 0,
