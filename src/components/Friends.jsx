@@ -44,8 +44,13 @@ export default function Friends({ session, alumniProfile }) {
 
       if (error) throw error;
 
-      // Sort friends: President -> Treasurer -> Member
+      // Sort friends: Me -> President -> Treasurer -> Member
       const sorted = (data || []).sort((a, b) => {
+        const isSelfA = a.auth_id === session?.user?.id;
+        const isSelfB = b.auth_id === session?.user?.id;
+        if (isSelfA && !isSelfB) return -1;
+        if (!isSelfA && isSelfB) return 1;
+
         // Rank computed value
         const getRank = (p) => {
           if (p.is_president && p.is_treasurer) return 0; // President + Treasurer

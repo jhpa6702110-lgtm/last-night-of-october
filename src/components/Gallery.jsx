@@ -34,6 +34,17 @@ export default function Gallery({ session, alumniProfile }) {
   const [replyToId, setReplyToId] = useState(null); // Parent comment ID for replies
   const [replyText, setReplyText] = useState('');
 
+  // Edit post state
+  const [isEditingPost, setIsEditingPost] = useState(false);
+  const [editPostTitle, setEditPostTitle] = useState('');
+  const [editPostDesc, setEditPostDesc] = useState('');
+  const [editPostTags, setEditPostTags] = useState('');
+  const [updatingPost, setUpdatingPost] = useState(false);
+
+  // Edit comment state
+  const [editingCommentId, setEditingCommentId] = useState(null);
+  const [editingCommentText, setEditingCommentText] = useState('');
+
   // Calculate tag frequencies dynamically from posts
   const getDynamicTags = () => {
     const counts = {};
@@ -95,6 +106,7 @@ export default function Gallery({ session, alumniProfile }) {
   useEffect(() => {
     if (!selectedPost) {
       setComments([]);
+      setIsEditingPost(false);
       return;
     }
 
@@ -257,6 +269,110 @@ export default function Gallery({ session, alumniProfile }) {
     }
   };
 
+  const handleStartEditPost = () => {
+    if (!selectedPost) return;
+    setEditPostTitle(selectedPost.title);
+    setEditPostDesc(selectedPost.description || '');
+    setEditPostTags((selectedPost.tags || []).join(', '));
+    setIsEditingPost(true);
+  };
+
+  const handleEditPostSubmit = async (e) => {
+    e.preventDefault();
+    if (!editPostTitle.trim()) return;
+    setUpdatingPost(true);
+    try {
+      const tagsArray = editPostTags
+        .split(',')
+        .map(t => t.trim().replace('#', ''))
+        .filter(t => t.length > 0);
+      
+      if (tagsArray.length === 0) tagsArray.push('업로드');
+
+      const { data, error } = await supabase
+        .from('gallery')
+        .update({
+          title: editPostTitle.trim(),
+          description: editPostDesc.trim(),
+          tags: tagsArray
+        })
+        .eq('id', selectedPost.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Update local state
+      setPosts(prev => prev.map(p => p.id === selectedPost.id ? { ...p, title: data.title, description: data.description, tags: data.tags } : p));
+      setSelectedPost(data);
+      setIsEditingPost(false);
+      triggerConfetti();
+    } catch (err) {
+      console.error('Error updating post:', err);
+      alert('게시글 수정 중 오류가 발생했습니다.');
+    } finally {
+      setUpdatingPost(false);
+    }
+  };
+
+  const handleDeletePost = async () => {
+    if (!selectedPost) return;
+    if (!window.confirm('정말로 이 사진을 삭제하시겠습니까? 이 사진에 작성된 모든 댓글도 함께 삭제됩니다.')) return;
+    
+    try {
+      const { error } = await supabase
+        .from('gallery')
+        .delete()
+        .eq('id', selectedPost.id);
+
+      if (error) throw error;
+
+      // Reset states
+      setSelectedPost(null);
+      setIsEditingPost(false);
+      fetchPosts();
+    } catch (err) {
+      console.error('Error deleting post:', err);
+      alert('게시글 삭제 중 오류가 발생했습니다.');
+    }
+  };
+
+  const handleEditCommentSubmit = async (commentId) => {
+    if (!editingCommentText.trim()) return;
+    try {
+      const { error } = await supabase
+        .from('comments')
+        .update({ content: editingCommentText.trim() })
+        .eq('id', commentId);
+
+      if (error) throw error;
+
+      setComments(prev => prev.map(c => c.id === commentId ? { ...c, content: editingCommentText.trim() } : c));
+      setEditingCommentId(null);
+      setEditingCommentText('');
+    } catch (err) {
+      console.error('Error updating comment:', err);
+      alert('댓글 수정 중 오류가 발생했습니다.');
+    }
+  };
+
+  const handleDeleteComment = async (commentId) => {
+    if (!window.confirm('정말로 이 댓글을 삭제하시겠습니까?')) return;
+    try {
+      const { error } = await supabase
+        .from('comments')
+        .delete()
+        .eq('id', commentId);
+
+      if (error) throw error;
+
+      setComments(prev => prev.filter(c => c.id !== commentId));
+    } catch (err) {
+      console.error('Error deleting comment:', err);
+      alert('댓글 삭제 중 오류가 발생했습니다.');
+    }
+  };
+
   const handleAddComment = async (e, parentId = null) => {
     e.preventDefault();
     const content = parentId ? replyText : newCommentText;
@@ -329,31 +445,108 @@ export default function Gallery({ session, alumniProfile }) {
             {new Date(comment.created_at).toLocaleDateString()}
           </span>
         </div>
-        <p style={{ fontSize: '14px', lineHeight: '1.5', color: '#e2e8f0' }}>{comment.content}</p>
-        
-        {/* Reply trigger button */}
-        {depth < 2 && ( // Limit depth of replies
-          <button
-            onClick={() => {
-              setReplyToId(comment.id);
-              setReplyText('');
+        {editingCommentId === comment.id ? (
+          <form 
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleEditCommentSubmit(comment.id);
             }}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: 'var(--color-secondary)',
-              fontSize: '12px',
-              cursor: 'pointer',
-              marginTop: '6px',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '4px'
-            }}
+            style={{ display: 'flex', gap: '8px', marginTop: '8px', width: '100%' }}
           >
-            <MessageCircle size={12} />
-            답글 달기
-          </button>
+            <input
+              type="text"
+              required
+              className="input-field"
+              style={{ minHeight: '36px', height: '36px', fontSize: '13px', padding: '6px 12px', flex: 1 }}
+              value={editingCommentText}
+              onChange={(e) => setEditingCommentText(e.target.value)}
+            />
+            <button 
+              type="submit" 
+              className="btn btn-primary"
+              style={{ minHeight: '36px', height: '36px', padding: '0 12px', fontSize: '13px' }}
+            >
+              저장
+            </button>
+            <button 
+              type="button" 
+              className="btn btn-secondary"
+              onClick={() => {
+                setEditingCommentId(null);
+                setEditingCommentText('');
+              }}
+              style={{ minHeight: '36px', height: '36px', padding: '0 12px', fontSize: '13px' }}
+            >
+              취소
+            </button>
+          </form>
+        ) : (
+          <p style={{ fontSize: '14px', lineHeight: '1.5', color: '#e2e8f0' }}>{comment.content}</p>
         )}
+        
+        {/* Comment actions panel */}
+        <div style={{ display: 'flex', gap: '12px', marginTop: '6px', alignItems: 'center' }}>
+          {/* Reply trigger button */}
+          {depth < 2 && editingCommentId !== comment.id && ( // Limit depth of replies
+            <button
+              onClick={() => {
+                setReplyToId(comment.id);
+                setReplyText('');
+              }}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: 'var(--color-secondary)',
+                fontSize: '12px',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}
+            >
+              <MessageCircle size={12} />
+              답글 달기
+            </button>
+          )}
+
+          {editingCommentId !== comment.id && (comment.author_id === alumniProfile?.id || alumniProfile?.is_president || alumniProfile?.is_treasurer) && (
+            <>
+              <button
+                onClick={() => {
+                  setEditingCommentId(comment.id);
+                  setEditingCommentText(comment.content);
+                }}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'var(--color-secondary)',
+                  fontSize: '12px',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}
+              >
+                편집
+              </button>
+              <button
+                onClick={() => handleDeleteComment(comment.id)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'rgba(239, 68, 68, 0.8)',
+                  fontSize: '12px',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}
+              >
+                삭제
+              </button>
+            </>
+          )}
+        </div>
 
         {/* Reply Input Form */}
         {replyToId === comment.id && (
@@ -785,30 +978,125 @@ export default function Gallery({ session, alumniProfile }) {
                 flex: 1,
                 borderLeft: '1px solid rgba(255,255,255,0.06)'
               }}>
-                <div style={{ overflowY: 'auto', flex: 1, paddingRight: '4px' }}>
-                  {/* Header Title */}
-                  <h3 style={{ fontSize: '20px', fontWeight: '700', marginBottom: '8px' }}>
-                    {selectedPost.title}
-                  </h3>
-                  
-                  {/* Tags */}
-                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '15px' }}>
-                    {(selectedPost.tags || []).map(t => (
-                      <span key={t} style={{ fontSize: '11px', color: 'var(--accent-cyan)', fontWeight: '600' }}>#{t}</span>
-                    ))}
-                  </div>
+                <div style={{ overflowY: 'auto', flex: 1, paddingRight: '4px', display: 'flex', flexDirection: 'column' }}>
+                  {isEditingPost ? (
+                    <form onSubmit={handleEditPostSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                      <div className="input-group" style={{ marginBottom: '0' }}>
+                        <label className="input-label" style={{ fontSize: '12px' }}>제목</label>
+                        <input
+                          type="text"
+                          required
+                          className="input-field"
+                          style={{ minHeight: '38px', height: '38px', fontSize: '14px', padding: '6px 12px' }}
+                          value={editPostTitle}
+                          onChange={(e) => setEditPostTitle(e.target.value)}
+                        />
+                      </div>
 
-                  {/* Metadata */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: 'var(--color-secondary)', paddingBottom: '16px', borderBottom: '1px solid rgba(255,255,255,0.06)', marginBottom: '16px' }}>
-                    <span>작성자: <strong style={{ color: 'var(--color-primary)' }}>{selectedPost.author_name}</strong></span>
-                    <span>{new Date(selectedPost.created_at).toLocaleDateString()}</span>
-                  </div>
+                      <div className="input-group" style={{ marginBottom: '0' }}>
+                        <label className="input-label" style={{ fontSize: '12px' }}>태그 (쉼표로 구분)</label>
+                        <input
+                          type="text"
+                          className="input-field"
+                          style={{ minHeight: '38px', height: '38px', fontSize: '14px', padding: '6px 12px' }}
+                          value={editPostTags}
+                          onChange={(e) => setEditPostTags(e.target.value)}
+                        />
+                      </div>
 
-                  {/* Description */}
-                  {selectedPost.description && (
-                    <p style={{ fontSize: '14px', lineHeight: '1.6', color: '#cbd5e1', marginBottom: '24px', whiteSpace: 'pre-wrap' }}>
-                      {selectedPost.description}
-                    </p>
+                      <div className="input-group" style={{ marginBottom: '0' }}>
+                        <label className="input-label" style={{ fontSize: '12px' }}>설명</label>
+                        <textarea
+                          className="input-field"
+                          style={{ minHeight: '100px', fontSize: '14px', padding: '8px 12px', resize: 'vertical' }}
+                          value={editPostDesc}
+                          onChange={(e) => setEditPostDesc(e.target.value)}
+                        />
+                      </div>
+
+                      <div style={{ display: 'flex', gap: '10px', alignSelf: 'flex-end', marginTop: '5px' }}>
+                        <button 
+                          type="button" 
+                          className="btn btn-secondary" 
+                          onClick={() => setIsEditingPost(false)}
+                          style={{ minHeight: '34px', height: '34px', padding: '0 12px', fontSize: '13px' }}
+                        >
+                          취소
+                        </button>
+                        <button 
+                          type="submit" 
+                          disabled={updatingPost} 
+                          className="btn btn-primary"
+                          style={{ minHeight: '34px', height: '34px', padding: '0 12px', fontSize: '13px' }}
+                        >
+                          {updatingPost ? '저장 중...' : '저장 완료'}
+                        </button>
+                      </div>
+                    </form>
+                  ) : (
+                    <>
+                      {/* Header Title */}
+                      <h3 style={{ fontSize: '20px', fontWeight: '700', marginBottom: '8px' }}>
+                        {selectedPost.title}
+                      </h3>
+                      
+                      {/* Tags */}
+                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '15px' }}>
+                        {(selectedPost.tags || []).map(t => (
+                          <span key={t} style={{ fontSize: '11px', color: 'var(--accent-cyan)', fontWeight: '600' }}>#{t}</span>
+                        ))}
+                      </div>
+
+                      {/* Metadata */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px', color: 'var(--color-secondary)', paddingBottom: '16px', borderBottom: '1px solid rgba(255,255,255,0.06)', marginBottom: '16px' }}>
+                        <div>
+                          <span>작성자: <strong style={{ color: 'var(--color-primary)' }}>{selectedPost.author_name}</strong></span>
+                          <span style={{ marginLeft: '12px' }}>{new Date(selectedPost.created_at).toLocaleDateString()}</span>
+                        </div>
+                        
+                        {((alumniProfile?.id && selectedPost.author_id === alumniProfile.id) || alumniProfile?.is_president || alumniProfile?.is_treasurer) && (
+                          <div style={{ display: 'flex', gap: '8px' }}>
+                            <button
+                              onClick={handleStartEditPost}
+                              style={{
+                                background: 'transparent',
+                                border: 'none',
+                                color: 'var(--color-secondary)',
+                                fontSize: '12px',
+                                cursor: 'pointer',
+                                padding: '2px 6px',
+                                borderRadius: '4px',
+                                border: '1px solid rgba(255,255,255,0.1)'
+                              }}
+                            >
+                              편집
+                            </button>
+                            <button
+                              onClick={handleDeletePost}
+                              style={{
+                                background: 'transparent',
+                                border: 'none',
+                                color: 'rgba(239, 68, 68, 0.8)',
+                                fontSize: '12px',
+                                cursor: 'pointer',
+                                padding: '2px 6px',
+                                borderRadius: '4px',
+                                border: '1px solid rgba(239,68,68,0.2)'
+                              }}
+                            >
+                              삭제
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Description */}
+                      {selectedPost.description && (
+                        <p style={{ fontSize: '14px', lineHeight: '1.6', color: '#cbd5e1', marginBottom: '24px', whiteSpace: 'pre-wrap' }}>
+                          {selectedPost.description}
+                        </p>
+                      )}
+                    </>
                   )}
 
                   {/* Comments Section */}
