@@ -4,6 +4,7 @@ import Home from './components/Home';
 import Gallery from './components/Gallery';
 import Album from './components/Album';
 import Cinema from './components/Cinema';
+import Radio from './components/Radio';
 import Friends from './components/Friends';
 import Admin from './components/Admin';
 import Auth from './components/Auth';
@@ -314,6 +315,9 @@ export default function App() {
 
       case 'cinema':
         return <Cinema />;
+
+      case 'radio':
+        return <Radio />;
 
       case 'friends':
         // Guard tab for authenticated users
