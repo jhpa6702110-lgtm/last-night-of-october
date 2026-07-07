@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Home, Image, BookOpen, Users, Lock, LogOut, LogIn, Menu, X, Download } from 'lucide-react';
+import { Home, Image, BookOpen, Users, Lock, LogOut, LogIn, Menu, X, Download, Film } from 'lucide-react';
 
 export default function Navbar({ activeTab, setActiveTab, session, alumniProfile, onLogout, onInstallApp }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -10,6 +10,7 @@ export default function Navbar({ activeTab, setActiveTab, session, alumniProfile
     { id: 'home', label: '홈', icon: Home, public: true },
     { id: 'gallery', label: '갤러리', icon: Image, public: false },
     { id: 'album', label: '앨범', icon: BookOpen, public: false },
+    { id: 'cinema', label: '영화관', icon: Film, public: true },
     { id: 'friends', label: '친구들', icon: Users, public: false },
     ...(isAdmin ? [{ id: 'admin', label: '관리자', icon: Lock, public: false }] : []),
   ];

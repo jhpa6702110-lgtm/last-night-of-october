@@ -3,6 +3,7 @@ import Navbar from './components/Navbar';
 import Home from './components/Home';
 import Gallery from './components/Gallery';
 import Album from './components/Album';
+import Cinema from './components/Cinema';
 import Friends from './components/Friends';
 import Admin from './components/Admin';
 import Auth from './components/Auth';
@@ -277,6 +278,9 @@ export default function App() {
         ) : (
           <Auth key={`auth-${authKey}`} onAuthSuccess={(s) => { setSession(s); setActiveTab('album'); }} />
         );
+
+      case 'cinema':
+        return <Cinema />;
 
       case 'friends':
         // Guard tab for authenticated users

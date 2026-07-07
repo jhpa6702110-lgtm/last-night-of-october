@@ -1,0 +1,50 @@
+/* ============= Hero Background (Poster Tile) ============= */
+.hero-background {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    opacity: 0.25; /* 조금 더 은은하게 조정하여 글씨 시인성 향상 */
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 0.75rem;
+    pointer-events: none;
+    transform: rotate(-6deg) scale(1.15) translateY(-5%);
+    transition: opacity 0.5s ease;
+}
+
+.hero-background-item {
+    width: 100%;
+    aspect-ratio: 2/3;
+    border-radius: 0.75rem;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.hero-background-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: grayscale(0.4) contrast(1.1);
+    transition: filter 0.3s ease;
+}
+
+[data-theme="light"] .hero-background {
+    opacity: 0.12; /* 라이트 모드에서는 포스터 격자를 매우 옅게 처리 */
+}
+
+[data-theme="light"] .hero-background-item img {
+    filter: grayscale(0.8) opacity(0.6);
+}
+
+/* 포스터 페이드인 등장 애니메이션 */
+@keyframes fadeInPoster {
+    from {
+        opacity: 0;
+        transform: scale(0.9) translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}

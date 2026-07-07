@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎬 톱니바꿈의 영화 개봉 정보 | Movie Premiere Info</title>
+    <!-- Tailwind CSS (Aesthetic Utility Layout) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        slate: {
+                            950: '#07070b',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Playfair+Display:wght@700&family=Outfit:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/hero-bg.css">
+</head>
+
+<body class="min-h-screen transition-colors duration-300">
+    <!-- Header -->
+    <header class="header-gradient sticky top-0 z-50 backdrop-blur-xl">
+        <div class="container mx-auto px-4 py-3.5">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="text-3xl cursor-pointer hover:scale-110 transition-transform" onclick="openSplashModal()" title="스플래시 화면 열기">🎬</div>
+                    <div>
+                        <h1 class="text-xl md:text-2xl tracking-tight flex items-baseline gap-2">
+                            <span class="font-extrabold bg-gradient-to-r from-sky-400 via-blue-500 to-indigo-500 bg-clip-text text-transparent font-[Outfit]" data-i18n="brand-name">톱니바꿈의</span>
+                            <span class="font-light app-title-sub hidden sm:inline" data-i18n="app-title-thin">영화 개봉 정보</span>
+                        </h1>
+                    </div>
+                </div>
+                
+                <div class="flex items-center gap-3.5">
+                    <!-- API 상태 표시 배너 -->
+                    <div id="api-status-alert"></div>
+
+                    <!-- 다국어 및 테마 토글 모듈 -->
+                    <div class="flex items-center bg-slate-800/40 dark:bg-slate-800/40 light:bg-slate-200/50 backdrop-blur-md rounded-full p-1 border border-slate-700/30">
+                        <button id="lang-toggle" class="px-2.5 py-1 rounded-full text-[10px] font-black transition-all hover:bg-slate-700/50 w-10 text-center">
+                            KO
+                        </button>
+                        <div class="w-[1px] h-3.5 bg-slate-700/50 mx-1"></div>
+                        <button id="theme-toggle" class="p-1 rounded-full text-[11px] transition-all hover:bg-slate-700/50" title="테마 변경">
+                            <i class="fas fa-moon" id="theme-icon-dark"></i>
+                            <i class="fas fa-sun hidden" id="theme-icon-light"></i>
+                        </button>
+                    </div>
+
+                    <!-- 설정 기어 아이콘 (API 관리) -->
+                    <button id="settings-btn" class="p-2 bg-slate-800/40 hover:bg-slate-700/40 border border-slate-700/30 rounded-full text-xs text-gray-400 hover:text-white transition-all" title="API 설정">
+                        <i class="fas fa-cog"></i>
+                    </button>
+
+                    <div class="hidden lg:flex items-center gap-2 text-xs text-gray-400">
+                        <i class="fas fa-calendar-alt text-sky-400"></i>
+                        <span id="current-week"></span>
+                    </div>
+
+                    <button id="filter-btn" class="px-4 py-1.5 bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/20 hover:border-sky-500/30 text-sky-400 rounded-full text-xs font-bold transition-all flex items-center gap-1.5">
+                        <i class="fas fa-filter"></i>
+                        <span data-i18n="filter">필터</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Filter Panel -->
+    <div id="filter-panel" class="hidden filter-panel py-6 border-b">
+        <div class="container mx-auto px-4">
+            <!-- 기간 필터 -->
+            <div class="flex flex-wrap gap-4 items-center justify-center mb-5">
+                <div class="flex items-center gap-2">
+                    <span class="text-gray-400 text-xs font-semibold uppercase tracking-wider"><i class="fas fa-calendar-week mr-1 text-sky-400"></i>기간:</span>
+                    <div class="flex flex-wrap gap-2" id="period-filters">
+                        <button class="period-btn active" data-period="week" data-i18n="period-week">이번 주</button>
+                        <button class="period-btn" data-period="month" data-i18n="period-month">이번 달</button>
+                        <button class="period-btn" data-period="year" data-i18n="period-year">올해</button>
+                        <button class="period-btn" data-period="custom" data-i18n="period-custom">기간검색</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 기간검색 날짜 선택 -->
+            <div id="custom-date-range" class="hidden flex flex-wrap gap-3 items-center justify-center mb-5 bg-slate-900/10 dark:bg-slate-900/30 light:bg-slate-200/20 p-3 rounded-xl max-w-lg mx-auto border border-slate-700/10">
+                <div class="flex items-center gap-2">
+                    <label class="text-gray-400 text-xs font-medium" data-i18n="start-date">시작일:</label>
+                    <input type="date" id="date-start" class="date-input">
+                </div>
+                <div class="flex items-center gap-2">
+                    <label class="text-gray-400 text-xs font-medium" data-i18n="end-date">종료일:</label>
+                    <input type="date" id="date-end" class="date-input">
+                </div>
+                <button id="apply-date-range" class="apply-date-btn">
+                    <i class="fas fa-search mr-1"></i><span data-i18n="apply">적용</span>
+                </button>
+            </div>
+
+            <!-- 장르 필터 -->
+            <div class="flex flex-wrap gap-4 items-center justify-center">
+                <div class="flex items-center gap-2">
+                    <span class="text-gray-400 text-xs font-semibold uppercase tracking-wider"><i class="fas fa-masks-theater mr-1 text-pink-400"></i><span data-i18n="genre">장르</span>:</span>
+                    <div class="flex flex-wrap gap-2" id="genre-filters">
+                        <button class="genre-btn active" data-genre="all" data-i18n="genre-all">전체</button>
+                        <button class="genre-btn" data-genre="action" data-i18n="genre-action">액션</button>
+                        <button class="genre-btn" data-genre="drama" data-i18n="genre-drama">드라마</button>
+                        <button class="genre-btn" data-genre="comedy" data-i18n="genre-comedy">코미디</button>
+                        <button class="genre-btn" data-genre="horror" data-i18n="genre-horror">공포</button>
+                        <button class="genre-btn" data-genre="animation" data-i18n="genre-animation">애니메이션</button>
+                        <button class="genre-btn" data-genre="sf" data-i18n="genre-sf">SF</button>
+                        <button class="genre-btn" data-genre="romance" data-i18n="genre-romance">로맨스</button>
+                        <button class="genre-btn" data-genre="thriller" data-i18n="genre-thriller">스릴러</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hero Section -->
+    <section id="hero" class="relative overflow-hidden py-16 md:py-24">
+        <!-- 배경 포스터 컨테이너 -->
+        <div id="hero-background" class="hero-background"></div>
+        <div class="absolute inset-0 z-0" style="background: linear-gradient(to bottom, var(--hero-overlay-start) 0%, var(--hero-overlay-mid) 50%, var(--bg-primary) 100%);"></div>
+
+        <div class="container mx-auto px-4 relative z-10">
+            <div class="text-center max-w-4xl mx-auto">
+                <!-- 전세계 통계 문구 -->
+                <div class="global-stats-banner mb-6">
+                    <p class="text-sm md:text-base text-gray-200" id="stats-banner-text">
+                        <i class="fas fa-globe-americas text-sky-400 mr-2"></i>
+                        전세계 <span id="total-countries" class="font-bold text-blue-400">0</span>개 국가의
+                        <span id="total-all-movies" class="font-bold text-indigo-400">0</span>편의 영화정보를 제공합니다.
+                    </p>
+                </div>
+
+                <h2 class="text-4xl md:text-6xl mb-8 leading-tight tracking-tight font-[Outfit]">
+                    <span class="block hero-title font-light" data-i18n="hero-title-1">극장에서 만나는</span>
+                    <span class="font-black bg-gradient-to-r from-sky-400 via-blue-500 to-indigo-500 bg-clip-text text-transparent" data-i18n="hero-title-2">
+                        새로운 이야기들
+                    </span>
+                </h2>
+
+                <!-- SEARCH BAR -->
+                <div class="max-w-xl mx-auto mb-12">
+                    <div class="relative group">
+                        <input type="text" id="movie-search-input" class="w-full bg-slate-900/60 dark:bg-slate-900/60 light:bg-white/80 backdrop-blur-xl border border-slate-700/30 dark:border-slate-700/30 light:border-slate-300 rounded-full py-3.5 px-6 pl-12 text-sm text-white dark:text-white light:text-slate-900 placeholder-slate-500 focus:outline-none focus:border-sky-500/50 focus:ring-1 focus:ring-sky-500/20 transition-all shadow-xl" placeholder="영화 제목을 검색하세요..." data-i18n-placeholder="search-placeholder">
+                        <i class="fas fa-search absolute left-5 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-sky-400 transition-colors text-sm"></i>
+                        <button id="search-btn" class="absolute right-2 top-1/2 -translate-y-1/2 bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white text-xs px-5 py-2.5 rounded-full font-bold transition-all shadow-md active:scale-95" data-i18n="search-btn">
+                            검색
+                        </button>
+                    </div>
+                </div>
+
+                <p class="text-gray-400 text-sm md:text-base mb-8 font-medium" id="period-description" data-i18n="week">
+                    이번 주 개봉하는 영화들을 한눈에 확인하세요
+                </p>
+                
+                <!-- D-day 통계 카드 -->
+                <div class="flex justify-center gap-4 flex-wrap">
+                    <div class="stat-card">
+                        <span class="text-2xl font-black text-sky-400" id="total-movies" data-target="0">0</span>
+                        <span class="text-xs text-gray-500 mt-1 font-semibold" data-i18n="stat-movies">개봉작</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="text-2xl font-black text-blue-400" id="korean-movies" data-target="0">0</span>
+                        <span class="text-xs text-gray-500 mt-1 font-semibold" data-i18n="stat-korean">한국영화</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="text-2xl font-black text-indigo-400" id="foreign-movies" data-target="0">0</span>
+                        <span class="text-xs text-gray-500 mt-1 font-semibold" data-i18n="stat-foreign">외국영화</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Featured Movie -->
+    <section id="featured" class="py-10">
+        <div class="container mx-auto px-4 max-w-5xl">
+            <h3 class="section-title mb-6 flex items-center gap-2">
+                <i class="fas fa-star text-amber-500"></i>
+                <span data-i18n="featured-title">주목할 영화</span>
+            </h3>
+            <div id="featured-movie" class="featured-card">
+                <!-- Featured movie will be inserted here -->
+            </div>
+        </div>
+    </section>
+
+    <!-- Movie Grid -->
+    <section id="movies" class="py-12">
+        <div class="container mx-auto px-4">
+            <h3 class="section-title mb-8 flex items-center gap-2">
+                <i class="fas fa-film text-sky-500"></i>
+                <span id="movie-section-title">이번 주 전체 개봉작</span>
+            </h3>
+            <div id="movie-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-5">
+                <!-- Movies will be inserted here -->
+            </div>
+        </div>
+    </section>
+
+    <!-- Movie Modal -->
+    <div id="movie-modal" class="modal hidden">
+        <div class="modal-backdrop" onclick="closeModal()"></div>
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeModal()">
+                <i class="fas fa-times"></i>
+            </button>
+            <div id="modal-body">
+                <!-- Modal content will be inserted here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Person Modal -->
+    <div id="person-modal" class="modal hidden">
+        <div class="modal-backdrop" onclick="closePersonModal()"></div>
+        <div class="modal-content person-modal-content">
+            <button class="modal-close" onclick="closePersonModal()">
+                <i class="fas fa-times"></i>
+            </button>
+            <div id="person-modal-body">
+                <!-- Person content will be inserted here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Splash Modal -->
+    <div id="splash-modal" class="modal hidden">
+        <div class="modal-backdrop" onclick="closeSplashModal()"></div>
+        <div class="modal-content splash-modal-content">
+            <button class="modal-close" onclick="closeSplashModal()">
+                <i class="fas fa-times"></i>
+            </button>
+            <div class="splash-modal-body">
+                <div class="splash-image-container">
+                    <img src="splash.jpg" alt="Splash Image" class="splash-image">
+                </div>
+                <div class="splash-info-container">
+                    <h2 class="splash-title">
+                        <span class="font-extrabold bg-gradient-to-r from-sky-400 to-indigo-500 bg-clip-text text-transparent font-[Outfit]" data-i18n="brand-name">톱니바꿈의</span>
+                        <span class="font-thin app-title-sub">영화 개봉 정보</span>
+                    </h2>
+
+                    <div class="splash-tech-stack">
+                        <span>HTML5</span>
+                        <span>CSS3 Glassmorphism</span>
+                        <span>Tailwind CSS</span>
+                        <span>Vanilla JS (ES6+)</span>
+                        <span>TMDB API</span>
+                    </div>
+
+                    <div class="splash-footer mt-4 border-t border-slate-700/20 pt-3">
+                        <p>© 2026 Developed by <span class="font-bold text-amber-500">톱니바꿈</span></p>
+                        <p class="text-[10px] text-gray-500 mt-1">Real-time Cinema Release Tracker</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- API Config Modal (Settings) -->
+    <div id="api-modal" class="modal hidden">
+        <div class="modal-backdrop" onclick="closeApiModal()"></div>
+        <div class="modal-content api-modal-content">
+            <button class="modal-close" onclick="closeApiModal()">
+                <i class="fas fa-times"></i>
+            </button>
+            <div class="api-modal-body">
+                <h3 class="text-lg font-bold mb-2 flex items-center gap-2 text-sky-400 font-[Outfit]">
+                    <i class="fas fa-cog"></i> <span data-i18n="api-setup-title">TMDB API 설정</span>
+                </h3>
+                <p class="text-xs text-gray-400 mb-4 leading-relaxed" data-i18n="api-setup-desc">
+                    실시간 영화 데이터를 제공받으려면 API 키 또는 토큰을 입력해 주세요. 입력하지 않거나 미인증 시 내장된 데모 데이터를 사용합니다.
+                </p>
+                
+                <!-- API 키 발급 가이드 -->
+                <div class="bg-slate-900/40 p-4 rounded-xl border border-slate-700/30 mb-5 text-[11px] text-slate-400 leading-relaxed">
+                    <h4 class="font-bold text-slate-300 mb-2 flex items-center gap-1.5">
+                        <i class="fas fa-info-circle text-sky-400"></i> <span data-i18n="api-guide-title">API 키 발급 방법:</span>
+                    </h4>
+                    <ol class="list-decimal list-inside space-y-1.5 pl-1">
+                        <li data-i18n="api-guide-step1">TMDB(themoviedb.org) 회원가입 및 로그인</li>
+                        <li data-i18n="api-guide-step2">우측 상단 프로필 > '설정(Settings)' > 'API' 메뉴 이동</li>
+                        <li data-i18n="api-guide-step3">'API 키 요청' 클릭 후 개발자(Developer) 유형으로 신청서 작성</li>
+                        <li data-i18n="api-guide-step4">생성된 <b>API 키 (v3 auth)</b> 또는 <b>읽기 액세스 토큰 (v4 auth)</b>을 복사하여 아래에 입력</li>
+                    </ol>
+                </div>
+                
+                <div class="flex flex-col gap-4">
+                    <div class="api-input-group">
+                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wide" data-i18n="api-key-label">API Key</label>
+                        <input type="text" id="api-key-input" class="api-input-field" placeholder="ex) 3a1b2c3d4e...">
+                    </div>
+                    
+                    <div class="api-input-group">
+                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wide" data-i18n="api-token-label">Bearer Token (선택)</label>
+                        <textarea id="api-token-input" class="api-input-field h-24 resize-none text-[11px]" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."></textarea>
+                    </div>
+                    
+                    <div class="flex gap-2.5 mt-3">
+                        <button id="save-api-btn" class="flex-1 py-2.5 bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-bold rounded-xl text-xs transition-all shadow-md" data-i18n="save">
+                            저장 및 새로고침
+                        </button>
+                        <button id="clear-api-btn" class="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-gray-300 font-bold rounded-xl text-xs transition-all" data-i18n="clear">
+                            지우기
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer-section border-t border-slate-800 py-12 mt-20">
+        <div class="container mx-auto px-4">
+            <div class="text-center">
+                <div class="flex flex-wrap justify-center gap-2.5 mb-8 text-[9px] font-bold uppercase tracking-widest text-gray-500">
+                    <span class="px-3 py-1 bg-slate-900/30 rounded-full border border-slate-800/60 backdrop-blur-sm">HTML5</span>
+                    <span class="px-3 py-1 bg-slate-900/30 rounded-full border border-slate-800/60 backdrop-blur-sm">CSS3 Variable</span>
+                    <span class="px-3 py-1 bg-slate-900/30 rounded-full border border-slate-800/60 backdrop-blur-sm">Tailwind CSS</span>
+                    <span class="px-3 py-1 bg-slate-900/30 rounded-full border border-slate-800/60 backdrop-blur-sm">Vanilla JS</span>
+                    <span class="px-3 py-1 bg-slate-900/30 rounded-full border border-slate-800/60 backdrop-blur-sm">TMDB API</span>
+                </div>
+
+                <div class="text-xs text-gray-500">
+                    <p class="mb-4">
+                        <i class="fas fa-info-circle mr-1 text-sky-400"></i>
+                        <span data-i18n="tmdb-info">영화 정보는 TMDB API를 통해 제공됩니다.</span>
+                    </p>
+                    <p class="font-medium">© 2026 Developed by <a href="mailto:topnibakkum@gmail.com" class="text-amber-500 hover:text-amber-400 transition-colors font-bold">톱니바꿈</a> | All Rights Reserved</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- App Scripts -->
+    <script src="js/config.js"></script>
+    <script src="js/movies-data.js"></script>
+    <script src="js/app.js"></script>
+</body>
+
+</html>
