@@ -1,10 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Home, Image, BookOpen, Users, Lock, LogOut, LogIn, Menu, X, Download, Film, Radio } from 'lucide-react';
 
 export default function Navbar({ activeTab, setActiveTab, session, alumniProfile, onLogout, onInstallApp, isKakaoTalk, isInAppBrowser }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isStandalone, setIsStandalone] = useState(false);
+
+  useEffect(() => {
+    const checkStandalone = 
+      window.matchMedia('(display-mode: standalone)').matches || 
+      window.navigator.standalone || 
+      document.referrer.includes('android-app://');
+    
+    setIsStandalone(!!checkStandalone);
+  }, []);
 
   const isAdmin = alumniProfile?.is_president || alumniProfile?.is_treasurer;
+
+  const showInstallButton = !(isStandalone || isKakaoTalk || isInAppBrowser);
 
   const navItems = [
     { id: 'home', label: '홈', icon: Home, public: true },
@@ -100,34 +112,38 @@ export default function Navbar({ activeTab, setActiveTab, session, alumniProfile
           );
         })}
 
-        <button
-          onClick={onInstallApp}
-          style={{
-            background: 'transparent',
-            color: 'var(--accent-cyan)',
-            border: '1px solid rgba(34, 211, 238, 0.3)',
-            borderRadius: '10px',
-            padding: '8px 16px',
-            fontSize: '15px',
-            fontWeight: '500',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            cursor: 'pointer',
-            transition: 'var(--transition-smooth)'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'rgba(34, 211, 238, 0.08)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'transparent';
-          }}
-        >
-          <Download size={16} />
-          앱 설치
-        </button>
+        {showInstallButton && (
+          <button
+            onClick={onInstallApp}
+            style={{
+              background: 'transparent',
+              color: 'var(--accent-cyan)',
+              border: '1px solid rgba(34, 211, 238, 0.3)',
+              borderRadius: '10px',
+              padding: '8px 16px',
+              fontSize: '15px',
+              fontWeight: '500',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              cursor: 'pointer',
+              transition: 'var(--transition-smooth)'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'rgba(34, 211, 238, 0.08)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'transparent';
+            }}
+          >
+            <Download size={16} />
+            앱 설치
+          </button>
+        )}
 
-        <div style={{ width: '1px', height: '20px', background: 'rgba(255, 255, 255, 0.1)', margin: '0 8px' }} />
+        {showInstallButton && (
+          <div style={{ width: '1px', height: '20px', background: 'rgba(255, 255, 255, 0.1)', margin: '0 8px' }} />
+        )}
 
         {session ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -224,31 +240,35 @@ export default function Navbar({ activeTab, setActiveTab, session, alumniProfile
             );
           })}
           
-          <div style={{ height: '1px', background: 'rgba(255, 255, 255, 0.1)', margin: '8px 0' }} />
-          
-          <div style={{ padding: '0 8px', marginBottom: '8px' }}>
-            <button
-              onClick={() => {
-                onInstallApp();
-                setIsMenuOpen(false);
-              }}
-              className="btn btn-secondary"
-              style={{ 
-                width: '100%', 
-                minHeight: '44px',
-                borderColor: 'var(--accent-cyan)',
-                color: 'var(--accent-cyan)',
-                background: 'rgba(34, 211, 238, 0.05)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '12px'
-              }}
-            >
-              <Download size={18} />
-              바탕화면에 앱 설치
-            </button>
-          </div>
+          {showInstallButton && (
+            <>
+              <div style={{ height: '1px', background: 'rgba(255, 255, 255, 0.1)', margin: '8px 0' }} />
+              
+              <div style={{ padding: '0 8px', marginBottom: '8px' }}>
+                <button
+                  onClick={() => {
+                    onInstallApp();
+                    setIsMenuOpen(false);
+                  }}
+                  className="btn btn-secondary"
+                  style={{ 
+                    width: '100%', 
+                    minHeight: '44px',
+                    borderColor: 'var(--accent-cyan)',
+                    color: 'var(--accent-cyan)',
+                    background: 'rgba(34, 211, 238, 0.05)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '12px'
+                  }}
+                >
+                  <Download size={18} />
+                  바탕화면에 앱 설치
+                </button>
+              </div>
+            </>
+          )}
 
           {session ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '0 8px' }}>
