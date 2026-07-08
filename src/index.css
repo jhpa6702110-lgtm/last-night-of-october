@@ -187,8 +187,13 @@ body {
   to { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes pageFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
 .fade-in {
-  animation: fadeIn 0.5s ease forwards;
+  animation: pageFadeIn 0.5s ease forwards;
 }
 
 /* Overlay / Modal */
