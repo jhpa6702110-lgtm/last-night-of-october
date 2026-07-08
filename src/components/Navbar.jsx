@@ -209,7 +209,9 @@ export default function Navbar({ activeTab, setActiveTab, session, alumniProfile
           flexDirection: 'column',
           gap: '8px',
           borderRadius: '16px',
-          border: '1px solid rgba(255, 255, 255, 0.08)'
+          border: '1px solid rgba(255, 255, 255, 0.08)',
+          background: 'rgba(14, 22, 43, 0.98)', // Highly opaque dark blue to prevent background text bleed-through
+          boxShadow: '0 20px 40px rgba(0, 0, 0, 0.6)'
         }}>
           {navItems.map((item) => {
             const Icon = item.icon;
@@ -271,19 +273,46 @@ export default function Navbar({ activeTab, setActiveTab, session, alumniProfile
           )}
 
           {session ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '0 8px' }}>
-              <div style={{ fontSize: '15px', color: 'var(--color-secondary)', marginBottom: '4px' }}>
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center', 
+              padding: '12px 8px 4px 8px', 
+              marginTop: '4px', 
+              borderTop: '1px solid rgba(255, 255, 255, 0.1)' 
+            }}>
+              <span style={{ fontSize: '15px', color: 'var(--color-secondary)', fontWeight: '500' }}>
                 {alumniProfile?.name || '친구'} 님
-              </div>
+              </span>
               <button
                 onClick={() => {
                   onLogout();
                   setIsMenuOpen(false);
                 }}
-                className="btn btn-secondary"
-                style={{ width: '100%', minHeight: '44px' }}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'rgba(255, 255, 255, 0.5)',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '6px 10px',
+                  borderRadius: '8px',
+                  transition: 'var(--transition-smooth)'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = '#ef4444';
+                  e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = 'rgba(255, 255, 255, 0.5)';
+                  e.currentTarget.style.background = 'transparent';
+                }}
               >
-                <LogOut size={16} />
+                <LogOut size={14} />
                 로그아웃
               </button>
             </div>
