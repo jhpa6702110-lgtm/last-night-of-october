@@ -145,6 +145,17 @@ export default function Gallery({ session, alumniProfile }) {
     incrementView();
   }, [selectedPost]);
 
+  // Reset upload form states when modal is closed
+  useEffect(() => {
+    if (!showUploadModal) {
+      setUploadTitle('');
+      setUploadDesc('');
+      setUploadTags('');
+      setUploadFile(null);
+      setUploadError('');
+    }
+  }, [showUploadModal]);
+
   const handleLike = async (postId, e) => {
     e.stopPropagation(); // Prevent opening lightbox
     const post = posts.find(p => p.id === postId);
@@ -231,9 +242,31 @@ export default function Gallery({ session, alumniProfile }) {
   const handleFileChange = async (e) => {
     if (e.target.files && e.target.files[0]) {
       const originalFile = e.target.files[0];
+      
+      // 1. File size check (max 30MB)
+      const MAX_SIZE = 30 * 1024 * 1024; // 30MB
+      if (originalFile.size > MAX_SIZE) {
+        setUploadError(`파일 크기가 너무 큽니다. 최대 30MB 이하만 업로드 가능합니다. (선택한 파일: ${(originalFile.size / (1024 * 1024)).toFixed(1)}MB)`);
+        setUploadFile(null);
+        e.target.value = ''; // Reset input
+        return;
+      }
+
+      // 2. Video format check (.mov from iPhones gets rejected by storage bucket, only allow .mp4)
+      const fileExt = originalFile.name.split('.').pop().toLowerCase();
+      const isVideo = originalFile.type.startsWith('video/') || ['.mp4', '.mov', '.avi', '.wmv', '.mkv', '.3gp'].includes('.' + fileExt);
+      
+      if (isVideo && fileExt !== 'mp4' && originalFile.type !== 'video/mp4') {
+        setUploadError('동영상은 .mp4 형식만 업로드 가능합니다. 아이폰 동영상(.mov)의 경우 카카오톡 나에게 보내기를 통해 다운로드(자동 변환)하거나 동영상 변환 앱을 이용하여 .mp4 파일로 올려주세요.');
+        setUploadFile(null);
+        e.target.value = ''; // Reset input
+        return;
+      }
+
+      setUploadError(''); // Clear error
       setUploadFile(originalFile); // Display filename immediately
 
-      // Compress asynchronously
+      // Compress asynchronously (images only)
       const compressed = await compressImage(originalFile);
       setUploadFile(compressed);
     }
