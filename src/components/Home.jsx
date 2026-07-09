@@ -15,6 +15,7 @@ export default function Home({ session, alumniProfile, setActiveTab }) {
   const [recentPhotos, setRecentPhotos] = useState([]);
   const [topRankers, setTopRankers] = useState([]);
   const [showNotice, setShowNotice] = useState(false);
+  const [noticeTitle, setNoticeTitle] = useState('');
   const [noticeContent, setNoticeContent] = useState('');
   const [dontShowNoticeToday, setDontShowNoticeToday] = useState(false);
 
@@ -61,18 +62,27 @@ export default function Home({ session, alumniProfile, setActiveTab }) {
           setHeroImages(customHeros.map(item => item.image_url));
         }
 
-        // 4. Fetch notice/announcement (using adminSettings or custom check)
-        // For simplicity, we can fetch the latest text-based post in 'gallery' tagged #공지사항
-        const { data: noticePosts } = await supabase
-          .from('gallery')
+        // 4. Fetch latest board post (is_notice: true가 우선, 없으면 일반 최신글)
+        let { data: noticePosts } = await supabase
+          .from('board')
           .select('*')
-          .contains('tags', ['공지사항'])
+          .eq('is_notice', true)
           .order('created_at', { ascending: false })
           .limit(1);
 
+        if (!noticePosts || noticePosts.length === 0) {
+          const { data: latestGeneral } = await supabase
+            .from('board')
+            .select('*')
+            .order('created_at', { ascending: false })
+            .limit(1);
+          noticePosts = latestGeneral;
+        }
+
         if (noticePosts && noticePosts.length > 0) {
           const latestNotice = noticePosts[0];
-          setNoticeContent(latestNotice.description || latestNotice.title);
+          setNoticeTitle(latestNotice.title);
+          setNoticeContent(latestNotice.content);
           
           // Check localStorage "do not show today" flag
           const lastNoticeDismissed = localStorage.getItem('notice_dismissed_time');
@@ -412,11 +422,11 @@ export default function Home({ session, alumniProfile, setActiveTab }) {
       {/* Notice / Announcement Overlay Popup */}
       {showNotice && (
         <div className="modal-overlay">
-          <div className="glass modal-content" style={{ maxWidth: '500px', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
+          <div className="glass modal-content" style={{ maxWidth: '500px', border: '1px solid rgba(6, 182, 212, 0.2)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent-red)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent-cyan)' }}>
                 <AlertCircle size={20} />
-                <span style={{ fontWeight: '700', fontSize: '18px' }}>공지사항</span>
+                <span style={{ fontWeight: '700', fontSize: '18px' }}>최신 소식</span>
               </div>
               <button 
                 onClick={handleCloseNotice} 
@@ -426,13 +436,22 @@ export default function Home({ session, alumniProfile, setActiveTab }) {
               </button>
             </div>
             
+            <h4 style={{ fontSize: '16px', fontWeight: '700', marginBottom: '12px', color: 'var(--color-primary)', textAlign: 'left' }}>
+              {noticeTitle}
+            </h4>
+
             <div style={{ 
               background: 'rgba(255, 255, 255, 0.03)', 
               padding: '20px', 
               borderRadius: '10px', 
               marginBottom: '20px',
               lineHeight: '1.6',
-              whiteSpace: 'pre-wrap'
+              whiteSpace: 'pre-wrap',
+              fontSize: '14px',
+              color: 'var(--color-secondary)',
+              textAlign: 'left',
+              maxHeight: '260px',
+              overflowY: 'auto'
             }}>
               {noticeContent}
             </div>
