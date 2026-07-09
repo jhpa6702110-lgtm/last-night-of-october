@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../utils/supabaseClient';
 import { Search, Plus, ThumbsUp, Eye, MessageSquare, X, UploadCloud, MessageCircle } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { shareImageToKakao } from '../utils/kakaoShare';
 
 const isVideoUrl = (url) => {
   if (!url) return false;
@@ -1271,10 +1272,39 @@ export default function Gallery({ session, alumniProfile, onAwardActivityPoint }
 
                       {/* Description */}
                       {selectedPost.description && (
-                        <p style={{ fontSize: '14px', lineHeight: '1.6', color: '#cbd5e1', marginBottom: '24px', whiteSpace: 'pre-wrap' }}>
+                        <p style={{ fontSize: '14px', lineHeight: '1.6', color: '#cbd5e1', marginBottom: '20px', whiteSpace: 'pre-wrap' }}>
                           {selectedPost.description}
                         </p>
                       )}
+
+                      {/* KakaoTalk Share Button */}
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '24px' }}>
+                        <button
+                          onClick={() => shareImageToKakao(selectedPost, 'gallery')}
+                          style={{
+                            background: '#fee500',
+                            color: '#1e293b',
+                            border: 'none',
+                            borderRadius: '8px',
+                            padding: '6px 12px',
+                            fontSize: '12px',
+                            fontWeight: '700',
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            boxShadow: '0 2px 6px rgba(254, 229, 0, 0.2)',
+                            transition: 'var(--transition-smooth)'
+                          }}
+                          onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
+                          onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 3c-5.52 0-10 3.73-10 8.33 0 2.98 1.87 5.58 4.7 6.96-.34 1.28-1.23 4.54-1.26 4.67-.04.16.05.3.2.22.11-.06 1.83-1.24 3.7-2.52.84.23 1.73.37 2.66.37 5.52 0 10-3.73 10-8.33S17.52 3 12 3z"/>
+                          </svg>
+                          카톡 단톡방에 사진 보내기
+                        </button>
+                      </div>
                     </>
                   )}
 

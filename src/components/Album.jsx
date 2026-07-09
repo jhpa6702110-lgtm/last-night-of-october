@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../utils/supabaseClient';
 import { FolderPlus, BookOpen, ChevronLeft, Plus, X, UploadCloud, Trash2 } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { shareImageToKakao } from '../utils/kakaoShare';
 
 export default function Album({ session, alumniProfile, onAwardActivityPoint }) {
   const [albums, setAlbums] = useState([]);
@@ -1151,10 +1152,38 @@ export default function Album({ session, alumniProfile, onAwardActivityPoint }) 
               >
                 이전 사진
               </button>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', alignSelf: 'center' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', alignSelf: 'center' }}>
                 <span style={{ fontSize: '14px', color: 'var(--color-secondary)' }}>
                   {activeImageIndex + 1} / {albumImages.length}
                 </span>
+
+                {/* KakaoTalk Share Button */}
+                <button
+                  onClick={() => shareImageToKakao(albumImages[activeImageIndex], 'album')}
+                  style={{
+                    background: '#fee500',
+                    color: '#1e293b',
+                    border: 'none',
+                    borderRadius: '6px',
+                    padding: '4px 10px',
+                    fontSize: '11px',
+                    fontWeight: '700',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    boxShadow: '0 2px 4px rgba(254, 229, 0, 0.15)',
+                    transition: 'var(--transition-smooth)'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
+                  onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 3c-5.52 0-10 3.73-10 8.33 0 2.98 1.87 5.58 4.7 6.96-.34 1.28-1.23 4.54-1.26 4.67-.04.16.05.3.2.22.11-.06 1.83-1.24 3.7-2.52.84.23 1.73.37 2.66.37 5.52 0 10-3.73 10-8.33S17.52 3 12 3z"/>
+                  </svg>
+                  카톡 보내기
+                </button>
+
                 {(alumniProfile?.is_president || 
                   alumniProfile?.is_treasurer || 
                   (activeImageAuthorId && activeImageAuthorId === alumniProfile?.id)) && (
