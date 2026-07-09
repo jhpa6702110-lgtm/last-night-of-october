@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../utils/supabaseClient';
 import { Image, Users, BookOpen, AlertCircle, X, ChevronRight } from 'lucide-react';
 
@@ -15,6 +15,75 @@ export default function Home({ session, alumniProfile, setActiveTab }) {
   const [recentPhotos, setRecentPhotos] = useState([]);
   const [topRankers, setTopRankers] = useState([]);
   const [activeImageUrl, setActiveImageUrl] = useState(null);
+  
+  // Pinch-to-zoom & Pan states for mobile image viewer
+  const [scale, setScale] = useState(1);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const touchStartRef = useRef({ distance: 0, x: 0, y: 0, scale: 1 });
+
+  const handleTouchStart = (e) => {
+    const touches = e.touches;
+    if (touches.length === 1) {
+      // Single touch for panning
+      touchStartRef.current.x = touches[0].clientX - position.x;
+      touchStartRef.current.y = touches[0].clientY - position.y;
+    } else if (touches.length === 2) {
+      // Multi touch for pinching
+      const dist = Math.hypot(
+        touches[0].clientX - touches[1].clientX,
+        touches[0].clientY - touches[1].clientY
+      );
+      touchStartRef.current.distance = dist;
+      touchStartRef.current.scale = scale;
+    }
+  };
+
+  const handleTouchMove = (e) => {
+    const touches = e.touches;
+    if (touches.length === 1 && scale > 1) {
+      // Pan only when zoomed in
+      const newX = touches[0].clientX - touchStartRef.current.x;
+      const newY = touches[0].clientY - touchStartRef.current.y;
+      setPosition({ x: newX, y: newY });
+    } else if (touches.length === 2) {
+      // Prevent browser default gesture zoom
+      if (e.cancelable) e.preventDefault();
+      const dist = Math.hypot(
+        touches[0].clientX - touches[1].clientX,
+        touches[0].clientY - touches[1].clientY
+      );
+      const factor = dist / touchStartRef.current.distance;
+      const newScale = Math.max(1, Math.min(touchStartRef.current.scale * factor, 4));
+      setScale(newScale);
+      
+      if (newScale === 1) {
+        setPosition({ x: 0, y: 0 });
+      }
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (scale <= 1) {
+      setScale(1);
+      setPosition({ x: 0, y: 0 });
+    }
+  };
+
+  const handleDoubleClick = () => {
+    if (scale > 1) {
+      setScale(1);
+      setPosition({ x: 0, y: 0 });
+    } else {
+      setScale(2.5);
+    }
+  };
+
+  const handleCloseLightbox = () => {
+    setActiveImageUrl(null);
+    setScale(1);
+    setPosition({ x: 0, y: 0 });
+  };
+
   const [showNotice, setShowNotice] = useState(false);
   const [noticeTitle, setNoticeTitle] = useState('');
   const [noticeContent, setNoticeContent] = useState('');
@@ -480,50 +549,75 @@ export default function Home({ session, alumniProfile, setActiveTab }) {
       {activeImageUrl && (
         <div 
           className="modal-overlay" 
-          onClick={() => setActiveImageUrl(null)}
+          onClick={handleCloseLightbox}
           style={{
             position: 'fixed',
             top: 0,
             left: 0,
             right: 0,
             bottom: 0,
-            background: 'rgba(7, 11, 25, 0.95)',
+            background: 'rgba(7, 11, 25, 0.96)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             zIndex: 9999,
-            cursor: 'zoom-out'
+            overflow: 'hidden',
+            touchAction: 'none' // Prevent default browser scrolling/zooming gestures
           }}
         >
-          <div style={{ position: 'relative', maxWidth: '90%', maxHeight: '90%' }} onClick={(e) => e.stopPropagation()}>
+          <div 
+            style={{ 
+              position: 'relative', 
+              maxWidth: '90%', 
+              maxHeight: '90%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }} 
+            onClick={(e) => e.stopPropagation()}
+          >
             <img 
               src={activeImageUrl} 
               alt="크게 보기" 
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+              onDoubleClick={handleDoubleClick}
               style={{ 
                 maxWidth: '100%', 
                 maxHeight: '85vh', 
                 borderRadius: '12px', 
                 boxShadow: '0 20px 50px rgba(0,0,0,0.8)',
-                border: '1px solid rgba(255,255,255,0.1)'
+                border: '1px solid rgba(255,255,255,0.15)',
+                transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
+                transition: scale === 1 ? 'transform 0.25s cubic-bezier(0.1, 0.76, 0.55, 0.94)' : 'none',
+                cursor: scale > 1 ? 'grab' : 'zoom-in',
+                userSelect: 'none',
+                WebkitUserDrag: 'none',
+                touchAction: 'none'
               }} 
             />
             <button 
-              onClick={() => setActiveImageUrl(null)}
+              onClick={handleCloseLightbox}
               style={{
-                position: 'absolute',
-                top: '-40px',
-                right: '0',
-                background: 'transparent',
-                border: 'none',
+                position: 'fixed',
+                top: '20px',
+                right: '20px',
+                background: 'rgba(0, 0, 0, 0.5)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
                 color: 'var(--color-primary)',
                 cursor: 'pointer',
-                fontSize: '16px',
+                fontSize: '14px',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '6px'
+                gap: '6px',
+                padding: '8px 16px',
+                borderRadius: '50px',
+                backdropFilter: 'blur(5px)',
+                zIndex: 10000
               }}
             >
-              <X size={20} />
+              <X size={16} />
               닫기
             </button>
           </div>
