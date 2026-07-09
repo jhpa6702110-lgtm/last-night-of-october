@@ -1,10 +1,7 @@
 /**
- * KakaoTalk Link Share Helper
- * Uses Kakao JavaScript SDK loaded in index.html
+ * KakaoTalk Link Share Helper with Native Web Share Fallbacks
  */
 
-// Fallback public demo app key (free tier Kakao developers app key)
-// Users can customize this in LocalStorage or via Admin UI
 const DEFAULT_KAKAO_JS_KEY = 'b015b672a9e3dcf68a62f483c6d123db';
 
 export const getKakaoKey = () => {
@@ -13,7 +10,6 @@ export const getKakaoKey = () => {
 
 export const saveKakaoKey = (key) => {
   localStorage.setItem('kakao_js_key', key.trim());
-  // Force re-initialization on next use
 };
 
 export const initKakao = () => {
@@ -27,7 +23,7 @@ export const initKakao = () => {
       const key = getKakaoKey();
       if (key) {
         window.Kakao.init(key);
-        console.log('Kakao SDK initialized successfully with key.');
+        console.log('Kakao SDK initialized with key.');
       }
     }
     return window.Kakao.isInitialized();
@@ -38,77 +34,123 @@ export const initKakao = () => {
 };
 
 /**
- * Share a Board post to KakaoTalk
- * @param {object} post - The post object containing title, content, id
+ * Share a Board post
  */
-export const shareBoardToKakao = (post) => {
-  if (!initKakao()) {
-    alert('카카오톡 공유 기능을 준비하는 데 실패했습니다. 잠시 후 다시 시도해 주세요.');
-    return;
-  }
-
+export const shareBoardToKakao = async (post) => {
   const shareUrl = `${window.location.origin}/?tab=board&postId=${post.id}`;
+  const shareTitle = post.title || '시월의 마지막 밤 소식';
   const cleanContent = post.content
     ? post.content.replace(/<[^>]*>?/gm, '').slice(0, 100) + '...'
     : '상세 내용을 홈페이지에서 확인해 보세요!';
 
-  window.Kakao.Share.sendDefault({
-    objectType: 'feed',
-    content: {
-      title: post.title || '시월의 마지막 밤 소식',
-      description: cleanContent,
-      imageUrl: 'https://images.unsplash.com/photo-1509114397022-ed747cca3f65?auto=format&fit=crop&q=80&w=400', // Default starry night logo image
-      link: {
-        mobileWebUrl: shareUrl,
-        webUrl: shareUrl,
-      },
-    },
-    buttons: [
-      {
-        title: '글 보러가기 🔍',
-        link: {
-          mobileWebUrl: shareUrl,
-          webUrl: shareUrl,
+  // 1. Try browser native Web Share API (100% success on mobile Chrome/Safari, bypasses API keys)
+  if (typeof navigator !== 'undefined' && navigator.share) {
+    try {
+      await navigator.share({
+        title: shareTitle,
+        text: `${shareTitle}\n\n${cleanContent}`,
+        url: shareUrl
+      });
+      console.log('Shared via Web Share API successfully');
+      return; // Stop execution on success
+    } catch (err) {
+      // User cancelled or share failed, fallback silently to Kakao SDK
+      console.log('Web Share API failed or cancelled, falling back to Kakao Link:', err);
+      if (err.name === 'AbortError') return; // User cancelled, don't trigger fallback alert
+    }
+  }
+
+  // 2. Kakao SDK Fallboard
+  if (initKakao()) {
+    try {
+      window.Kakao.Share.sendDefault({
+        objectType: 'feed',
+        content: {
+          title: shareTitle,
+          description: cleanContent,
+          imageUrl: 'https://images.unsplash.com/photo-1509114397022-ed747cca3f65?auto=format&fit=crop&q=80&w=400',
+          link: {
+            mobileWebUrl: shareUrl,
+            webUrl: shareUrl,
+          },
         },
-      },
-    ],
-  });
+        buttons: [
+          {
+            title: '글 보러가기 🔍',
+            link: {
+              mobileWebUrl: shareUrl,
+              webUrl: shareUrl,
+            },
+          },
+        ],
+      });
+      return;
+    } catch (sdkErr) {
+      console.error('Kakao SDK share failed:', sdkErr);
+    }
+  }
+
+  // 3. Last Fallback: Kakao Web Sharer URL (Desktop browser backup)
+  const fallbackUrl = `https://sharer.kakao.com/talk/friends/picker/link?app_key=${getKakaoKey()}&short_url=false&url=${encodeURIComponent(shareUrl)}`;
+  window.open(fallbackUrl, '_blank');
 };
 
 /**
- * Share a Gallery / Album image to KakaoTalk
- * @param {object} imageObj - Contains title, description, image_url, id
- * @param {string} type - 'gallery' or 'album'
+ * Share a Gallery or Album image
  */
-export const shareImageToKakao = (imageObj, type = 'gallery') => {
-  if (!initKakao()) {
-    alert('카카오톡 공유 기능을 준비하는 데 실패했습니다. 잠시 후 다시 시도해 주세요.');
-    return;
-  }
-
+export const shareImageToKakao = async (imageObj, type = 'gallery') => {
   const shareUrl = `${window.location.origin}/?tab=${type}&imageId=${imageObj.id}`;
+  const shareTitle = imageObj.title || '새로운 추억 사진 📸';
   const imageUrl = imageObj.image_url || 'https://images.unsplash.com/photo-1509114397022-ed747cca3f65?auto=format&fit=crop&q=80&w=400';
   const cleanContent = imageObj.description || '시월의 마지막 밤에서 멋진 추억 사진이 공유되었습니다!';
 
-  window.Kakao.Share.sendDefault({
-    objectType: 'feed',
-    content: {
-      title: imageObj.title || '새로운 추억 사진 📸',
-      description: cleanContent.slice(0, 100),
-      imageUrl: imageUrl,
-      link: {
-        mobileWebUrl: shareUrl,
-        webUrl: shareUrl,
-      },
-    },
-    buttons: [
-      {
-        title: '사진 크게보기 📸',
-        link: {
-          mobileWebUrl: shareUrl,
-          webUrl: shareUrl,
+  // 1. Try browser native Web Share API (Mobile native dialog)
+  if (typeof navigator !== 'undefined' && navigator.share) {
+    try {
+      await navigator.share({
+        title: shareTitle,
+        text: `${shareTitle}\n\n${cleanContent}`,
+        url: shareUrl
+      });
+      console.log('Shared image via Web Share API successfully');
+      return;
+    } catch (err) {
+      console.log('Web Share API failed or cancelled:', err);
+      if (err.name === 'AbortError') return;
+    }
+  }
+
+  // 2. Kakao SDK share
+  if (initKakao()) {
+    try {
+      window.Kakao.Share.sendDefault({
+        objectType: 'feed',
+        content: {
+          title: shareTitle,
+          description: cleanContent.slice(0, 100),
+          imageUrl: imageUrl,
+          link: {
+            mobileWebUrl: shareUrl,
+            webUrl: shareUrl,
+          },
         },
-      },
-    ],
-  });
+        buttons: [
+          {
+            title: '사진 크게보기 📸',
+            link: {
+              mobileWebUrl: shareUrl,
+              webUrl: shareUrl,
+            },
+          },
+        ],
+      });
+      return;
+    } catch (sdkErr) {
+      console.error('Kakao SDK share failed:', sdkErr);
+    }
+  }
+
+  // 3. Last Fallback: Kakao Web Sharer URL
+  const fallbackUrl = `https://sharer.kakao.com/talk/friends/picker/link?app_key=${getKakaoKey()}&short_url=false&url=${encodeURIComponent(shareUrl)}`;
+  window.open(fallbackUrl, '_blank');
 };
