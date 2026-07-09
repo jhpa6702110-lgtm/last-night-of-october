@@ -262,27 +262,56 @@ export default function App() {
 
         if (error) {
           console.warn('Error fetching alumni profile:', error.message);
-          // If profile is not found in alumni but user is signed up in auth.users
-          // We can create a default alumni profile or fetch details from user metadata
+          
           if (error.code === 'PGRST116') {
-            const { data: inserted, error: insertError } = await supabase
-              .from('alumni')
-              .insert({
-                auth_id: session.user.id,
-                name: session.user.user_metadata?.name || '신규친구',
-                phone: session.user.user_metadata?.phone || '',
-                description: '반갑습니다! 새로 오신 친구입니다.',
-                is_president: false,
-                is_treasurer: false,
-                points: 0,
-                last_visited_at: new Date().toISOString().slice(0, 10)
-              })
-              .select()
-              .single();
-            
-            if (insertError) throw insertError;
-            setAlumniProfile(inserted);
-            await checkAttendanceAndDeduction(inserted);
+            const userName = session.user.user_metadata?.name || session.user.user_metadata?.full_name || '';
+            let matchedAlumni = null;
+
+            if (userName) {
+              const { data: existingAlumni } = await supabase
+                .from('alumni')
+                .select('*')
+                .eq('name', userName)
+                .is('auth_id', null)
+                .limit(1);
+              
+              if (existingAlumni && existingAlumni.length > 0) {
+                matchedAlumni = existingAlumni[0];
+              }
+            }
+
+            if (matchedAlumni) {
+              console.log('Mapping existing alumni record with user auth_id:', matchedAlumni.name);
+              const { data: updated, error: updateError } = await supabase
+                .from('alumni')
+                .update({ auth_id: session.user.id })
+                .eq('id', matchedAlumni.id)
+                .select()
+                .single();
+              
+              if (updateError) throw updateError;
+              setAlumniProfile(updated);
+              await checkAttendanceAndDeduction(updated);
+            } else {
+              const { data: inserted, error: insertError } = await supabase
+                .from('alumni')
+                .insert({
+                  auth_id: session.user.id,
+                  name: userName || '신규친구',
+                  phone: session.user.user_metadata?.phone || '',
+                  description: '반갑습니다! 새로 오신 친구입니다.',
+                  is_president: false,
+                  is_treasurer: false,
+                  points: 0,
+                  last_visited_at: new Date().toISOString().slice(0, 10)
+                })
+                .select()
+                .single();
+              
+              if (insertError) throw insertError;
+              setAlumniProfile(inserted);
+              await checkAttendanceAndDeduction(inserted);
+            }
           }
         } else {
           setAlumniProfile(data);
