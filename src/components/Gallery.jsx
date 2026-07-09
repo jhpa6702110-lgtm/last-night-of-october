@@ -10,7 +10,7 @@ const isVideoUrl = (url) => {
   return extensions.some(ext => url.toLowerCase().includes(ext));
 };
 
-export default function Gallery({ session, alumniProfile }) {
+export default function Gallery({ session, alumniProfile, onAwardActivityPoint }) {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -345,6 +345,10 @@ export default function Gallery({ session, alumniProfile }) {
         .select();
 
       if (dbError) throw dbError;
+
+      if (onAwardActivityPoint) {
+        await onAwardActivityPoint('갤러리 사진 업로드');
+      }
 
       triggerConfetti();
       setShowUploadModal(false);

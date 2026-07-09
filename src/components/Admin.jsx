@@ -208,6 +208,8 @@ CREATE TABLE alumni (
   description TEXT,
   is_president BOOLEAN DEFAULT false,
   is_treasurer BOOLEAN DEFAULT false,
+  points INT DEFAULT 0, -- 누적 참여 포인트
+  last_visited_at DATE DEFAULT CURRENT_DATE, -- 마지막 방문 일자
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
@@ -252,6 +254,38 @@ CREATE TABLE album_images (
 CREATE TABLE hero_images (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   image_url TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- 신규 추가: 소통 게시판 테이블
+CREATE TABLE board (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  title TEXT NOT NULL,
+  content TEXT NOT NULL,
+  is_notice BOOLEAN DEFAULT false,
+  author_id UUID REFERENCES alumni(id) ON DELETE SET NULL,
+  author_name TEXT DEFAULT '익명',
+  views_count INT DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- 신규 추가: 게시판 댓글 및 대댓글 테이블
+CREATE TABLE board_comments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  board_id UUID REFERENCES board(id) ON DELETE CASCADE,
+  parent_id UUID REFERENCES board_comments(id) ON DELETE CASCADE,
+  author_id UUID REFERENCES alumni(id) ON DELETE SET NULL,
+  author_name TEXT DEFAULT '익명',
+  content TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- 신규 추가: 포인트 이력 로그 테이블
+CREATE TABLE point_logs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  alumni_id UUID REFERENCES alumni(id) ON DELETE CASCADE,
+  points INT NOT NULL,
+  reason TEXT NOT NULL,
   created_at TIMESTAMPTZ DEFAULT now()
 );`;
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Home, Image, BookOpen, Users, Lock, LogOut, LogIn, Menu, X, Download, Film, Radio } from 'lucide-react';
+import { Home, Image, BookOpen, Users, Lock, LogOut, LogIn, Menu, X, Download, Film, Radio, MessageSquare } from 'lucide-react';
 
 export default function Navbar({ activeTab, setActiveTab, session, alumniProfile, onLogout, onInstallApp, isKakaoTalk, isInAppBrowser }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -20,6 +20,7 @@ export default function Navbar({ activeTab, setActiveTab, session, alumniProfile
 
   const navItems = [
     { id: 'home', label: '홈', icon: Home, public: true },
+    { id: 'board', label: '게시판', icon: MessageSquare, public: false },
     { id: 'gallery', label: '갤러리', icon: Image, public: false },
     { id: 'album', label: '앨범', icon: BookOpen, public: false },
     { id: 'cinema', label: '영화관', icon: Film, public: true },
@@ -147,9 +148,14 @@ export default function Navbar({ activeTab, setActiveTab, session, alumniProfile
 
         {session ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <span style={{ fontSize: '14px', color: 'var(--color-secondary)' }}>
-              {alumniProfile?.name || '친구'} 님
-            </span>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+              <span style={{ fontSize: '14px', color: 'var(--color-primary)', fontWeight: '600' }}>
+                {alumniProfile?.name || '친구'} 님
+              </span>
+              <span style={{ fontSize: '11px', color: 'var(--accent-cyan)', fontWeight: '700', background: 'rgba(6, 182, 212, 0.1)', border: '1px solid rgba(6, 182, 212, 0.2)', padding: '2px 6px', borderRadius: '4px', marginTop: '2px' }}>
+                ★ {alumniProfile?.points || 0} XP
+              </span>
+            </div>
             <button
               onClick={onLogout}
               className="btn btn-secondary"
@@ -281,9 +287,14 @@ export default function Navbar({ activeTab, setActiveTab, session, alumniProfile
               marginTop: '4px', 
               borderTop: '1px solid rgba(255, 255, 255, 0.1)' 
             }}>
-              <span style={{ fontSize: '15px', color: 'var(--color-secondary)', fontWeight: '500' }}>
-                {alumniProfile?.name || '친구'} 님
-              </span>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <span style={{ fontSize: '15px', color: 'var(--color-primary)', fontWeight: '600' }}>
+                  {alumniProfile?.name || '친구'} 님
+                </span>
+                <span style={{ fontSize: '11px', color: 'var(--accent-cyan)', fontWeight: '700', alignSelf: 'flex-start', background: 'rgba(6, 182, 212, 0.1)', border: '1px solid rgba(6, 182, 212, 0.2)', padding: '2px 6px', borderRadius: '4px', marginTop: '2px' }}>
+                  ★ {alumniProfile?.points || 0} XP
+                </span>
+              </div>
               <button
                 onClick={() => {
                   onLogout();

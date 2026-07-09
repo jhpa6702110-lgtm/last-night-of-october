@@ -3,7 +3,7 @@ import { supabase } from '../utils/supabaseClient';
 import { FolderPlus, BookOpen, ChevronLeft, Plus, X, UploadCloud, Trash2 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
-export default function Album({ session, alumniProfile }) {
+export default function Album({ session, alumniProfile, onAwardActivityPoint }) {
   const [albums, setAlbums] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedAlbum, setSelectedAlbum] = useState(null);
@@ -285,6 +285,10 @@ export default function Album({ session, alumniProfile }) {
 
       if (error) throw error;
 
+      if (onAwardActivityPoint) {
+        await onAwardActivityPoint('앨범 사진 가져오기');
+      }
+
       triggerConfetti();
       setShowAddPhotoModal(false);
       
@@ -369,6 +373,10 @@ export default function Album({ session, alumniProfile }) {
         });
 
       if (insertErr) throw insertErr;
+
+      if (onAwardActivityPoint) {
+        await onAwardActivityPoint('앨범 사진 직접 업로드');
+      }
 
       triggerConfetti();
       setShowUploadPhotoModal(false);

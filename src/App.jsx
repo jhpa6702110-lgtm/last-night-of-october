@@ -8,6 +8,7 @@ import Radio from './components/Radio';
 import Friends from './components/Friends';
 import Admin from './components/Admin';
 import Auth from './components/Auth';
+import Board from './components/Board';
 import { supabase, isSupabaseConfigured, saveSupabaseCredentials } from './utils/supabaseClient';
 import { Database, ShieldAlert, KeyRound, Save } from 'lucide-react';
 
@@ -132,6 +133,118 @@ export default function App() {
     };
   }, [configured]);
 
+  const checkAttendanceAndDeduction = async (profile) => {
+    if (!profile || !profile.id || !configured) return;
+    
+    try {
+      const todayStr = new Date().toISOString().slice(0, 10);
+      const lastVisitedStr = profile.last_visited_at;
+      
+      if (!lastVisitedStr) {
+        // No visit record, just update visited date to today
+        await supabase
+          .from('alumni')
+          .update({ last_visited_at: todayStr })
+          .eq('id', profile.id);
+        setAlumniProfile(prev => prev ? { ...prev, last_visited_at: todayStr } : null);
+        return;
+      }
+
+      const lastVisited = new Date(lastVisitedStr);
+      const today = new Date(todayStr);
+      
+      // Calculate date difference
+      const diffTime = today - lastVisited;
+      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+      
+      let currentPoints = profile.points || 0;
+      let updated = false;
+      let profileUpdates = {};
+      
+      // 1. Check deduction for inactivity (>= 3 days)
+      if (diffDays >= 3) {
+        const penalty = -1;
+        currentPoints += penalty;
+        
+        await supabase
+          .from('point_logs')
+          .insert({
+            alumni_id: profile.id,
+            points: penalty,
+            reason: `3일 이상 미방문 감점 (${diffDays}일 동안 미방문)`
+          });
+          
+        profileUpdates.points = currentPoints;
+        updated = true;
+      }
+      
+      // 2. Check daily attendance
+      if (diffDays > 0) {
+        const bonus = 1;
+        currentPoints += bonus;
+        
+        await supabase
+          .from('point_logs')
+          .insert({
+            alumni_id: profile.id,
+            points: bonus,
+            reason: '일일 출석'
+          });
+          
+        profileUpdates.points = currentPoints;
+        profileUpdates.last_visited_at = todayStr;
+        updated = true;
+      }
+      
+      if (updated) {
+        const { error } = await supabase
+          .from('alumni')
+          .update(profileUpdates)
+          .eq('id', profile.id);
+          
+        if (error) throw error;
+        
+        setAlumniProfile(prev => prev ? {
+          ...prev,
+          ...profileUpdates
+        } : null);
+      }
+    } catch (err) {
+      console.error('Error during attendance / deduction check:', err);
+    }
+  };
+
+  const handleAwardActivityPoint = async (reason) => {
+    if (!alumniProfile?.id || !configured) return;
+    
+    try {
+      // 1. Insert Point Log
+      const { error: logError } = await supabase
+        .from('point_logs')
+        .insert({
+          alumni_id: alumniProfile.id,
+          points: 1,
+          reason: reason
+        });
+        
+      if (logError) throw logError;
+      
+      // 2. Update alumni points
+      const newPoints = (alumniProfile.points || 0) + 1;
+      const { error: updateError } = await supabase
+        .from('alumni')
+        .update({ points: newPoints })
+        .eq('id', alumniProfile.id);
+        
+      if (updateError) throw updateError;
+      
+      // 3. Update local state
+      setAlumniProfile(prev => prev ? { ...prev, points: newPoints } : null);
+    } catch (err) {
+      console.error('Error awarding activity point:', err);
+    }
+  };
+
   // 2. Fetch Alumni Profile once Session is available
   useEffect(() => {
     const fetchProfile = async () => {
@@ -158,16 +271,20 @@ export default function App() {
                 phone: session.user.user_metadata?.phone || '',
                 description: '반갑습니다! 새로 오신 친구입니다.',
                 is_president: false,
-                is_treasurer: false
+                is_treasurer: false,
+                points: 0,
+                last_visited_at: new Date().toISOString().slice(0, 10)
               })
               .select()
               .single();
             
             if (insertError) throw insertError;
             setAlumniProfile(inserted);
+            await checkAttendanceAndDeduction(inserted);
           }
         } else {
           setAlumniProfile(data);
+          await checkAttendanceAndDeduction(data);
         }
       } catch (err) {
         console.error('Alumni Profile fetch error:', err);
@@ -311,6 +428,7 @@ export default function App() {
           <Gallery 
             session={session} 
             alumniProfile={alumniProfile} 
+            onAwardActivityPoint={handleAwardActivityPoint}
           />
         ) : (
           <Auth key={`auth-${authKey}`} onAuthSuccess={(s) => { setSession(s); setActiveTab('gallery'); }} />
@@ -322,9 +440,22 @@ export default function App() {
           <Album 
             session={session} 
             alumniProfile={alumniProfile} 
+            onAwardActivityPoint={handleAwardActivityPoint}
           />
         ) : (
           <Auth key={`auth-${authKey}`} onAuthSuccess={(s) => { setSession(s); setActiveTab('album'); }} />
+        );
+
+      case 'board':
+        // Guard tab for authenticated users
+        return session ? (
+          <Board 
+            session={session} 
+            alumniProfile={alumniProfile} 
+            onAwardActivityPoint={handleAwardActivityPoint}
+          />
+        ) : (
+          <Auth key={`auth-${authKey}`} onAuthSuccess={(s) => { setSession(s); setActiveTab('board'); }} />
         );
 
       case 'cinema':

@@ -44,25 +44,16 @@ export default function Friends({ session, alumniProfile }) {
 
       if (error) throw error;
 
-      // Sort friends: Me -> President -> Treasurer -> Member
+      // Sort friends: Points descending -> alphabetically
       const sorted = (data || []).sort((a, b) => {
-        const isSelfA = a.auth_id === session?.user?.id;
-        const isSelfB = b.auth_id === session?.user?.id;
-        if (isSelfA && !isSelfB) return -1;
-        if (!isSelfA && isSelfB) return 1;
+        const pointsA = a.points || 0;
+        const pointsB = b.points || 0;
 
-        // Rank computed value
-        const getRank = (p) => {
-          if (p.is_president && p.is_treasurer) return 0; // President + Treasurer
-          if (p.is_president) return 1; // President
-          if (p.is_treasurer) return 2; // Treasurer
-          return 3; // Regular Member
-        };
+        if (pointsB !== pointsA) {
+          return pointsB - pointsA; // Points descending
+        }
 
-        const rankDiff = getRank(a) - getRank(b);
-        if (rankDiff !== 0) return rankDiff;
-
-        // If rank is same, sort alphabetically
+        // If points are same, sort alphabetically
         return a.name.localeCompare(b.name, 'ko');
       });
 
@@ -396,6 +387,7 @@ export default function Friends({ session, alumniProfile }) {
         }}>
           {filteredFriends.map((friend) => {
             const isSelf = friend.auth_id === session?.user?.id;
+            const overallRank = friends.findIndex(f => f.id === friend.id) + 1;
             
             // Role Display compute
             let roleText = '회원';
@@ -466,11 +458,28 @@ export default function Friends({ session, alumniProfile }) {
                     padding: '3px 6px',
                     borderRadius: '4px',
                     background: 'var(--accent-cyan)',
-                    color: '#070b19'
+                    color: '#070b19',
+                    zIndex: 2
                   }}>
                     나
                   </span>
                 )}
+
+                {/* Rank Badge */}
+                <span style={{
+                  position: 'absolute',
+                  top: '12px',
+                  left: isSelf ? '42px' : '12px',
+                  fontSize: '11px',
+                  fontWeight: '800',
+                  padding: '3px 8px',
+                  borderRadius: '4px',
+                  background: overallRank === 1 ? 'rgba(234, 179, 8, 0.15)' : overallRank === 2 ? 'rgba(148, 163, 184, 0.15)' : overallRank === 3 ? 'rgba(180, 83, 9, 0.15)' : 'rgba(255,255,255,0.03)',
+                  color: overallRank === 1 ? '#eab308' : overallRank === 2 ? '#94a3b8' : overallRank === 3 ? '#b45309' : 'var(--color-secondary)',
+                  border: `1px solid ${overallRank === 1 ? '#eab308' : overallRank === 2 ? '#94a3b8' : overallRank === 3 ? '#b45309' : 'rgba(255,255,255,0.08)'}`
+                }}>
+                  {overallRank === 1 ? '🥇 1위' : overallRank === 2 ? '🥈 2위' : overallRank === 3 ? '🥉 3위' : `${overallRank}위`}
+                </span>
 
                 {/* Avatar Photo */}
                 <div style={{
@@ -491,9 +500,14 @@ export default function Friends({ session, alumniProfile }) {
                 </div>
 
                 {/* Name */}
-                <h3 style={{ fontSize: '18px', fontWeight: '700', marginBottom: '8px' }}>
+                <h3 style={{ fontSize: '18px', fontWeight: '700', marginBottom: '4px' }}>
                   {friend.name}
                 </h3>
+
+                {/* Point Display */}
+                <div style={{ fontSize: '12px', color: 'var(--accent-cyan)', fontWeight: '700', marginBottom: '12px' }}>
+                  ★ {friend.points || 0} XP
+                </div>
                 
                 {/* Description snippet */}
                 <p style={{

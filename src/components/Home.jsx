@@ -13,6 +13,7 @@ export default function Home({ session, alumniProfile, setActiveTab }) {
   const [currentHeroIndex, setCurrentHeroIndex] = useState(0);
   const [stats, setStats] = useState({ photos: 0, friends: 0, albums: 0 });
   const [recentPhotos, setRecentPhotos] = useState([]);
+  const [topRankers, setTopRankers] = useState([]);
   const [showNotice, setShowNotice] = useState(false);
   const [noticeContent, setNoticeContent] = useState('');
   const [dontShowNoticeToday, setDontShowNoticeToday] = useState(false);
@@ -88,6 +89,15 @@ export default function Home({ session, alumniProfile, setActiveTab }) {
           // Keep a temporary reference to current notice ID
           localStorage.setItem('temp_notice_id', latestNotice.id);
         }
+
+        // 5. Fetch Top 3 rankers based on points
+        const { data: rankers } = await supabase
+          .from('alumni')
+          .select('name, points, avatar_url')
+          .order('points', { ascending: false })
+          .limit(3);
+        
+        if (rankers) setTopRankers(rankers);
       } catch (err) {
         console.error('Error fetching Home data:', err);
       }
@@ -235,6 +245,108 @@ export default function Home({ session, alumniProfile, setActiveTab }) {
           </span>
           <span style={{ fontSize: '13px', color: 'var(--color-secondary)', marginTop: '4px' }}>추억 앨범</span>
         </div>
+      </div>
+
+      {/* Top Rankers / Hall of Fame Widget */}
+      <div id="ranking-section" style={{ marginBottom: '60px' }}>
+        <h3 style={{ fontSize: '22px', fontWeight: '700', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <span style={{ width: '4px', height: '18px', background: 'var(--accent-gradient)', borderRadius: '2px', display: 'inline-block' }} />
+          👑 열정 랭킹 (명예의 전당)
+        </h3>
+        
+        {topRankers.length === 0 ? (
+          <div className="glass" style={{ padding: '30px', textAlign: 'center', color: 'var(--color-secondary)' }}>
+            아직 랭킹 데이터가 없습니다. 첫 활동을 시작해 보세요!
+          </div>
+        ) : (
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            gap: '20px',
+            flexWrap: 'wrap',
+            width: '100%'
+          }}>
+            {topRankers.map((ranker, index) => {
+              const rankColors = [
+                { border: 'rgba(234, 179, 8, 0.4)', bg: 'rgba(234, 179, 8, 0.04)', text: '#eab308', title: '1등 (Gold)' },
+                { border: 'rgba(148, 163, 184, 0.4)', bg: 'rgba(148, 163, 184, 0.04)', text: '#94a3b8', title: '2등 (Silver)' },
+                { border: 'rgba(180, 83, 9, 0.4)', bg: 'rgba(180, 83, 9, 0.04)', text: '#b45309', title: '3등 (Bronze)' }
+              ];
+              const currentRank = rankColors[index] || rankColors[2];
+              
+              return (
+                <div
+                  key={ranker.name}
+                  className="glass"
+                  style={{
+                    flex: 1,
+                    minWidth: '180px',
+                    padding: '24px 20px',
+                    textAlign: 'center',
+                    borderRadius: '16px',
+                    border: `1px solid ${currentRank.border}`,
+                    background: currentRank.bg,
+                    position: 'relative',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    transition: 'var(--transition-smooth)'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-5px)';
+                    e.currentTarget.style.boxShadow = `0 10px 25px ${currentRank.border}`;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = 'var(--shadow-glow)';
+                  }}
+                >
+                  {/* Rank Badge */}
+                  <span style={{
+                    position: 'absolute',
+                    top: '12px',
+                    right: '12px',
+                    fontSize: '11px',
+                    fontWeight: '800',
+                    color: currentRank.text,
+                    border: `1px solid ${currentRank.border}`,
+                    borderRadius: '4px',
+                    padding: '2px 6px',
+                    textTransform: 'uppercase'
+                  }}>
+                    {index + 1}st
+                  </span>
+                  
+                  {/* Avatar or Icon */}
+                  <div style={{
+                    width: '60px',
+                    height: '60px',
+                    borderRadius: '50%',
+                    backgroundImage: ranker.avatar_url ? `url(${ranker.avatar_url})` : 'none',
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                    border: `2px solid ${currentRank.border}`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginBottom: '12px',
+                    fontSize: '24px'
+                  }}>
+                    {!ranker.avatar_url && (index === 0 ? '👑' : index === 1 ? '🥈' : '🥉')}
+                  </div>
+                  
+                  <h4 style={{ fontSize: '16px', fontWeight: '700', marginBottom: '4px', color: 'var(--color-primary)' }}>
+                    {ranker.name}
+                  </h4>
+                  <span style={{ fontSize: '13px', color: 'var(--color-secondary)' }}>
+                    누적 포인트: <strong style={{ color: currentRank.text }}>{ranker.points || 0} XP</strong>
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Recent Photos Section */}
