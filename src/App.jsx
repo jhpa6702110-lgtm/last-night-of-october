@@ -327,11 +327,13 @@ export default function App() {
     fetchProfile();
   }, [session, configured]);
 
-  // Realtime Active Users via DB Heartbeat (Runs every 30 seconds to bypass websocket blocks)
+  // Realtime Active Users via DB Heartbeat (Runs every 30 seconds, allowing guests to view but only members to track)
   useEffect(() => {
-    if (!configured || !supabase || !alumniProfile?.id || !alumniProfile?.name) return;
+    if (!configured || !supabase) return;
 
     const updateHeartbeat = async () => {
+      // Only track heartbeat if user is logged in
+      if (!alumniProfile?.id) return;
       try {
         await supabase
           .from('alumni')
@@ -375,7 +377,7 @@ export default function App() {
       clearInterval(heartbeatInterval);
       clearInterval(fetchInterval);
     };
-  }, [configured, alumniProfile?.id, alumniProfile?.name]);
+  }, [configured, alumniProfile?.id]);
 
   const handleLogout = async () => {
     if (configured) {
