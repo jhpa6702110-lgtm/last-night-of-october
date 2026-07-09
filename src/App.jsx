@@ -298,59 +298,55 @@ export default function App() {
     fetchProfile();
   }, [session, configured]);
 
-  // Realtime Presence sync for active online users
+  // Realtime Active Users via DB Heartbeat (Runs every 30 seconds to bypass websocket blocks)
   useEffect(() => {
     if (!configured || !supabase || !alumniProfile?.id || !alumniProfile?.name) return;
 
-    console.log('Connecting to Realtime Presence channel for:', alumniProfile.name);
+    const updateHeartbeat = async () => {
+      try {
+        await supabase
+          .from('alumni')
+          .update({ last_active_at: new Date().toISOString() })
+          .eq('id', alumniProfile.id);
+      } catch (err) {
+        console.error('Error updating heartbeat:', err);
+      }
+    };
 
-    const channel = supabase.channel('online-users', {
-      config: {
-        presence: {
-          key: alumniProfile.id,
-        },
-      },
-    });
+    const fetchActiveUsers = async () => {
+      try {
+        // Considered active if updated within the last 90 seconds
+        const ninetySecondsAgo = new Date(Date.now() - 90000).toISOString();
+        const { data, error } = await supabase
+          .from('alumni')
+          .select('id, name, avatar_url')
+          .gte('last_active_at', ninetySecondsAgo);
 
-    channel
-      .on('presence', { event: 'sync' }, () => {
-        const state = channel.presenceState();
-        console.log('Presence sync event received. State:', state);
-        const users = [];
+        if (error) throw error;
         
-        Object.keys(state).forEach((key) => {
-          const presences = state[key];
-          if (presences && presences.length > 0) {
-            const latest = presences[presences.length - 1];
-            users.push({
-              id: key,
-              name: latest.name || '익명',
-              avatar_url: latest.avatar_url || ''
-            });
-          }
-        });
-        
-        // Deduplicate by name to keep it clean
-        const uniqueUsers = Array.from(new Map(users.map(u => [u.name, u])).values());
-        console.log('Active users calculated:', uniqueUsers);
-        setActiveUsers(uniqueUsers);
-      })
-      .subscribe(async (status) => {
-        console.log('Presence channel subscription status:', status);
-        if (status === 'SUBSCRIBED') {
-          const trackResult = await channel.track({
-            name: alumniProfile.name,
-            avatar_url: alumniProfile.avatar_url || ''
-          });
-          console.log('Presence track result:', trackResult);
+        if (data) {
+          // Deduplicate by name to keep it clean
+          const uniqueUsers = Array.from(new Map(data.map(u => [u.name, u])).values());
+          setActiveUsers(uniqueUsers);
         }
-      });
+      } catch (err) {
+        console.error('Error fetching active users:', err);
+      }
+    };
+
+    // Run immediately on load
+    updateHeartbeat();
+    fetchActiveUsers();
+
+    // Set intervals
+    const heartbeatInterval = setInterval(updateHeartbeat, 30000); // Update last active state every 30s
+    const fetchInterval = setInterval(fetchActiveUsers, 30000); // Fetch list every 30s
 
     return () => {
-      console.log('Unsubscribing from Presence channel for:', alumniProfile.name);
-      channel.unsubscribe();
+      clearInterval(heartbeatInterval);
+      clearInterval(fetchInterval);
     };
-  }, [configured, alumniProfile?.id, alumniProfile?.name, alumniProfile?.avatar_url]);
+  }, [configured, alumniProfile?.id, alumniProfile?.name]);
 
   const handleLogout = async () => {
     if (configured) {
