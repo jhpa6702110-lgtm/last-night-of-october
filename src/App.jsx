@@ -133,6 +133,8 @@ export default function App() {
     };
   }, [configured]);
 
+  const [activeUsers, setActiveUsers] = useState([]);
+
   const checkAttendanceAndDeduction = async (profile) => {
     if (!profile || !profile.id || !configured) return;
     
@@ -295,6 +297,60 @@ export default function App() {
 
     fetchProfile();
   }, [session, configured]);
+
+  // Realtime Presence sync for active online users
+  useEffect(() => {
+    if (!configured || !supabase || !alumniProfile?.id || !alumniProfile?.name) return;
+
+    console.log('Connecting to Realtime Presence channel for:', alumniProfile.name);
+
+    const channel = supabase.channel('online-users', {
+      config: {
+        presence: {
+          key: alumniProfile.id,
+        },
+      },
+    });
+
+    channel
+      .on('presence', { event: 'sync' }, () => {
+        const state = channel.presenceState();
+        console.log('Presence sync event received. State:', state);
+        const users = [];
+        
+        Object.keys(state).forEach((key) => {
+          const presences = state[key];
+          if (presences && presences.length > 0) {
+            const latest = presences[presences.length - 1];
+            users.push({
+              id: key,
+              name: latest.name || '익명',
+              avatar_url: latest.avatar_url || ''
+            });
+          }
+        });
+        
+        // Deduplicate by name to keep it clean
+        const uniqueUsers = Array.from(new Map(users.map(u => [u.name, u])).values());
+        console.log('Active users calculated:', uniqueUsers);
+        setActiveUsers(uniqueUsers);
+      })
+      .subscribe(async (status) => {
+        console.log('Presence channel subscription status:', status);
+        if (status === 'SUBSCRIBED') {
+          const trackResult = await channel.track({
+            name: alumniProfile.name,
+            avatar_url: alumniProfile.avatar_url || ''
+          });
+          console.log('Presence track result:', trackResult);
+        }
+      });
+
+    return () => {
+      console.log('Unsubscribing from Presence channel for:', alumniProfile.name);
+      channel.unsubscribe();
+    };
+  }, [configured, alumniProfile?.id, alumniProfile?.name, alumniProfile?.avatar_url]);
 
   const handleLogout = async () => {
     if (configured) {
@@ -578,6 +634,7 @@ export default function App() {
         setActiveTab={setActiveTab} 
         session={session} 
         alumniProfile={alumniProfile} 
+        activeUsers={activeUsers}
         onLogout={handleLogout} 
         onInstallApp={handleInstallApp}
         isKakaoTalk={isKakaoTalk}
