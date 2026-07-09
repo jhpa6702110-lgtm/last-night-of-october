@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../utils/supabaseClient';
 import { FolderPlus, BookOpen, ChevronLeft, Plus, X, UploadCloud, Trash2 } from 'lucide-react';
 import confetti from 'canvas-confetti';
@@ -15,6 +15,70 @@ export default function Album({ session, alumniProfile, onAwardActivityPoint }) 
   const [showAddPhotoModal, setShowAddPhotoModal] = useState(false);
   const [showUploadPhotoModal, setShowUploadPhotoModal] = useState(false);
   const [activeImageIndex, setActiveImageIndex] = useState(null); // Lightbox inside album
+
+  // Pinch-to-zoom & Pan states for mobile image viewer
+  const [scale, setScale] = useState(1);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const touchStartRef = useRef({ distance: 0, x: 0, y: 0, scale: 1 });
+
+  const handleTouchStart = (e) => {
+    const touches = e.touches;
+    if (touches.length === 1) {
+      touchStartRef.current.x = touches[0].clientX - position.x;
+      touchStartRef.current.y = touches[0].clientY - position.y;
+    } else if (touches.length === 2) {
+      const dist = Math.hypot(
+        touches[0].clientX - touches[1].clientX,
+        touches[0].clientY - touches[1].clientY
+      );
+      touchStartRef.current.distance = dist;
+      touchStartRef.current.scale = scale;
+    }
+  };
+
+  const handleTouchMove = (e) => {
+    const touches = e.touches;
+    if (touches.length === 1 && scale > 1) {
+      const newX = touches[0].clientX - touchStartRef.current.x;
+      const newY = touches[0].clientY - touchStartRef.current.y;
+      setPosition({ x: newX, y: newY });
+    } else if (touches.length === 2) {
+      if (e.cancelable) e.preventDefault();
+      const dist = Math.hypot(
+        touches[0].clientX - touches[1].clientX,
+        touches[0].clientY - touches[1].clientY
+      );
+      const factor = dist / touchStartRef.current.distance;
+      const newScale = Math.max(1, Math.min(touchStartRef.current.scale * factor, 4));
+      setScale(newScale);
+      
+      if (newScale === 1) {
+        setPosition({ x: 0, y: 0 });
+      }
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (scale <= 1) {
+      setScale(1);
+      setPosition({ x: 0, y: 0 });
+    }
+  };
+
+  const handleDoubleClick = () => {
+    if (scale > 1) {
+      setScale(1);
+      setPosition({ x: 0, y: 0 });
+    } else {
+      setScale(2.5);
+    }
+  };
+
+  const handleCloseLightbox = () => {
+    setActiveImageIndex(null);
+    setScale(1);
+    setPosition({ x: 0, y: 0 });
+  };
 
   // Create Album Form State
   const [albumTitle, setAlbumTitle] = useState('');
@@ -1031,8 +1095,8 @@ export default function Album({ session, alumniProfile, onAwardActivityPoint }) 
       {activeImageIndex !== null && (
         <div 
           className="modal-overlay" 
-          onClick={() => setActiveImageIndex(null)}
-          style={{ background: 'rgba(0, 0, 0, 0.95)' }}
+          onClick={handleCloseLightbox}
+          style={{ background: 'rgba(0, 0, 0, 0.95)', overflow: 'hidden', touchAction: 'none' }}
         >
           <div 
             className="lightbox-wrapper" 
@@ -1041,7 +1105,7 @@ export default function Album({ session, alumniProfile, onAwardActivityPoint }) 
           >
             {/* Close */}
             <button
-              onClick={() => setActiveImageIndex(null)}
+              onClick={handleCloseLightbox}
               style={{
                 position: 'absolute',
                 top: '-45px',
@@ -1059,7 +1123,22 @@ export default function Album({ session, alumniProfile, onAwardActivityPoint }) 
             <img
               src={albumImages[activeImageIndex].image_url}
               alt="Album slide"
-              style={{ width: '100%', maxHeight: '75vh', objectFit: 'contain', borderRadius: '8px' }}
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+              onDoubleClick={handleDoubleClick}
+              style={{ 
+                width: '100%', 
+                maxHeight: '75vh', 
+                objectFit: 'contain', 
+                borderRadius: '8px',
+                transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
+                transition: scale === 1 ? 'transform 0.25s cubic-bezier(0.1, 0.76, 0.55, 0.94)' : 'none',
+                cursor: scale > 1 ? 'grab' : 'zoom-in',
+                userSelect: 'none',
+                WebkitUserDrag: 'none',
+                touchAction: 'none'
+              }}
             />
 
             {/* Slider arrows navigation */}

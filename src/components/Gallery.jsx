@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../utils/supabaseClient';
 import { Search, Plus, ThumbsUp, Eye, MessageSquare, X, UploadCloud, MessageCircle } from 'lucide-react';
 import confetti from 'canvas-confetti';
@@ -19,6 +19,70 @@ export default function Gallery({ session, alumniProfile, onAwardActivityPoint }
   // Modals
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [selectedPost, setSelectedPost] = useState(null);
+
+  // Pinch-to-zoom & Pan states for mobile image viewer
+  const [scale, setScale] = useState(1);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const touchStartRef = useRef({ distance: 0, x: 0, y: 0, scale: 1 });
+
+  const handleTouchStart = (e) => {
+    const touches = e.touches;
+    if (touches.length === 1) {
+      touchStartRef.current.x = touches[0].clientX - position.x;
+      touchStartRef.current.y = touches[0].clientY - position.y;
+    } else if (touches.length === 2) {
+      const dist = Math.hypot(
+        touches[0].clientX - touches[1].clientX,
+        touches[0].clientY - touches[1].clientY
+      );
+      touchStartRef.current.distance = dist;
+      touchStartRef.current.scale = scale;
+    }
+  };
+
+  const handleTouchMove = (e) => {
+    const touches = e.touches;
+    if (touches.length === 1 && scale > 1) {
+      const newX = touches[0].clientX - touchStartRef.current.x;
+      const newY = touches[0].clientY - touchStartRef.current.y;
+      setPosition({ x: newX, y: newY });
+    } else if (touches.length === 2) {
+      if (e.cancelable) e.preventDefault();
+      const dist = Math.hypot(
+        touches[0].clientX - touches[1].clientX,
+        touches[0].clientY - touches[1].clientY
+      );
+      const factor = dist / touchStartRef.current.distance;
+      const newScale = Math.max(1, Math.min(touchStartRef.current.scale * factor, 4));
+      setScale(newScale);
+      
+      if (newScale === 1) {
+        setPosition({ x: 0, y: 0 });
+      }
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (scale <= 1) {
+      setScale(1);
+      setPosition({ x: 0, y: 0 });
+    }
+  };
+
+  const handleDoubleClick = () => {
+    if (scale > 1) {
+      setScale(1);
+      setPosition({ x: 0, y: 0 });
+    } else {
+      setScale(2.5);
+    }
+  };
+
+  const handleCloseLightbox = () => {
+    setSelectedPost(null);
+    setScale(1);
+    setPosition({ x: 0, y: 0 });
+  };
   
   // Upload form state
   const [uploadTitle, setUploadTitle] = useState('');
@@ -1011,7 +1075,7 @@ export default function Gallery({ session, alumniProfile, onAwardActivityPoint }
 
       {/* Lightbox / Post Detail View Modal */}
       {selectedPost && (
-        <div className="modal-overlay" onClick={() => setSelectedPost(null)}>
+        <div className="modal-overlay" onClick={handleCloseLightbox}>
           <div 
             className="glass modal-content" 
             onClick={(e) => e.stopPropagation()} // Prevent close
@@ -1026,7 +1090,8 @@ export default function Gallery({ session, alumniProfile, onAwardActivityPoint }
                 alignItems: 'center',
                 justifyContent: 'center',
                 position: 'relative',
-                flex: 1.2
+                flex: 1.2,
+                overflow: 'hidden'
               }}>
                 {isVideoUrl(selectedPost.image_url) ? (
                   <video 
@@ -1040,13 +1105,28 @@ export default function Gallery({ session, alumniProfile, onAwardActivityPoint }
                   <img 
                     src={selectedPost.image_url} 
                     alt={selectedPost.title}
-                    style={{ width: '100%', maxHeight: '550px', objectFit: 'contain', display: 'block' }}
+                    onTouchStart={handleTouchStart}
+                    onTouchMove={handleTouchMove}
+                    onTouchEnd={handleTouchEnd}
+                    onDoubleClick={handleDoubleClick}
+                    style={{ 
+                      width: '100%', 
+                      maxHeight: '550px', 
+                      objectFit: 'contain', 
+                      display: 'block',
+                      transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
+                      transition: scale === 1 ? 'transform 0.25s cubic-bezier(0.1, 0.76, 0.55, 0.94)' : 'none',
+                      cursor: scale > 1 ? 'grab' : 'zoom-in',
+                      userSelect: 'none',
+                      WebkitUserDrag: 'none',
+                      touchAction: 'none'
+                    }}
                   />
                 )}
                 
                 {/* Close Button on Image */}
                 <button
-                  onClick={() => setSelectedPost(null)}
+                  onClick={handleCloseLightbox}
                   style={{
                     position: 'absolute',
                     top: '16px',
