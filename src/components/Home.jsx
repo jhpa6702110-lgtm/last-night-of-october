@@ -14,6 +14,7 @@ export default function Home({ session, alumniProfile, setActiveTab }) {
   const [stats, setStats] = useState({ photos: 0, friends: 0, albums: 0 });
   const [recentPhotos, setRecentPhotos] = useState([]);
   const [topRankers, setTopRankers] = useState([]);
+  const [activeImageUrl, setActiveImageUrl] = useState(null);
   const [showNotice, setShowNotice] = useState(false);
   const [noticeTitle, setNoticeTitle] = useState('');
   const [noticeContent, setNoticeContent] = useState('');
@@ -381,7 +382,7 @@ export default function Home({ session, alumniProfile, setActiveTab }) {
               <div
                 key={photo.id}
                 className="glass"
-                onClick={() => setActiveTab('gallery')}
+                onClick={() => setActiveImageUrl(photo.image_url)}
                 style={{
                   overflow: 'hidden',
                   cursor: 'pointer',
@@ -471,6 +472,60 @@ export default function Home({ session, alumniProfile, setActiveTab }) {
                 닫기
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Image Lightbox Modal */}
+      {activeImageUrl && (
+        <div 
+          className="modal-overlay" 
+          onClick={() => setActiveImageUrl(null)}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(7, 11, 25, 0.95)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+            cursor: 'zoom-out'
+          }}
+        >
+          <div style={{ position: 'relative', maxWidth: '90%', maxHeight: '90%' }} onClick={(e) => e.stopPropagation()}>
+            <img 
+              src={activeImageUrl} 
+              alt="크게 보기" 
+              style={{ 
+                maxWidth: '100%', 
+                maxHeight: '85vh', 
+                borderRadius: '12px', 
+                boxShadow: '0 20px 50px rgba(0,0,0,0.8)',
+                border: '1px solid rgba(255,255,255,0.1)'
+              }} 
+            />
+            <button 
+              onClick={() => setActiveImageUrl(null)}
+              style={{
+                position: 'absolute',
+                top: '-40px',
+                right: '0',
+                background: 'transparent',
+                border: 'none',
+                color: 'var(--color-primary)',
+                cursor: 'pointer',
+                fontSize: '16px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}
+            >
+              <X size={20} />
+              닫기
+            </button>
           </div>
         </div>
       )}
