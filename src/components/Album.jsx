@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../utils/supabaseClient';
-import { FolderPlus, BookOpen, ChevronLeft, Plus, X, UploadCloud } from 'lucide-react';
+import { FolderPlus, BookOpen, ChevronLeft, Plus, X, UploadCloud, Trash2 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 export default function Album({ session, alumniProfile }) {
@@ -32,6 +32,11 @@ export default function Album({ session, alumniProfile }) {
   const [albumPhotoFile, setAlbumPhotoFile] = useState(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [uploadPhotoError, setUploadPhotoError] = useState('');
+
+  // Deletion and authorization states
+  const [deletingAlbum, setDeletingAlbum] = useState(false);
+  const [deletingImage, setDeletingImage] = useState(false);
+  const [activeImageAuthorId, setActiveImageAuthorId] = useState(null);
 
   const triggerConfetti = () => {
     confetti({
@@ -391,6 +396,100 @@ export default function Album({ session, alumniProfile }) {
     }
   };
 
+  // Effect to fetch the author of the active lightbox image from gallery table
+  useEffect(() => {
+    if (activeImageIndex === null || !albumImages[activeImageIndex]) {
+      setActiveImageAuthorId(null);
+      return;
+    }
+
+    const fetchAuthorId = async () => {
+      try {
+        const activeImageUrl = albumImages[activeImageIndex].image_url;
+        const { data, error } = await supabase
+          .from('gallery')
+          .select('author_id')
+          .eq('image_url', activeImageUrl)
+          .maybeSingle();
+
+        if (error) throw error;
+        setActiveImageAuthorId(data ? data.author_id : null);
+      } catch (err) {
+        console.error('Error fetching image author:', err);
+        setActiveImageAuthorId(null);
+      }
+    };
+
+    fetchAuthorId();
+  }, [activeImageIndex, albumImages]);
+
+  const handleDeleteAlbum = async (albumId, e) => {
+    if (e) e.stopPropagation(); // Prevent entering album detail when card delete is clicked
+    
+    if (!window.confirm('정말로 이 앨범을 삭제하시겠습니까?')) return;
+
+    setDeletingAlbum(true);
+    try {
+      // Check if sub-photos exist
+      const { data: images, error: checkError } = await supabase
+        .from('album_images')
+        .select('id')
+        .eq('album_id', albumId);
+
+      if (checkError) throw checkError;
+
+      // Double confirmation if there are photos in the album
+      if (images && images.length > 0) {
+        if (!window.confirm('이 앨범에는 하위 사진들이 등록되어 있습니다. 앨범을 삭제하면 사진들도 함께 삭제됩니다. 정말로 삭제하시겠습니까?')) {
+          setDeletingAlbum(false);
+          return;
+        }
+      }
+
+      const { error } = await supabase
+        .from('albums')
+        .delete()
+        .eq('id', albumId);
+
+      if (error) throw error;
+
+      // Reset state if deleted the currently selected album
+      if (selectedAlbum && selectedAlbum.id === albumId) {
+        setSelectedAlbum(null);
+        setAlbumImages([]);
+      }
+      fetchAlbums();
+    } catch (err) {
+      console.error('Error deleting album:', err);
+      alert('앨범 삭제 중 오류가 발생했습니다.');
+    } finally {
+      setDeletingAlbum(false);
+    }
+  };
+
+  const handleDeleteAlbumImage = async (imageId) => {
+    if (!window.confirm('정말로 이 사진을 앨범에서 삭제하시겠습니까?')) return;
+
+    setDeletingImage(true);
+    try {
+      const { error } = await supabase
+        .from('album_images')
+        .delete()
+        .eq('id', imageId);
+
+      if (error) throw error;
+
+      // Close lightbox and refresh album images
+      setActiveImageIndex(null);
+      fetchAlbumImages(selectedAlbum.id);
+    } catch (err) {
+      console.error('Error deleting album image:', err);
+      alert('사진 삭제 중 오류가 발생했습니다.');
+    } finally {
+      setDeletingImage(false);
+    }
+  };
+
   return (
     <div className="fade-in" style={{ paddingBottom: '60px' }}>
       
@@ -517,13 +616,36 @@ export default function Album({ session, alumniProfile }) {
                       </div>
 
                       {/* Album Info */}
-                      <div style={{ padding: '20px', background: 'rgba(7, 11, 25, 0.85)', minHeight: '100px' }}>
-                        <h3 style={{ fontSize: '18px', fontWeight: '700', marginBottom: '6px', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
+                      <div style={{ padding: '20px', background: 'rgba(7, 11, 25, 0.85)', minHeight: '100px', position: 'relative' }}>
+                        <h3 style={{ fontSize: '18px', fontWeight: '700', marginBottom: '6px', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden', paddingRight: (alumniProfile?.is_president || alumniProfile?.is_treasurer) ? '30px' : '0' }}>
                           {album.title}
                         </h3>
                         <p style={{ fontSize: '13px', color: 'var(--color-secondary)', textOverflow: 'ellipsis', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', lineHeight: '1.4' }}>
                           {album.description || '작성된 설명이 없습니다.'}
                         </p>
+                        {(alumniProfile?.is_president || alumniProfile?.is_treasurer) && (
+                          <button
+                            onClick={(e) => handleDeleteAlbum(album.id, e)}
+                            disabled={deletingAlbum}
+                            style={{
+                              position: 'absolute',
+                              right: '15px',
+                              top: '20px',
+                              background: 'transparent',
+                              border: 'none',
+                              color: 'rgba(239, 68, 68, 0.8)',
+                              cursor: 'pointer',
+                              padding: '4px',
+                              zIndex: 10,
+                              transition: 'var(--transition-smooth)'
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.color = 'var(--accent-red)'}
+                            onMouseLeave={(e) => e.currentTarget.style.color = 'rgba(239, 68, 68, 0.8)'}
+                            title="앨범 삭제"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -584,9 +706,30 @@ export default function Album({ session, alumniProfile }) {
               <p style={{ color: 'var(--color-secondary)', fontSize: '15px', lineHeight: '1.6', maxWidth: '600px' }}>
                 {selectedAlbum.description || '등록된 설명이 없는 앨범입니다.'}
               </p>
-              <span style={{ fontSize: '12px', color: 'var(--accent-cyan)', fontWeight: '600', marginTop: '15px', display: 'inline-block' }}>
-                사진 수: {albumImages.length}장
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginTop: '15px' }}>
+                <span style={{ fontSize: '12px', color: 'var(--accent-cyan)', fontWeight: '600' }}>
+                  사진 수: {albumImages.length}장
+                </span>
+                {(alumniProfile?.is_president || alumniProfile?.is_treasurer) && (
+                  <button
+                    onClick={(e) => handleDeleteAlbum(selectedAlbum.id, e)}
+                    disabled={deletingAlbum}
+                    className="btn btn-secondary"
+                    style={{
+                      padding: '4px 12px',
+                      minHeight: '30px',
+                      fontSize: '12px',
+                      borderRadius: '6px',
+                      borderColor: 'rgba(239, 68, 68, 0.2)',
+                      color: 'rgba(239, 68, 68, 0.8)',
+                      gap: '4px'
+                    }}
+                  >
+                    <Trash2 size={12} />
+                    앨범 삭제
+                  </button>
+                )}
+              </div>
             </div>
           </div>
 
@@ -921,9 +1064,44 @@ export default function Album({ session, alumniProfile }) {
               >
                 이전 사진
               </button>
-              <span style={{ alignSelf: 'center', fontSize: '14px', color: 'var(--color-secondary)' }}>
-                {activeImageIndex + 1} / {albumImages.length}
-              </span>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', alignSelf: 'center' }}>
+                <span style={{ fontSize: '14px', color: 'var(--color-secondary)' }}>
+                  {activeImageIndex + 1} / {albumImages.length}
+                </span>
+                {(alumniProfile?.is_president || 
+                  alumniProfile?.is_treasurer || 
+                  (activeImageAuthorId && activeImageAuthorId === alumniProfile?.id)) && (
+                  <button
+                    onClick={() => handleDeleteAlbumImage(albumImages[activeImageIndex].id)}
+                    disabled={deletingImage}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      color: 'rgba(239, 68, 68, 0.8)',
+                      cursor: 'pointer',
+                      fontSize: '12px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      padding: '2px 8px',
+                      borderRadius: '4px',
+                      border: '1px solid rgba(239, 68, 68, 0.2)',
+                      transition: 'var(--transition-smooth)'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.color = 'var(--accent-red)';
+                      e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.5)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.color = 'rgba(239, 68, 68, 0.8)';
+                      e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.2)';
+                    }}
+                  >
+                    <Trash2 size={12} />
+                    사진 삭제
+                  </button>
+                )}
+              </div>
               <button
                 disabled={activeImageIndex === albumImages.length - 1}
                 onClick={() => setActiveImageIndex(prev => prev + 1)}
