@@ -30,13 +30,13 @@ export default function VoiceController({ setActiveTab, onLogout, alumniProfile 
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (SpeechRecognition) {
       const rec = new SpeechRecognition();
-      rec.continuous = true; // Continuous listening for standby mode
+      rec.continuous = false; // Set to false to avoid browser-specific buffering bugs
       rec.lang = 'ko-KR';
       rec.interimResults = false;
       
       rec.onstart = () => {
         if (modeRef.current === 'standby') {
-          showToast('시월이 호출 대기 중 🍁', '"하이 시월이" 또는 "시월아"라고 불러보세요.');
+          showToast('시월이 대기 중 🍁', '"하이 시월이" 또는 "시월아"라고 불러보세요.');
         } else if (modeRef.current === 'active') {
           showToast('명령어 입력 대기 🎤', '이동할 메뉴나 날씨를 말씀해 주세요.');
         }
@@ -44,9 +44,13 @@ export default function VoiceController({ setActiveTab, onLogout, alumniProfile 
 
       rec.onend = () => {
         const currentMode = modeRef.current;
+        console.log('SpeechRecognition ended. Mode was:', currentMode);
+        
         if (currentMode === 'standby') {
+          // Restart listening for the next phrase in standby
           safeStartRecognition();
         } else if (currentMode === 'active') {
+          // If active command timed out or finished without matching, return to standby
           setMode('standby');
           safeStartRecognition();
         }
@@ -58,7 +62,7 @@ export default function VoiceController({ setActiveTab, onLogout, alumniProfile 
           showToast('오류', '마이크 권한을 허용해 주세요.');
           setMode('off');
         } else if (event.error === 'no-speech') {
-          // Gracefully let onend handle it
+          // Handle silently, onend will automatically restart it
         } else {
           if (modeRef.current !== 'off') {
             setMode('standby');
@@ -68,8 +72,8 @@ export default function VoiceController({ setActiveTab, onLogout, alumniProfile 
       };
 
       rec.onresult = (event) => {
-        const latestIndex = event.results.length - 1;
-        const resultText = event.results[latestIndex][0].transcript;
+        // Since continuous is false, results reset each time, so index 0 is always the latest phrase
+        const resultText = event.results[0][0].transcript;
         console.log('Speech recognition raw result:', resultText);
         handleSpeechResult(resultText);
       };
@@ -146,10 +150,10 @@ export default function VoiceController({ setActiveTab, onLogout, alumniProfile 
   };
 
   const triggerWakeUp = () => {
-    // Stop standby listening before TTS plays
+    // Abort current session to prevent hearing itself during TTS greeting
     if (recognition) {
       try {
-        recognition.stop();
+        recognition.abort();
       } catch (e) {}
     }
 
@@ -195,6 +199,7 @@ export default function VoiceController({ setActiveTab, onLogout, alumniProfile 
       if (!weather) {
         const errMsg = '날씨 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.';
         showToast('날씨 정보 오류', errMsg);
+        setMode('greeting'); // Temporary state to let TTS finish without recording
         speakTTS(errMsg, () => {
           returnToStandby();
         });
@@ -204,6 +209,7 @@ export default function VoiceController({ setActiveTab, onLogout, alumniProfile 
       const desc = getWeatherDesc(weather.weathercode);
       const msg = `오늘 ${locationName}의 현재 온도는 영상 ${temp}도이며, ${desc} 상태입니다.`;
       showToast('⛅ 실시간 날씨 정보', msg);
+      setMode('greeting'); // Temporary state to let TTS finish without recording
       speakTTS(msg, () => {
         returnToStandby();
       });
@@ -255,7 +261,7 @@ export default function VoiceController({ setActiveTab, onLogout, alumniProfile 
     setMode('standby');
     if (recognition) {
       try {
-        recognition.stop(); // stop triggers onend, which safely starts standby via safeStartRecognition
+        recognition.abort(); // Abort current session, onend will trigger safeStartRecognition in standby mode
       } catch (e) {
         safeStartRecognition();
       }
@@ -315,6 +321,7 @@ export default function VoiceController({ setActiveTab, onLogout, alumniProfile 
 
     if (matched) {
       showToast(`🎤 인식: "${rawText}"`, `➔ ${actionDescription}`);
+      setMode('greeting'); // Temporary state to let TTS finish without recording
       speakTTS(actionDescription, () => {
         returnToStandby();
       });
@@ -334,7 +341,7 @@ export default function VoiceController({ setActiveTab, onLogout, alumniProfile 
       window.speechSynthesis.cancel();
       setMode('off');
       try {
-        recognition.stop();
+        recognition.abort();
       } catch (e) {}
       showToast('음성 제어 종료', '시월이 호출 대기 모드를 종료합니다.');
     } else {
