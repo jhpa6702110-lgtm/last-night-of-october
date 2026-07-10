@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../utils/supabaseClient';
-import { Image, Users, BookOpen, AlertCircle, X, ChevronRight } from 'lucide-react';
+import { Image, Users, BookOpen, AlertCircle, X, ChevronRight, HelpCircle, Award, MessageSquare, Film, Key } from 'lucide-react';
 
 const DEFAULT_HEROS = [
   'https://images.unsplash.com/photo-1509114397022-ed747cca3f65?auto=format&fit=crop&q=80&w=1600', // Starry night
@@ -15,6 +15,7 @@ export default function Home({ session, alumniProfile, setActiveTab }) {
   const [recentPhotos, setRecentPhotos] = useState([]);
   const [topRankers, setTopRankers] = useState([]);
   const [activeImageUrl, setActiveImageUrl] = useState(null);
+  const [showUserManual, setShowUserManual] = useState(false);
   
   // Pinch-to-zoom & Pan states for mobile image viewer
   const [scale, setScale] = useState(1);
@@ -281,6 +282,23 @@ export default function Home({ session, alumniProfile, setActiveTab }) {
           >
             최근 사진 보기
           </a>
+
+          <button
+            onClick={() => setShowUserManual(true)}
+            className="btn btn-secondary"
+            style={{ 
+              padding: '14px 24px', 
+              borderColor: 'rgba(34, 211, 238, 0.4)', 
+              color: 'var(--accent-cyan)',
+              background: 'rgba(34, 211, 238, 0.05)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}
+          >
+            <HelpCircle size={16} />
+            사용자 매뉴얼
+          </button>
         </div>
       </div>
 
@@ -620,6 +638,105 @@ export default function Home({ session, alumniProfile, setActiveTab }) {
               <X size={16} />
               닫기
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* User Manual Modal */}
+      {showUserManual && (
+        <div className="modal-overlay" style={{ zIndex: 9999 }}>
+          <div className="glass modal-content" style={{ 
+            maxWidth: '650px', 
+            width: '90%',
+            maxHeight: '85vh',
+            overflowY: 'auto',
+            border: '1px solid rgba(34, 211, 238, 0.2)',
+            padding: '30px',
+            textAlign: 'left'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid rgba(255, 255, 255, 0.1)', paddingBottom: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent-cyan)' }}>
+                <BookOpen size={22} />
+                <span style={{ fontWeight: '800', fontSize: '20px' }}>📖 시월의 마지막 밤 사용자 매뉴얼</span>
+              </div>
+              <button 
+                onClick={() => setShowUserManual(false)} 
+                style={{ background: 'transparent', border: 'none', color: 'var(--color-secondary)', cursor: 'pointer' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', color: 'var(--color-secondary)', fontSize: '14px', lineHeight: '1.7' }}>
+              
+              <div style={{ background: 'rgba(255,255,255,0.02)', padding: '15px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.04)' }}>
+                <h4 style={{ color: 'var(--color-primary)', fontWeight: '700', fontSize: '15px', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                  <Key size={16} style={{ color: 'var(--accent-cyan)' }} />
+                  1. 회원 가입 및 로그인
+                </h4>
+                <p style={{ margin: 0, paddingLeft: '24px' }}>
+                  본 동창회 공간은 사전에 등록된 동창 전용 프라이빗 공간입니다. 처음 가입 시, 회장단에 사전 제출한 <strong>이름</strong>과 <strong>전화번호</strong>를 입력하여 매칭을 완료한 뒤 본인이 사용할 비밀번호를 등록해 가입할 수 있습니다.
+                </p>
+              </div>
+
+              <div style={{ background: 'rgba(255,255,255,0.02)', padding: '15px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.04)' }}>
+                <h4 style={{ color: 'var(--color-primary)', fontWeight: '700', fontSize: '15px', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                  <MessageSquare size={16} style={{ color: 'var(--accent-cyan)' }} />
+                  2. 소통 게시판
+                </h4>
+                <p style={{ margin: 0, paddingLeft: '24px' }}>
+                  동창들과 자유로운 대화와 소식을 나누는 광장입니다. 일반 대화글 외에도 회장단의 <strong>중요 공지사항</strong>이 업로드됩니다. 각 글에 댓글 및 대댓글을 달아 실시간으로 의견과 안부를 주고받으실 수 있습니다.
+                </p>
+              </div>
+
+              <div style={{ background: 'rgba(255,255,255,0.02)', padding: '15px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.04)' }}>
+                <h4 style={{ color: 'var(--color-primary)', fontWeight: '700', fontSize: '15px', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                  <Image size={16} style={{ color: 'var(--accent-cyan)' }} />
+                  3. 추억 갤러리 및 테마 앨범
+                </h4>
+                <p style={{ margin: 0, paddingLeft: '24px' }}>
+                  <strong>갤러리</strong>: 모임이나 일상 사진을 자유롭게 올려 동창들과 공유할 수 있는 곳입니다. 마음에 드는 사진에는 하트(좋아요)를 눌러 공감할 수 있습니다.<br />
+                  <strong>테마 앨범</strong>: 체육 대회, 정기 총회 등 큰 모임이나 테마에 따라 사진 폴더를 구분하여 보기 좋게 기록하고 아카이빙하는 공간입니다.
+                </p>
+              </div>
+
+              <div style={{ background: 'rgba(255,255,255,0.02)', padding: '15px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.04)' }}>
+                <h4 style={{ color: 'var(--color-primary)', fontWeight: '700', fontSize: '15px', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                  <Film size={16} style={{ color: 'var(--accent-cyan)' }} />
+                  4. 영화관 및 라디오 방송
+                </h4>
+                <p style={{ margin: 0, paddingLeft: '24px' }}>
+                  동창들과 공유하고 싶은 영상과 음악, 라디오 사연 및 스트리밍 방송 등을 함께 감상하며 휴식을 취하는 문화 공간입니다.
+                </p>
+              </div>
+
+              <div style={{ background: 'rgba(255,255,255,0.02)', padding: '15px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.04)' }}>
+                <h4 style={{ color: 'var(--color-primary)', fontWeight: '700', fontSize: '15px', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                  <Award size={16} style={{ color: 'var(--accent-cyan)' }} />
+                  5. 활동 포인트(XP)와 열정 랭킹
+                </h4>
+                <div style={{ margin: 0, paddingLeft: '24px' }}>
+                  동창회 사이트에서 소통 활동을 즐기다 보면 자동으로 XP(활동 포인트)가 누적됩니다.
+                  <ul style={{ margin: '5px 0 0 0', paddingLeft: '18px', listStyleType: 'circle' }}>
+                    <li>회원 가입 성공: <strong>+50 XP</strong></li>
+                    <li>새 게시글 등록 및 사진 공유: <strong>+10 XP</strong></li>
+                    <li>댓글 작성: <strong>+2 XP</strong></li>
+                  </ul>
+                  포인트가 많이 누적될수록 메인 페이지의 **'👑 열정 랭킹 (명예의 전당)'** 최상단에 이름과 아바타가 노출되는 영예를 안을 수 있습니다.
+                </div>
+              </div>
+
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '25px', borderTop: '1px solid rgba(255, 255, 255, 0.1)', paddingTop: '15px' }}>
+              <button 
+                onClick={() => setShowUserManual(false)} 
+                className="btn btn-primary" 
+                style={{ padding: '8px 24px', minHeight: '38px' }}
+              >
+                확인 및 닫기
+              </button>
+            </div>
           </div>
         </div>
       )}

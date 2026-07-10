@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase, saveSupabaseCredentials, clearSupabaseCredentials } from '../utils/supabaseClient';
-import { Database, Image, Users, Download, CheckCircle, HelpCircle, Save, Trash2 } from 'lucide-react';
+import { Database, Image, Users, Download, CheckCircle, HelpCircle, Save, Trash2, BookOpen } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 export default function Admin({ _session, _alumniProfile }) {
@@ -372,6 +372,23 @@ CREATE TABLE point_logs (
           <HelpCircle size={14} />
           SQL 스키마
         </button>
+
+        <button
+          onClick={() => setActiveSubTab('manual')}
+          className="btn"
+          style={{
+            background: activeSubTab === 'manual' ? 'rgba(255,255,255,0.06)' : 'transparent',
+            color: activeSubTab === 'manual' ? 'var(--accent-cyan)' : 'var(--color-secondary)',
+            border: 'none',
+            borderRadius: '8px',
+            padding: '8px 16px',
+            fontSize: '14px',
+            minHeight: '38px'
+          }}
+        >
+          <BookOpen size={14} />
+          운영자 매뉴얼
+        </button>
       </div>
 
       {/* Tab A: Supabase Configuration Settings */}
@@ -597,6 +614,77 @@ CREATE TABLE point_logs (
           }}>
             {SQL_SCHEMA}
           </pre>
+        </div>
+      )}
+      {/* Tab E: Operator Manual */}
+      {activeSubTab === 'manual' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
+          <div className="glass" style={{ padding: '30px' }}>
+            <h3 style={{ fontSize: '18px', fontWeight: '700', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              🛠️ 시월의 마지막 밤 운영자 매뉴얼
+            </h3>
+            <p style={{ color: 'var(--color-secondary)', fontSize: '14px', lineHeight: '1.6', marginBottom: '25px' }}>
+              홈페이지의 정상적인 운영과 데이터 관리를 위한 마스터 관리자(회장, 홈피지기)용 매뉴얼입니다.
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', fontSize: '14px', lineHeight: '1.7', color: 'var(--color-secondary)' }}>
+              
+              <div style={{ background: 'rgba(255,255,255,0.02)', padding: '20px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.04)' }}>
+                <h4 style={{ color: 'var(--color-primary)', fontWeight: '700', fontSize: '15px', marginBottom: '10px' }}>
+                  1. 회원 사전 등록 (인증용 주소록 관리)
+                </h4>
+                <p style={{ margin: 0 }}>
+                  동창들의 개인정보 및 매칭 시스템을 위해 <strong>새로운 친구(회원)</strong>를 사이트에 먼저 등록해 주어야 합니다.<br />
+                  - <strong>등록 방법</strong>: 상단 네비게이션 바의 '친구들' 메뉴로 이동 후 <strong>'새 친구 등록'</strong> 폼을 작성합니다.<br />
+                  - <strong>인증 기준</strong>: 여기에 등록된 <strong>이름</strong>과 <strong>전화번호</strong>가 회원의 가입 인증 기준이 됩니다. 두 정보가 정확히 매칭되어야 일반 회원이 로그인 계정을 생성할 수 있습니다.
+                </p>
+              </div>
+
+              <div style={{ background: 'rgba(255,255,255,0.02)', padding: '20px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.04)' }}>
+                <h4 style={{ color: 'var(--color-primary)', fontWeight: '700', fontSize: '15px', marginBottom: '10px' }}>
+                  2. 가입 현황 파악 및 주소록 내보내기
+                </h4>
+                <p style={{ margin: 0 }}>
+                  운영자는 동창생 중 누가 사이트에 가입을 완료했는지 손쉽게 확인할 수 있습니다.<br />
+                  - 본 관리자 페이지의 <strong>'가입 현황 관리'</strong> 탭에서 가입 상태가 <strong>'가입 완료'</strong> 또는 <strong>'미가입 (대기)'</strong>인지 한눈에 조회할 수 있습니다.<br />
+                  - <strong>'CSV 주소록 다운로드'</strong> 버튼을 클릭하면 등록된 모든 회원 명단을 한글 엑셀(Excel)에서 호환되는 UTF-8 BOM CSV 파일로 즉시 내려받을 수 있습니다.
+                </p>
+              </div>
+
+              <div style={{ background: 'rgba(255,255,255,0.02)', padding: '20px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.04)' }}>
+                <h4 style={{ color: 'var(--color-primary)', fontWeight: '700', fontSize: '15px', marginBottom: '10px' }}>
+                  3. 대문 배경 이미지 (슬라이더 이미지 관리)
+                </h4>
+                <p style={{ margin: 0 }}>
+                  메인 화면의 첫인상을 결정하는 슬라이더 이미지를 교체하거나 삭제할 수 있습니다.<br />
+                  - <strong>'대문 배경 이미지'</strong> 탭에서 새 이미지 파일을 선택하여 <strong>'배경으로 등록'</strong>하면 즉시 메인 슬라이더에 추가됩니다. (가로형 고화질 이미지 권장)<br />
+                  - 등록된 배경 이미지 리스트에서 우하단의 <strong>빨간색 휴지통 아이콘</strong>을 클릭하여 불필요한 이미지를 언제든지 내릴 수 있습니다. 비어 있는 경우 기본 제공되는 이미지 3장으로 순환됩니다.
+                </p>
+              </div>
+
+              <div style={{ background: 'rgba(255,255,255,0.02)', padding: '20px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.04)' }}>
+                <h4 style={{ color: 'var(--color-primary)', fontWeight: '700', fontSize: '15px', marginBottom: '10px' }}>
+                  4. 데이터베이스 관리 및 복원
+                </h4>
+                <p style={{ margin: 0 }}>
+                  본 사이트는 Supabase 클라우드 데이터베이스를 기반으로 합니다.<br />
+                  - <strong>서버 연동</strong>: 만약 데이터베이스 변경이나 키 갱신이 필요하다면 <strong>'서버 연동'</strong> 탭에서 Supabase URL과 Anon Key를 수정하여 즉시 재연동할 수 있습니다.<br />
+                  - <strong>SQL 스키마</strong>: 데이터 구조가 손상되었거나 새로운 서버에 새로 구축해야 하는 경우, <strong>'SQL 스키마'</strong> 탭의 스크립트를 전체 복사하여 Supabase의 SQL Editor에서 실행하시면 테이블 및 관계를 단번에 자동 재구축할 수 있습니다.
+                </p>
+              </div>
+
+              <div style={{ background: 'rgba(255,255,255,0.02)', padding: '20px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.04)' }}>
+                <h4 style={{ color: 'var(--color-primary)', fontWeight: '700', fontSize: '15px', marginBottom: '10px' }}>
+                  5. 운영자 권한 부여 (회장 / 홈피지기 임명)
+                </h4>
+                <p style={{ margin: 0 }}>
+                  관리자 탭은 `alumniProfile.is_president` 또는 `alumniProfile.is_treasurer` 필드가 `true`인 임원에게만 표시됩니다.<br />
+                  - 새로운 동창 회원에게 관리자 권한을 부여하고 싶다면, Supabase 대시보드의 `alumni` 테이블에서 해당 동창 레코드의 <strong>is_president</strong> 혹은 <strong>is_treasurer</strong> 값을 <strong>true</strong>로 변경해 주시면 됩니다.
+                </p>
+              </div>
+
+            </div>
+          </div>
         </div>
       )}
     </div>
