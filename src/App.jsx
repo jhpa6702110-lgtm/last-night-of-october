@@ -695,6 +695,7 @@ export default function App() {
         <VoiceController 
           setActiveTab={setActiveTab} 
           onLogout={handleLogout} 
+          alumniProfile={alumniProfile}
         />
       )}
     </div>
