@@ -10,7 +10,8 @@ export default function VoiceController({ setActiveTab, onLogout, alumniProfile 
 
   // Refs for tracking state and browser event handlers
   const modeRef = useRef('off');
-  const isWakingUpRef = useRef(false); // Flag to ignore the onend event triggered by wake-up abort
+  const shouldWakeUpRef = useRef(false); // Flag to defer wake-up to onend event
+  const pendingCommandRef = useRef(null); // Flag to defer command processing to onend event
   const utteranceRef = useRef(null); // Prevents garbage collection of SpeechSynthesisUtterance in Chrome
   const ttsTimeoutRef = useRef(null); // Fallback timeout if browser fails to trigger onend/onerror
 
@@ -66,15 +67,23 @@ export default function VoiceController({ setActiveTab, onLogout, alumniProfile 
       };
 
       rec.onend = () => {
-        // Prevent race condition: if onend fires due to standby abort during wake-up transition
-        if (isWakingUpRef.current) {
-          console.log('SpeechRecognition onend ignored during wake-up transition.');
-          isWakingUpRef.current = false;
+        // 1. Deferred Wake-up handling: Start greeting only after the mic has cleanly closed
+        if (shouldWakeUpRef.current) {
+          shouldWakeUpRef.current = false;
+          triggerWakeUp();
+          return;
+        }
+
+        // 2. Deferred Command handling: Process command only after the active mic session has ended
+        if (pendingCommandRef.current) {
+          const cmdText = pendingCommandRef.current;
+          pendingCommandRef.current = null;
+          executeVoiceCommand(cmdText);
           return;
         }
 
         const currentMode = modeRef.current;
-        console.log('SpeechRecognition ended. Current Mode is:', currentMode);
+        console.log('SpeechRecognition ended naturally. Current Mode is:', currentMode);
         
         if (currentMode === 'standby') {
           safeStartRecognition();
@@ -103,7 +112,42 @@ export default function VoiceController({ setActiveTab, onLogout, alumniProfile 
       rec.onresult = (event) => {
         const resultText = event.results[0][0].transcript;
         console.log('Speech recognition raw result:', resultText);
-        handleSpeechResult(resultText);
+        
+        const currentMode = modeRef.current;
+        const cleanText = resultText.replace(/\s+/g, '').toLowerCase();
+
+        if (currentMode === 'standby') {
+          // WAKE WORD MATCHING
+          const isWakeWord = 
+            cleanText.includes('하이시월') || 
+            cleanText.includes('하이10월') || 
+            cleanText.includes('하이십월') || 
+            cleanText.includes('헤이시월') || 
+            cleanText.includes('헤이10월') || 
+            cleanText.includes('헤이십월') || 
+            cleanText.includes('안녕시월') || 
+            cleanText.includes('안녕10월') || 
+            cleanText.includes('안녕십월') ||
+            cleanText.includes('시월이') || 
+            cleanText.includes('시월아') || 
+            cleanText.includes('10월이') || 
+            cleanText.includes('10월아') || 
+            cleanText.includes('십월이') || 
+            cleanText.includes('십월아') ||
+            cleanText.includes('시어리') ||
+            cleanText.includes('시어라') ||
+            cleanText.includes('아이시월') ||
+            cleanText.includes('파이시월') ||
+            cleanText.includes('타이시월');
+
+          if (isWakeWord) {
+            // Defer activation: set flag. Browser will naturally end recording and fire onend.
+            shouldWakeUpRef.current = true;
+          }
+        } else if (currentMode === 'active') {
+          // Defer processing: set ref. Browser will naturally end recording and fire onend.
+          pendingCommandRef.current = resultText;
+        }
       };
 
       setRecognition(rec);
@@ -165,54 +209,8 @@ export default function VoiceController({ setActiveTab, onLogout, alumniProfile 
     }
   };
 
-  const handleSpeechResult = (rawText) => {
-    const currentMode = modeRef.current;
-    const cleanText = rawText.replace(/\s+/g, '').toLowerCase();
-    console.log(`Speech Mode: ${currentMode}, Cleaned text: ${cleanText}`);
-
-    if (currentMode === 'standby') {
-      // WAKE WORD MATCHING
-      const isWakeWord = 
-        cleanText.includes('하이시월') || 
-        cleanText.includes('하이10월') || 
-        cleanText.includes('하이십월') || 
-        cleanText.includes('헤이시월') || 
-        cleanText.includes('헤이10월') || 
-        cleanText.includes('헤이십월') || 
-        cleanText.includes('안녕시월') || 
-        cleanText.includes('안녕10월') || 
-        cleanText.includes('안녕십월') ||
-        cleanText.includes('시월이') || 
-        cleanText.includes('시월아') || 
-        cleanText.includes('10월이') || 
-        cleanText.includes('10월아') || 
-        cleanText.includes('십월이') || 
-        cleanText.includes('십월아') ||
-        cleanText.includes('시어리') ||
-        cleanText.includes('시어라') ||
-        cleanText.includes('아이시월') ||
-        cleanText.includes('파이시월') ||
-        cleanText.includes('타이시월');
-
-      if (isWakeWord) {
-        triggerWakeUp();
-      }
-    } else if (currentMode === 'active') {
-      processVoiceCommand(rawText);
-    }
-  };
-
   const triggerWakeUp = () => {
-    // Set wake transition flag to true before aborting to ignore this onend event
-    isWakingUpRef.current = true;
-    if (recognition) {
-      try {
-        recognition.abort();
-      } catch (e) {}
-    }
-
     setMode('greeting');
-    
     const name = alumniProfile?.name || '동창';
     const wakeMsg = `네, 말씀하세요 ${name} 동창님!`;
     showToast('호출 인식 완료', `🎤 "하이 시월이" ➔ ${wakeMsg}`);
@@ -313,16 +311,10 @@ export default function VoiceController({ setActiveTab, onLogout, alumniProfile 
 
   const returnToStandby = () => {
     setMode('standby');
-    if (recognition) {
-      try {
-        recognition.abort(); // abort triggers onend, which safely starts standby via safeStartRecognition
-      } catch (e) {
-        safeStartRecognition();
-      }
-    }
+    safeStartRecognition();
   };
 
-  const processVoiceCommand = (rawText) => {
+  const executeVoiceCommand = (rawText) => {
     const text = rawText.replace(/\s+/g, '').replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, '');
     let actionDescription = '';
     let matched = true;
