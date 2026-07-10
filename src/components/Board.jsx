@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../utils/supabaseClient';
-import { Search, Plus, X, Eye, MessageSquare, MessageCircle, Megaphone, FileText, Trash2 } from 'lucide-react';
+import { Search, Plus, X, Eye, MessageSquare, MessageCircle, Megaphone, FileText } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { shareBoardToKakao } from '../utils/kakaoShare';
 
-export default function Board({ session, alumniProfile, onAwardActivityPoint }) {
+export default function Board({ _session, alumniProfile, onAwardActivityPoint }) {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -845,7 +845,7 @@ export default function Board({ session, alumniProfile, onAwardActivityPoint }) 
                         onClick={handleStartEditPost}
                         style={{
                           background: 'transparent',
-                          border: 'none',
+
                           color: 'var(--color-secondary)',
                           fontSize: '12px',
                           cursor: 'pointer',
@@ -860,13 +860,12 @@ export default function Board({ session, alumniProfile, onAwardActivityPoint }) 
                         onClick={handleDeletePost}
                         style={{
                           background: 'transparent',
-                          border: 'none',
+                          border: '1px solid rgba(239,68,68,0.2)',
                           color: 'rgba(239, 68, 68, 0.8)',
                           fontSize: '12px',
                           cursor: 'pointer',
                           padding: '4px 8px',
-                          borderRadius: '4px',
-                          border: '1px solid rgba(239,68,68,0.2)'
+                          borderRadius: '4px'
                         }}
                       >
                         삭제

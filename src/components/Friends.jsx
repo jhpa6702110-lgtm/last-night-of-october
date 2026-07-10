@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../utils/supabaseClient';
-import { Search, Plus, Mail, Phone, Calendar, Edit3, X, UploadCloud, User } from 'lucide-react';
+import { Search, Plus, Phone, Calendar, Edit3, X, UploadCloud, User } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 export default function Friends({ session, alumniProfile }) {
@@ -187,7 +187,7 @@ export default function Friends({ session, alumniProfile }) {
             .getPublicUrl(filePath);
 
           avatarUrl = publicUrl;
-        } catch (storageErr) {
+        } catch (_) {
           const base64Data = await convertToBase64(formAvatarFile);
           avatarUrl = base64Data;
         }
@@ -256,7 +256,7 @@ export default function Friends({ session, alumniProfile }) {
             .getPublicUrl(filePath);
 
           avatarUrl = publicUrl;
-        } catch (storageErr) {
+        } catch (_) {
           const base64Data = await convertToBase64(formAvatarFile);
           avatarUrl = base64Data;
         }

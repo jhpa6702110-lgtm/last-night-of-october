@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { supabase, saveSupabaseCredentials, clearSupabaseCredentials } from '../utils/supabaseClient';
-import { Database, Image, Users, Download, Trash2, CheckCircle, HelpCircle, Save } from 'lucide-react';
+import { Database, Image, Users, Download, CheckCircle, HelpCircle, Save } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
-export default function Admin({ session, alumniProfile }) {
+export default function Admin({ _session, _alumniProfile }) {
   const [activeSubTab, setActiveSubTab] = useState('settings');
   const [friendsList, setFriendsList] = useState([]);
   const [heroList, setHeroList] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [_loading, setLoading] = useState(false);
   const [dbStatus, setDbStatus] = useState({ photos: 0, comments: 0, albums: 0 });
 
   // Config State
@@ -108,7 +108,7 @@ export default function Admin({ session, alumniProfile }) {
           .getPublicUrl(filePath);
 
         imageUrl = publicUrl;
-      } catch (storageErr) {
+      } catch (_) {
         const base64Data = await convertToBase64(heroFile);
         imageUrl = base64Data;
       }

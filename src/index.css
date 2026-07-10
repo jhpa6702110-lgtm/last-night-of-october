@@ -272,3 +272,13 @@ body {
     display: none !important;
   }
 }
+
+/* Active users stack – ensure visibility */
+.active-users-stack {
+  z-index: 1000;               /* 다른 요소 위에 표시 */
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.08);
+  padding: 4px 8px;
+  border-radius: 12px;
+  margin-right: 12px;          /* 네비게이션 아이템과 간격 */
+}

@@ -210,6 +210,25 @@ export default function Navbar({ activeTab, setActiveTab, session, alumniProfile
               <span style={{ fontSize: '11px', color: 'var(--accent-cyan)', fontWeight: '700', background: 'rgba(6, 182, 212, 0.1)', border: '1px solid rgba(6, 182, 212, 0.2)', padding: '2px 6px', borderRadius: '4px', marginTop: '2px' }}>
                 ★ {alumniProfile?.points || 0} XP
               </span>
+              {/* 현재 로그인한 사용자의 아바타 */}
+              <div style={{
+                width: '28px',
+                height: '28px',
+                borderRadius: '50%',
+                backgroundColor: 'rgba(255,255,255,0.1)',
+                backgroundImage: alumniProfile?.avatar_url ? `url(${alumniProfile.avatar_url})` : 'none',
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                marginTop: '4px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '12px',
+                fontWeight: '700',
+                color: 'white'
+              }}>
+                {!alumniProfile?.avatar_url && (alumniProfile?.name?.charAt(0) || '')}
+              </div>
             </div>
             <button
               onClick={onLogout}
