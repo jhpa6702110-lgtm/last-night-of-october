@@ -19,13 +19,11 @@ export default function VoiceController({ setActiveTab, onLogout, alumniProfile 
     if (!recognition) return;
     setTimeout(() => {
       try {
-        // Only start if not already running (SpeechRecognition doesn't expose active state, but try-catch handles it)
         recognition.start();
       } catch (err) {
-        // SpeechRecognition already started or in state of starting, which is fine
         console.log('SpeechRecognition start status:', err.message);
       }
-    }, 150); // 150ms delay solves browser InvalidStateError
+    }, 150);
   };
 
   useEffect(() => {
@@ -38,19 +36,17 @@ export default function VoiceController({ setActiveTab, onLogout, alumniProfile 
       
       rec.onstart = () => {
         if (modeRef.current === 'standby') {
-          showToast('시월이 대기 중 🍁', '"하이 시월이" 또는 "시월아"라고 불러보세요.');
+          showToast('시월이 호출 대기 중 🍁', '"하이 시월이" 또는 "시월아"라고 불러보세요.');
         } else if (modeRef.current === 'active') {
           showToast('명령어 입력 대기 🎤', '이동할 메뉴나 날씨를 말씀해 주세요.');
         }
       };
 
       rec.onend = () => {
-        // Self-healing: restart recognition if we are still supposed to be listening
         const currentMode = modeRef.current;
         if (currentMode === 'standby') {
           safeStartRecognition();
         } else if (currentMode === 'active') {
-          // If command recognition times out, automatically return to standby mode
           setMode('standby');
           safeStartRecognition();
         }
@@ -62,9 +58,8 @@ export default function VoiceController({ setActiveTab, onLogout, alumniProfile 
           showToast('오류', '마이크 권한을 허용해 주세요.');
           setMode('off');
         } else if (event.error === 'no-speech') {
-          // Gracefully let onend restart or transition
+          // Gracefully let onend handle it
         } else {
-          // Other errors, reset to standby if in standby/active
           if (modeRef.current !== 'off') {
             setMode('standby');
             safeStartRecognition();
@@ -75,6 +70,7 @@ export default function VoiceController({ setActiveTab, onLogout, alumniProfile 
       rec.onresult = (event) => {
         const latestIndex = event.results.length - 1;
         const resultText = event.results[latestIndex][0].transcript;
+        console.log('Speech recognition raw result:', resultText);
         handleSpeechResult(resultText);
       };
 
@@ -111,16 +107,36 @@ export default function VoiceController({ setActiveTab, onLogout, alumniProfile 
   const handleSpeechResult = (rawText) => {
     const currentMode = modeRef.current;
     const cleanText = rawText.replace(/\s+/g, '').toLowerCase();
+    console.log(`Speech Mode: ${currentMode}, Cleaned text: ${cleanText}`);
 
     if (currentMode === 'standby') {
-      // Listen for wake word: "하이시월이", "시월아", "헤이시월이", "안녕시월이", "시월이"
-      if (
-        cleanText.includes('하이시월이') || 
+      // WAKE WORD MATCHING (supports numeric translation like "10월" and phonetic typos)
+      const isWakeWord = 
+        // 1. 하이/헤이/안녕 + 시월/10월/십월 (이/아 생략 가능)
+        cleanText.includes('하이시월') || 
+        cleanText.includes('하이10월') || 
+        cleanText.includes('하이십월') || 
+        cleanText.includes('헤이시월') || 
+        cleanText.includes('헤이10월') || 
+        cleanText.includes('헤이십월') || 
+        cleanText.includes('안녕시월') || 
+        cleanText.includes('안녕10월') || 
+        cleanText.includes('안녕십월') ||
+        // 2. 그냥 시월이/시월아/10월이/10월아/십월이/십월아 (이/아 필수)
+        cleanText.includes('시월이') || 
         cleanText.includes('시월아') || 
-        cleanText.includes('안녕시월이') || 
-        cleanText.includes('헤이시월이') || 
-        cleanText.includes('시월이')
-      ) {
+        cleanText.includes('10월이') || 
+        cleanText.includes('10월아') || 
+        cleanText.includes('십월이') || 
+        cleanText.includes('십월아') ||
+        // 3. 발음 유사 오타 대응 ("시어리", "시어라", "10월", "시월")
+        cleanText.includes('시어리') ||
+        cleanText.includes('시어라') ||
+        cleanText.includes('아이시월') ||
+        cleanText.includes('파이시월') ||
+        cleanText.includes('타이시월');
+
+      if (isWakeWord) {
         triggerWakeUp();
       }
     } else if (currentMode === 'active') {
