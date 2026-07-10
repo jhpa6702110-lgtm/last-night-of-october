@@ -8,8 +8,9 @@ export default function VoiceController({ setActiveTab, onLogout, alumniProfile 
   const [toast, setToast] = useState({ show: false, text: '', action: '' });
   const [isSupported, setIsSupported] = useState(false);
 
-  // Use refs to avoid stale closures in event handlers
+  // Refs for tracking state and browser event handlers
   const modeRef = useRef('off');
+  const isWakingUpRef = useRef(false); // Flag to ignore the onend event triggered by wake-up abort
   const utteranceRef = useRef(null); // Prevents garbage collection of SpeechSynthesisUtterance in Chrome
   const ttsTimeoutRef = useRef(null); // Fallback timeout if browser fails to trigger onend/onerror
 
@@ -30,7 +31,7 @@ export default function VoiceController({ setActiveTab, onLogout, alumniProfile 
   const safeStartRecognition = () => {
     if (!recognition) return;
     
-    const attemptStart = (retriesLeft = 3) => {
+    const attemptStart = (retriesLeft = 2) => {
       try {
         recognition.start();
       } catch (err) {
@@ -38,7 +39,7 @@ export default function VoiceController({ setActiveTab, onLogout, alumniProfile 
         if (retriesLeft > 0) {
           setTimeout(() => {
             attemptStart(retriesLeft - 1);
-          }, 2500); // Retry with a longer delay if browser is releasing audio device
+          }, 200);
         }
       }
     };
@@ -65,18 +66,23 @@ export default function VoiceController({ setActiveTab, onLogout, alumniProfile 
       };
 
       rec.onend = () => {
+        // Prevent race condition: if onend fires due to standby abort during wake-up transition
+        if (isWakingUpRef.current) {
+          console.log('SpeechRecognition onend ignored during wake-up transition.');
+          isWakingUpRef.current = false;
+          return;
+        }
+
         const currentMode = modeRef.current;
         console.log('SpeechRecognition ended. Current Mode is:', currentMode);
         
         if (currentMode === 'standby') {
-          // Restart listening for standby
           safeStartRecognition();
         } else if (currentMode === 'active') {
           // If active command timed out or finished without matching, return to standby
           setMode('standby');
           safeStartRecognition();
         }
-        // If mode is 'greeting' or 'off', we do NOT restart (let the TTS callback handle it)
       };
 
       rec.onerror = (event) => {
@@ -85,7 +91,7 @@ export default function VoiceController({ setActiveTab, onLogout, alumniProfile 
           showToast('오류', '마이크 권한을 허용해 주세요.');
           setMode('off');
         } else if (event.error === 'no-speech') {
-          // Silent handler, onend will trigger restart automatically
+          // Handled silently, onend will trigger safe restart
         } else {
           if (modeRef.current !== 'off') {
             setMode('standby');
@@ -197,8 +203,14 @@ export default function VoiceController({ setActiveTab, onLogout, alumniProfile 
   };
 
   const triggerWakeUp = () => {
-    // Switch to greeting mode immediately. The browser will naturally trigger onend for this single-phrase session.
-    // Since we are in 'greeting' mode, the onend listener will do nothing, allowing the TTS callback to start active mode.
+    // Set wake transition flag to true before aborting to ignore this onend event
+    isWakingUpRef.current = true;
+    if (recognition) {
+      try {
+        recognition.abort();
+      } catch (e) {}
+    }
+
     setMode('greeting');
     
     const name = alumniProfile?.name || '동창';
@@ -301,7 +313,13 @@ export default function VoiceController({ setActiveTab, onLogout, alumniProfile 
 
   const returnToStandby = () => {
     setMode('standby');
-    safeStartRecognition();
+    if (recognition) {
+      try {
+        recognition.abort(); // abort triggers onend, which safely starts standby via safeStartRecognition
+      } catch (e) {
+        safeStartRecognition();
+      }
+    }
   };
 
   const processVoiceCommand = (rawText) => {
