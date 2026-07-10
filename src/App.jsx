@@ -9,6 +9,7 @@ import Friends from './components/Friends';
 import Admin from './components/Admin';
 import Auth from './components/Auth';
 import Board from './components/Board';
+import Chatbot from './components/Chatbot';
 import { supabase, isSupabaseConfigured, saveSupabaseCredentials } from './utils/supabaseClient';
 import { Database, ShieldAlert, KeyRound, Save } from 'lucide-react';
 
@@ -679,6 +680,14 @@ export default function App() {
           renderContent()
         )}
       </main>
+
+      {/* Global Mascot Chatbot */}
+      {configured && (
+        <Chatbot 
+          session={session} 
+          alumniProfile={alumniProfile} 
+        />
+      )}
     </div>
   );
 }
