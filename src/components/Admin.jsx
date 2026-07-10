@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase, saveSupabaseCredentials, clearSupabaseCredentials } from '../utils/supabaseClient';
-import { Database, Image, Users, Download, CheckCircle, HelpCircle, Save } from 'lucide-react';
+import { Database, Image, Users, Download, CheckCircle, HelpCircle, Save, Trash2 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 export default function Admin({ _session, _alumniProfile }) {
