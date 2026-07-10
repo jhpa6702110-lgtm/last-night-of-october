@@ -1,45 +1,79 @@
-import React, { useState, useEffect } from 'react';
-import { Mic, MicOff, Volume2, Sparkles } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Mic, MicOff, Volume2, Sparkles, Radio } from 'lucide-react';
 
 export default function VoiceController({ setActiveTab, onLogout, alumniProfile }) {
-  const [isListening, setIsListening] = useState(false);
-  const [isSpeakingGreeting, setIsSpeakingGreeting] = useState(false);
+  // Modes: 'off' (inactive), 'greeting' (speaking greeting), 'standby' (listening for wake word), 'active' (listening for command)
+  const [mode, setMode] = useState('off');
   const [recognition, setRecognition] = useState(null);
   const [toast, setToast] = useState({ show: false, text: '', action: '' });
   const [isSupported, setIsSupported] = useState(false);
+
+  // Use ref to avoid stale closures in SpeechRecognition event handlers
+  const modeRef = useRef('off');
+  useEffect(() => {
+    modeRef.current = mode;
+  }, [mode]);
 
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (SpeechRecognition) {
       const rec = new SpeechRecognition();
-      rec.continuous = false;
+      rec.continuous = true; // Continuous listening for standby mode
       rec.lang = 'ko-KR';
       rec.interimResults = false;
       
       rec.onstart = () => {
-        setIsListening(true);
-        showToast('음성 인식 활성화', '듣고 있습니다... 말씀해 주세요.');
+        if (modeRef.current === 'standby') {
+          showToast('호출 대기 모드 활성화', '"하이 시월이" 또는 "시월아"라고 불러보세요.');
+        } else if (modeRef.current === 'active') {
+          showToast('명령어 입력 대기', '이동할 메뉴나 날씨를 말씀해 주세요.');
+        }
       };
 
       rec.onend = () => {
-        setIsListening(false);
+        // Self-healing: restart recognition if we are still supposed to be listening
+        const currentMode = modeRef.current;
+        if (currentMode === 'standby') {
+          try {
+            rec.start();
+          } catch (e) {
+            console.error('Failed to restart standby recognition:', e);
+          }
+        } else if (currentMode === 'active') {
+          // If command recognition times out, automatically return to standby mode
+          setMode('standby');
+          try {
+            rec.start();
+          } catch (e) {
+            console.error('Failed to return to standby from active:', e);
+          }
+        }
       };
 
       rec.onerror = (event) => {
         console.error('Speech recognition error:', event.error);
-        setIsListening(false);
         if (event.error === 'not-allowed') {
           showToast('오류', '마이크 권한을 허용해 주세요.');
+          setMode('off');
         } else if (event.error === 'no-speech') {
-          // Silent end when no speech detected, no need for spamming error alerts
+          // Gracefully let onend restart or transition
         } else {
-          showToast('오류', '음성 인식에 실패했습니다. 다시 시도해 주세요.');
+          // Other errors, reset to standby if in standby/active
+          if (modeRef.current !== 'off') {
+            setMode('standby');
+            try {
+              rec.start();
+            } catch (e) {
+              setMode('off');
+            }
+          }
         }
       };
 
       rec.onresult = (event) => {
-        const resultText = event.results[0][0].transcript;
-        processVoiceCommand(resultText);
+        const latestIndex = event.results.length - 1;
+        const resultText = event.results[latestIndex][0].transcript;
+        handleSpeechResult(resultText);
       };
 
       setRecognition(rec);
@@ -49,10 +83,9 @@ export default function VoiceController({ setActiveTab, onLogout, alumniProfile 
 
   const showToast = (text, action) => {
     setToast({ show: true, text, action });
-    // Hide toast after 3.5 seconds
     setTimeout(() => {
       setToast(prev => ({ ...prev, show: false }));
-    }, 3800);
+    }, 4000);
   };
 
   const speakTTS = (text, callback) => {
@@ -71,6 +104,53 @@ export default function VoiceController({ setActiveTab, onLogout, alumniProfile 
     } else if (callback) {
       callback();
     }
+  };
+
+  const handleSpeechResult = (rawText) => {
+    const currentMode = modeRef.current;
+    const cleanText = rawText.replace(/\s+/g, '').toLowerCase();
+
+    if (currentMode === 'standby') {
+      // Listen for wake word: "하이시월이", "시월아", "헤이시월이", "안녕시월이", "시월이"
+      if (
+        cleanText.includes('하이시월이') || 
+        cleanText.includes('시월아') || 
+        cleanText.includes('안녕시월이') || 
+        cleanText.includes('헤이시월이') || 
+        cleanText.includes('시월이')
+      ) {
+        triggerWakeUp();
+      }
+    } else if (currentMode === 'active') {
+      // Process voice command
+      processVoiceCommand(rawText);
+    }
+  };
+
+  const triggerWakeUp = () => {
+    // Temporarily turn off recognition to prevent hearing itself
+    if (recognition) {
+      try {
+        recognition.stop();
+      } catch (e) {}
+    }
+
+    setMode('greeting');
+    const name = alumniProfile?.name || '동창';
+    const wakeMsg = `네, 말씀하세요 ${name} 동창님!`;
+    showToast('호출 인식 완료', `🎤 "하이 시월이" ➔ ${wakeMsg}`);
+
+    speakTTS(wakeMsg, () => {
+      // Transition to active command listening mode
+      setMode('active');
+      if (recognition) {
+        try {
+          recognition.start();
+        } catch (e) {
+          console.error(e);
+        }
+      }
+    });
   };
 
   const getWeatherDesc = (code) => {
@@ -101,16 +181,20 @@ export default function VoiceController({ setActiveTab, onLogout, alumniProfile 
   const fetchWeatherAndSpeak = () => {
     const speakWeather = (weather, locationName) => {
       if (!weather) {
-        const errMsg = '날씨 정보를 현재 불러올 수 없습니다. 잠시 후 다시 시도해 주세요.';
+        const errMsg = '날씨 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.';
         showToast('날씨 정보 오류', errMsg);
-        speakTTS(errMsg);
+        speakTTS(errMsg, () => {
+          returnToStandby();
+        });
         return;
       }
       const temp = Math.round(weather.temperature);
       const desc = getWeatherDesc(weather.weathercode);
       const msg = `오늘 ${locationName}의 현재 온도는 영상 ${temp}도이며, ${desc} 상태입니다.`;
       showToast('⛅ 실시간 날씨 정보', msg);
-      speakTTS(msg);
+      speakTTS(msg, () => {
+        returnToStandby();
+      });
     };
 
     if (navigator.geolocation) {
@@ -120,7 +204,7 @@ export default function VoiceController({ setActiveTab, onLogout, alumniProfile 
           try {
             const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true&timezone=Asia/Seoul`);
             const data = await res.json();
-            speakWeather(data.current_weather, '현재 지역');
+            speakWeather(data.current_weather, '현재 위치');
           } catch (err) {
             console.error(err);
             // Fallback to Seoul
@@ -155,6 +239,15 @@ export default function VoiceController({ setActiveTab, onLogout, alumniProfile 
     }
   };
 
+  const returnToStandby = () => {
+    setMode('standby');
+    if (recognition) {
+      try {
+        recognition.stop(); // Stop to force restart in standby mode parameters
+      } catch (e) {}
+    }
+  };
+
   const processVoiceCommand = (rawText) => {
     const text = rawText.replace(/\s+/g, '').replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, '');
     let actionDescription = '';
@@ -162,7 +255,7 @@ export default function VoiceController({ setActiveTab, onLogout, alumniProfile 
 
     if (text.includes('날씨') || text.includes('기온') || text.includes('온도') || text.includes('어때')) {
       fetchWeatherAndSpeak();
-      return; // Handled asynchronously by fetchWeatherAndSpeak
+      return; // Async weather fetch handles returnToStandby
     }
 
     if (text.includes('홈') || text.includes('메인') || text.includes('처음')) {
@@ -208,32 +301,38 @@ export default function VoiceController({ setActiveTab, onLogout, alumniProfile 
 
     if (matched) {
       showToast(`🎤 인식: "${rawText}"`, `➔ ${actionDescription}`);
-      speakTTS(actionDescription);
+      speakTTS(actionDescription, () => {
+        returnToStandby();
+      });
     } else {
-      showToast(`🎤 인식: "${rawText}"`, '알맞은 메뉴가 없습니다. 날씨, 갤러리, 라디오, 매뉴얼 등을 말해보세요.');
+      showToast(`🎤 인식: "${rawText}"`, '일치하는 명령어가 없습니다. 날씨, 갤러리, 챗봇 등을 말해보세요.');
+      setTimeout(() => {
+        returnToStandby();
+      }, 2500);
     }
   };
 
   const toggleListening = () => {
     if (!recognition) return;
     
-    if (isListening) {
-      recognition.stop();
-      setIsListening(false);
+    if (mode !== 'off') {
+      // Turn off voice activation completely
       window.speechSynthesis.cancel();
-    } else if (isSpeakingGreeting) {
-      // Stop speaking and cancel listening
-      window.speechSynthesis.cancel();
-      setIsSpeakingGreeting(false);
+      setMode('off');
+      try {
+        recognition.stop();
+      } catch (e) {}
+      showToast('음성 제어 종료', '시월이 호출 대기 모드를 종료합니다.');
     } else {
+      // Start Standby Wake Word listening
       const name = alumniProfile?.name || '동창';
-      setIsSpeakingGreeting(true);
-      const greetingMsg = `안녕하세요, ${name} 동창님! 시월이가 들을 준비를 하고 있어요. 무엇을 도와드릴까요?`;
+      setMode('greeting');
+      const startMsg = `시월이 음성 호출 서비스를 활성화합니다. 언제든 '하이 시월이' 또는 '시월아'라고 불러주세요.`;
       
-      showToast('안내원 시월이', greetingMsg);
+      showToast('호출 대기 활성화 중', startMsg);
       
-      speakTTS(greetingMsg, () => {
-        setIsSpeakingGreeting(false);
+      speakTTS(startMsg, () => {
+        setMode('standby');
         try {
           recognition.start();
         } catch (err) {
@@ -257,18 +356,22 @@ export default function VoiceController({ setActiveTab, onLogout, alumniProfile 
           width: '56px',
           height: '56px',
           borderRadius: '50%',
-          background: isListening 
-            ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' 
-            : isSpeakingGreeting 
-            ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' // Gold/Amber during greeting
-            : 'rgba(30, 41, 59, 0.8)',
-          border: (isListening || isSpeakingGreeting)
+          background: mode === 'active' 
+            ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' // Active listening: Red
+            : mode === 'greeting'
+            ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' // Speaking: Amber/Gold
+            : mode === 'standby'
+            ? 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)' // Standby background listening: Cyan/Blue
+            : 'rgba(30, 41, 59, 0.8)',                          // Off: Dark
+          border: mode !== 'off'
             ? '2px solid rgba(255, 255, 255, 0.4)' 
             : '1px solid rgba(255, 255, 255, 0.1)',
-          boxShadow: isListening 
+          boxShadow: mode === 'active' 
             ? '0 0 25px rgba(239, 68, 68, 0.7), inset 0 2px 4px rgba(255,255,255,0.4)' 
-            : isSpeakingGreeting
+            : mode === 'greeting'
             ? '0 0 25px rgba(245, 158, 11, 0.7), inset 0 2px 4px rgba(255,255,255,0.4)'
+            : mode === 'standby'
+            ? '0 0 25px rgba(6, 182, 212, 0.6), inset 0 2px 4px rgba(255,255,255,0.4)'
             : '0 8px 30px rgba(0, 0, 0, 0.3), inset 0 1px 2px rgba(255,255,255,0.15)',
           display: 'flex',
           alignItems: 'center',
@@ -279,7 +382,7 @@ export default function VoiceController({ setActiveTab, onLogout, alumniProfile 
           backdropFilter: 'blur(10px)',
           transition: 'all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
         }}
-        title="음성 인식 제어 (마이크를 켜서 '갤러리 가줘', '오늘 날씨 어때?' 등을 말해보세요)"
+        title="음성 인식 제어 (마이크를 켜두시면 '하이 시월이' 또는 '시월아'로 부를 수 있습니다)"
         onMouseEnter={(e) => {
           e.currentTarget.style.transform = 'scale(1.1) translateY(-3px)';
         }}
@@ -287,7 +390,7 @@ export default function VoiceController({ setActiveTab, onLogout, alumniProfile 
           e.currentTarget.style.transform = 'scale(1) translateY(0)';
         }}
       >
-        {isListening ? (
+        {mode === 'active' ? (
           <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Mic size={24} className="mic-listening" />
             <span style={{
@@ -299,7 +402,7 @@ export default function VoiceController({ setActiveTab, onLogout, alumniProfile 
               animation: 'ripple 1.5s infinite ease-out'
             }} />
           </div>
-        ) : isSpeakingGreeting ? (
+        ) : mode === 'greeting' ? (
           <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Sparkles size={24} className="mic-speaking" />
             <span style={{
@@ -309,6 +412,18 @@ export default function VoiceController({ setActiveTab, onLogout, alumniProfile 
               borderRadius: '50%',
               border: '2px solid #f59e0b',
               animation: 'ripple 1.5s infinite ease-out'
+            }} />
+          </div>
+        ) : mode === 'standby' ? (
+          <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Mic size={24} className="mic-standby" />
+            <span style={{
+              position: 'absolute',
+              width: '100%',
+              height: '100%',
+              borderRadius: '50%',
+              border: '2px solid #06b6d4',
+              animation: 'ripple-slow 2.5s infinite ease-out'
             }} />
           </div>
         ) : (
@@ -323,16 +438,20 @@ export default function VoiceController({ setActiveTab, onLogout, alumniProfile 
           bottom: '100px',
           right: '25px',
           background: 'rgba(15, 23, 42, 0.9)',
-          border: isListening 
+          border: mode === 'active' 
             ? '1px solid rgba(239, 68, 68, 0.3)' 
-            : isSpeakingGreeting
+            : mode === 'greeting'
             ? '1px solid rgba(245, 158, 11, 0.3)'
-            : '1px solid rgba(34, 211, 238, 0.3)',
-          boxShadow: isListening 
+            : mode === 'standby'
+            ? '1px solid rgba(34, 211, 238, 0.3)'
+            : '1px solid rgba(255, 255, 255, 0.1)',
+          boxShadow: mode === 'active' 
             ? '0 10px 25px rgba(239, 68, 68, 0.2)' 
-            : isSpeakingGreeting
+            : mode === 'greeting'
             ? '0 10px 25px rgba(245, 158, 11, 0.2)'
-            : '0 10px 25px rgba(6, 182, 212, 0.2)',
+            : mode === 'standby'
+            ? '0 10px 25px rgba(6, 182, 212, 0.2)'
+            : 'none',
           padding: '12px 18px',
           borderRadius: '12px',
           zIndex: 9997,
@@ -346,7 +465,7 @@ export default function VoiceController({ setActiveTab, onLogout, alumniProfile 
           flexDirection: 'column',
           gap: '4px'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: '700', color: isListening ? '#f87171' : isSpeakingGreeting ? '#fbbf24' : 'var(--accent-cyan)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: '700', color: mode === 'active' ? '#f87171' : mode === 'greeting' ? '#fbbf24' : 'var(--accent-cyan)' }}>
             <Volume2 size={16} />
             <span>{toast.text}</span>
           </div>
@@ -365,6 +484,19 @@ export default function VoiceController({ setActiveTab, onLogout, alumniProfile 
           }
           100% {
             transform: scale(1.6);
+            opacity: 0;
+          }
+        }
+        @keyframes ripple-slow {
+          0% {
+            transform: scale(1);
+            opacity: 0.8;
+          }
+          50% {
+            opacity: 0.4;
+          }
+          100% {
+            transform: scale(1.4);
             opacity: 0;
           }
         }
