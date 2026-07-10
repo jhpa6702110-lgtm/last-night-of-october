@@ -43,7 +43,7 @@ export default function Navbar({ activeTab, setActiveTab, session, alumniProfile
       left: '50%',
       transform: 'translateX(-50%)',
       width: 'calc(100% - 40px)',
-      maxWidth: '1200px',
+      maxWidth: '1400px',
       zIndex: 100,
       padding: '12px 24px',
       display: 'flex',
@@ -138,7 +138,7 @@ export default function Navbar({ activeTab, setActiveTab, session, alumniProfile
       <div className="desktop-nav" style={{
         display: 'flex',
         alignItems: 'center',
-        gap: '8px'
+        gap: '4px'
       }}>
         {navItems.map((item) => {
           const Icon = item.icon;
@@ -152,12 +152,13 @@ export default function Navbar({ activeTab, setActiveTab, session, alumniProfile
                 color: isActive ? 'var(--accent-cyan)' : 'var(--color-secondary)',
                 border: isActive ? '1px solid rgba(34, 211, 238, 0.2)' : '1px solid transparent',
                 borderRadius: '10px',
-                padding: '8px 16px',
-                fontSize: '15px',
+                padding: '6px 10px',
+                fontSize: '13px',
                 fontWeight: '500',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '6px',
+                gap: '4px',
+                whiteSpace: 'nowrap',
                 cursor: 'pointer',
                 transition: 'var(--transition-smooth)'
               }}
@@ -176,8 +177,8 @@ export default function Navbar({ activeTab, setActiveTab, session, alumniProfile
               color: 'var(--accent-cyan)',
               border: '1px solid rgba(34, 211, 238, 0.3)',
               borderRadius: '10px',
-              padding: '8px 16px',
-              fontSize: '15px',
+              padding: '6px 10px',
+              fontSize: '13px',
               fontWeight: '500',
               display: 'flex',
               alignItems: 'center',
@@ -202,33 +203,34 @@ export default function Navbar({ activeTab, setActiveTab, session, alumniProfile
         )}
 
         {session ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            {/* 현재 로그인한 사용자의 아바타 */}
+            <div style={{
+              width: '32px',
+              height: '32px',
+              borderRadius: '50%',
+              backgroundColor: 'rgba(255,255,255,0.1)',
+              backgroundImage: alumniProfile?.avatar_url ? `url(${alumniProfile.avatar_url})` : 'none',
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '13px',
+              fontWeight: '700',
+              color: 'white',
+              flexShrink: 0,
+              border: '2px solid rgba(34, 211, 238, 0.3)'
+            }}>
+              {!alumniProfile?.avatar_url && (alumniProfile?.name?.charAt(0) || '')}
+            </div>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-              <span style={{ fontSize: '14px', color: 'var(--color-primary)', fontWeight: '600' }}>
+              <span style={{ fontSize: '13px', color: 'var(--color-primary)', fontWeight: '600', whiteSpace: 'nowrap' }}>
                 {alumniProfile?.name || '친구'} 님
               </span>
-              <span style={{ fontSize: '11px', color: 'var(--accent-cyan)', fontWeight: '700', background: 'rgba(6, 182, 212, 0.1)', border: '1px solid rgba(6, 182, 212, 0.2)', padding: '2px 6px', borderRadius: '4px', marginTop: '2px' }}>
+              <span style={{ fontSize: '10px', color: 'var(--accent-cyan)', fontWeight: '700', background: 'rgba(6, 182, 212, 0.1)', border: '1px solid rgba(6, 182, 212, 0.2)', padding: '1px 5px', borderRadius: '4px', marginTop: '2px', whiteSpace: 'nowrap' }}>
                 ★ {alumniProfile?.points || 0} XP
               </span>
-              {/* 현재 로그인한 사용자의 아바타 */}
-              <div style={{
-                width: '28px',
-                height: '28px',
-                borderRadius: '50%',
-                backgroundColor: 'rgba(255,255,255,0.1)',
-                backgroundImage: alumniProfile?.avatar_url ? `url(${alumniProfile.avatar_url})` : 'none',
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                marginTop: '4px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '12px',
-                fontWeight: '700',
-                color: 'white'
-              }}>
-                {!alumniProfile?.avatar_url && (alumniProfile?.name?.charAt(0) || '')}
-              </div>
             </div>
             <button
               onClick={onLogout}
@@ -478,7 +480,7 @@ export default function Navbar({ activeTab, setActiveTab, session, alumniProfile
 
       {/* Responsive Inline CSS */}
       <style>{`
-        @media (max-width: 1080px) {
+        @media (max-width: 1280px) {
           .desktop-nav {
             display: none !important;
           }
