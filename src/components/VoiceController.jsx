@@ -8,24 +8,45 @@ export default function VoiceController({ setActiveTab, onLogout, alumniProfile 
   const [toast, setToast] = useState({ show: false, text: '', action: '' });
   const [isSupported, setIsSupported] = useState(false);
 
-  // Use refs to avoid stale closures and race conditions in SpeechRecognition event handlers
+  // Refs for tracking state and browser event handlers
   const modeRef = useRef('off');
   const isWakingUpRef = useRef(false);
+  const utteranceRef = useRef(null); // Prevents garbage collection of SpeechSynthesisUtterance in Chrome
+  const ttsTimeoutRef = useRef(null); // Fallback timeout if browser fails to trigger onend/onerror
 
   useEffect(() => {
     modeRef.current = mode;
   }, [mode]);
 
-  // Safe wrapper to start Speech Recognition with a short delay to let browser release mic
+  useEffect(() => {
+    return () => {
+      if (ttsTimeoutRef.current) clearTimeout(ttsTimeoutRef.current);
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, []);
+
+  // Robust wrapper to start Speech Recognition with self-healing retries
   const safeStartRecognition = () => {
     if (!recognition) return;
-    setTimeout(() => {
+    
+    const attemptStart = (retriesLeft = 2) => {
       try {
         recognition.start();
       } catch (err) {
-        console.log('SpeechRecognition start status:', err.message);
+        console.log(`SpeechRecognition start attempt failed (retries left: ${retriesLeft}):`, err.message);
+        if (retriesLeft > 0) {
+          setTimeout(() => {
+            attemptStart(retriesLeft - 1);
+          }, 200); // Retry after 200ms
+        }
       }
-    }, 150);
+    };
+
+    setTimeout(() => {
+      attemptStart();
+    }, 150); // Initial 150ms delay
   };
 
   useEffect(() => {
@@ -96,19 +117,48 @@ export default function VoiceController({ setActiveTab, onLogout, alumniProfile 
     }, 4500);
   };
 
+  // Robust TTS engine with garbage-collection protection and timeout backup
   const speakTTS = (text, callback) => {
+    if (ttsTimeoutRef.current) {
+      clearTimeout(ttsTimeoutRef.current);
+    }
+
     if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel(); // Cancel ongoing speech
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'ko-KR';
-      if (callback) {
-        utterance.onend = callback;
-        utterance.onerror = (e) => {
-          console.error('TTS error:', e);
-          callback();
+      try {
+        window.speechSynthesis.cancel(); // Stop any active speech immediately
+        
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'ko-KR';
+        utteranceRef.current = utterance; // Prevent garbage collection on locally declared object
+        
+        let callbackExecuted = false;
+        const triggerCallback = () => {
+          if (!callbackExecuted) {
+            callbackExecuted = true;
+            if (ttsTimeoutRef.current) clearTimeout(ttsTimeoutRef.current);
+            if (callback) callback();
+          }
         };
+
+        utterance.onend = triggerCallback;
+        utterance.onerror = (e) => {
+          console.error('SpeechSynthesis onerror:', e);
+          triggerCallback();
+        };
+
+        // Safety backup timeout: estimated reading time + 1.2s padding
+        const safetyDuration = Math.max(2000, text.length * 280 + 1200);
+        ttsTimeoutRef.current = setTimeout(() => {
+          console.warn('TTS onend event did not fire within timeout. Invoking callback fallback.');
+          window.speechSynthesis.cancel();
+          triggerCallback();
+        }, safetyDuration);
+
+        window.speechSynthesis.speak(utterance);
+      } catch (err) {
+        console.error('TTS Speak Error:', err);
+        if (callback) callback();
       }
-      window.speechSynthesis.speak(utterance);
     } else if (callback) {
       callback();
     }
