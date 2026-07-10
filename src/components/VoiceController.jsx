@@ -8,9 +8,8 @@ export default function VoiceController({ setActiveTab, onLogout, alumniProfile 
   const [toast, setToast] = useState({ show: false, text: '', action: '' });
   const [isSupported, setIsSupported] = useState(false);
 
-  // Refs for tracking state and browser event handlers
+  // Use refs to avoid stale closures in event handlers
   const modeRef = useRef('off');
-  const isWakingUpRef = useRef(false);
   const utteranceRef = useRef(null); // Prevents garbage collection of SpeechSynthesisUtterance in Chrome
   const ttsTimeoutRef = useRef(null); // Fallback timeout if browser fails to trigger onend/onerror
 
@@ -31,7 +30,7 @@ export default function VoiceController({ setActiveTab, onLogout, alumniProfile 
   const safeStartRecognition = () => {
     if (!recognition) return;
     
-    const attemptStart = (retriesLeft = 2) => {
+    const attemptStart = (retriesLeft = 3) => {
       try {
         recognition.start();
       } catch (err) {
@@ -39,21 +38,21 @@ export default function VoiceController({ setActiveTab, onLogout, alumniProfile 
         if (retriesLeft > 0) {
           setTimeout(() => {
             attemptStart(retriesLeft - 1);
-          }, 200); // Retry after 200ms
+          }, 2500); // Retry with a longer delay if browser is releasing audio device
         }
       }
     };
 
     setTimeout(() => {
       attemptStart();
-    }, 150); // Initial 150ms delay
+    }, 150);
   };
 
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (SpeechRecognition) {
       const rec = new SpeechRecognition();
-      rec.continuous = false; // Set to false to avoid browser-specific buffering bugs
+      rec.continuous = false; // Single-phrase mode to naturally fire onend and prevent buffer lag
       rec.lang = 'ko-KR';
       rec.interimResults = false;
       
@@ -66,22 +65,18 @@ export default function VoiceController({ setActiveTab, onLogout, alumniProfile 
       };
 
       rec.onend = () => {
-        // Prevent race condition: if onend fires due to standby abort during wake-up transition
-        if (isWakingUpRef.current) {
-          console.log('SpeechRecognition onend ignored during wake-up transition.');
-          isWakingUpRef.current = false;
-          return;
-        }
-
         const currentMode = modeRef.current;
-        console.log('SpeechRecognition ended. Mode was:', currentMode);
+        console.log('SpeechRecognition ended. Current Mode is:', currentMode);
         
         if (currentMode === 'standby') {
+          // Restart listening for standby
           safeStartRecognition();
         } else if (currentMode === 'active') {
+          // If active command timed out or finished without matching, return to standby
           setMode('standby');
           safeStartRecognition();
         }
+        // If mode is 'greeting' or 'off', we do NOT restart (let the TTS callback handle it)
       };
 
       rec.onerror = (event) => {
@@ -90,7 +85,7 @@ export default function VoiceController({ setActiveTab, onLogout, alumniProfile 
           showToast('오류', '마이크 권한을 허용해 주세요.');
           setMode('off');
         } else if (event.error === 'no-speech') {
-          // Handled silently, onend will trigger safe restart
+          // Silent handler, onend will trigger restart automatically
         } else {
           if (modeRef.current !== 'off') {
             setMode('standby');
@@ -125,11 +120,11 @@ export default function VoiceController({ setActiveTab, onLogout, alumniProfile 
 
     if ('speechSynthesis' in window) {
       try {
-        window.speechSynthesis.cancel(); // Stop any active speech immediately
+        window.speechSynthesis.cancel(); // Stop active speech immediately
         
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = 'ko-KR';
-        utteranceRef.current = utterance; // Prevent garbage collection on locally declared object
+        utteranceRef.current = utterance; // Prevent Chrome GC bug
         
         let callbackExecuted = false;
         const triggerCallback = () => {
@@ -146,10 +141,10 @@ export default function VoiceController({ setActiveTab, onLogout, alumniProfile 
           triggerCallback();
         };
 
-        // Safety backup timeout: estimated reading time + 1.2s padding
+        // Safety backup timeout
         const safetyDuration = Math.max(2000, text.length * 280 + 1200);
         ttsTimeoutRef.current = setTimeout(() => {
-          console.warn('TTS onend event did not fire within timeout. Invoking callback fallback.');
+          console.warn('TTS onend timed out. Invoking fallback.');
           window.speechSynthesis.cancel();
           triggerCallback();
         }, safetyDuration);
@@ -170,9 +165,8 @@ export default function VoiceController({ setActiveTab, onLogout, alumniProfile 
     console.log(`Speech Mode: ${currentMode}, Cleaned text: ${cleanText}`);
 
     if (currentMode === 'standby') {
-      // WAKE WORD MATCHING (supports numeric translation like "10월" and phonetic typos)
+      // WAKE WORD MATCHING
       const isWakeWord = 
-        // 1. 하이/헤이/안녕 + 시월/10월/십월 (이/아 생략 가능)
         cleanText.includes('하이시월') || 
         cleanText.includes('하이10월') || 
         cleanText.includes('하이십월') || 
@@ -182,14 +176,12 @@ export default function VoiceController({ setActiveTab, onLogout, alumniProfile 
         cleanText.includes('안녕시월') || 
         cleanText.includes('안녕10월') || 
         cleanText.includes('안녕십월') ||
-        // 2. 그냥 시월이/시월아/10월이/10월아/십월이/십월아 (이/아 필수)
         cleanText.includes('시월이') || 
         cleanText.includes('시월아') || 
         cleanText.includes('10월이') || 
         cleanText.includes('10월아') || 
         cleanText.includes('십월이') || 
         cleanText.includes('십월아') ||
-        // 3. 발음 유사 오타 대응 ("시어리", "시어라", "10월", "시월")
         cleanText.includes('시어리') ||
         cleanText.includes('시어라') ||
         cleanText.includes('아이시월') ||
@@ -200,27 +192,20 @@ export default function VoiceController({ setActiveTab, onLogout, alumniProfile 
         triggerWakeUp();
       }
     } else if (currentMode === 'active') {
-      // Process voice command
       processVoiceCommand(rawText);
     }
   };
 
   const triggerWakeUp = () => {
-    // Set wake transition flag to true before aborting to ignore this onend event
-    isWakingUpRef.current = true;
-    if (recognition) {
-      try {
-        recognition.abort();
-      } catch (e) {}
-    }
-
+    // Switch to greeting mode immediately. The browser will naturally trigger onend for this single-phrase session.
+    // Since we are in 'greeting' mode, the onend listener will do nothing, allowing the TTS callback to start active mode.
     setMode('greeting');
+    
     const name = alumniProfile?.name || '동창';
     const wakeMsg = `네, 말씀하세요 ${name} 동창님!`;
     showToast('호출 인식 완료', `🎤 "하이 시월이" ➔ ${wakeMsg}`);
 
     speakTTS(wakeMsg, () => {
-      // Transition to active command listening mode
       setMode('active');
       safeStartRecognition();
     });
@@ -256,7 +241,7 @@ export default function VoiceController({ setActiveTab, onLogout, alumniProfile 
       if (!weather) {
         const errMsg = '날씨 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.';
         showToast('날씨 정보 오류', errMsg);
-        setMode('greeting'); // Temporary state to let TTS finish without recording
+        setMode('greeting');
         speakTTS(errMsg, () => {
           returnToStandby();
         });
@@ -266,7 +251,7 @@ export default function VoiceController({ setActiveTab, onLogout, alumniProfile 
       const desc = getWeatherDesc(weather.weathercode);
       const msg = `오늘 ${locationName}의 현재 온도는 영상 ${temp}도이며, ${desc} 상태입니다.`;
       showToast('⛅ 실시간 날씨 정보', msg);
-      setMode('greeting'); // Temporary state to let TTS finish without recording
+      setMode('greeting');
       speakTTS(msg, () => {
         returnToStandby();
       });
@@ -303,7 +288,7 @@ export default function VoiceController({ setActiveTab, onLogout, alumniProfile 
         { timeout: 5000 }
       );
     } else {
-      // Geolocation unsupported fallback to Seoul
+      // Fallback to Seoul
       fetch('https://api.open-meteo.com/v1/forecast?latitude=37.5665&longitude=126.9780&current_weather=true&timezone=Asia/Seoul')
         .then(res => res.json())
         .then(data => speakWeather(data.current_weather, '서울'))
@@ -316,13 +301,7 @@ export default function VoiceController({ setActiveTab, onLogout, alumniProfile 
 
   const returnToStandby = () => {
     setMode('standby');
-    if (recognition) {
-      try {
-        recognition.abort(); // abort triggers onend, which safely starts standby via safeStartRecognition
-      } catch (e) {
-        safeStartRecognition();
-      }
-    }
+    safeStartRecognition();
   };
 
   const processVoiceCommand = (rawText) => {
@@ -394,7 +373,6 @@ export default function VoiceController({ setActiveTab, onLogout, alumniProfile 
     if (!recognition) return;
     
     if (mode !== 'off') {
-      // Turn off voice activation completely
       window.speechSynthesis.cancel();
       setMode('off');
       try {
@@ -402,7 +380,6 @@ export default function VoiceController({ setActiveTab, onLogout, alumniProfile 
       } catch (e) {}
       showToast('음성 제어 종료', '시월이 호출 대기 모드를 종료합니다.');
     } else {
-      // Start Standby Wake Word listening
       const name = alumniProfile?.name || '동창';
       setMode('greeting');
       const startMsg = `시월이 음성 호출 서비스를 활성화합니다. 언제든 '하이 시월이' 또는 '시월아'라고 불러주세요.`;
