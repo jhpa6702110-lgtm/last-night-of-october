@@ -8,8 +8,10 @@ export default function VoiceController({ setActiveTab, onLogout, alumniProfile 
   const [toast, setToast] = useState({ show: false, text: '', action: '' });
   const [isSupported, setIsSupported] = useState(false);
 
-  // Use ref to avoid stale closures in SpeechRecognition event handlers
+  // Use refs to avoid stale closures and race conditions in SpeechRecognition event handlers
   const modeRef = useRef('off');
+  const isWakingUpRef = useRef(false);
+
   useEffect(() => {
     modeRef.current = mode;
   }, [mode]);
@@ -43,14 +45,19 @@ export default function VoiceController({ setActiveTab, onLogout, alumniProfile 
       };
 
       rec.onend = () => {
+        // Prevent race condition: if onend fires due to standby abort during wake-up transition
+        if (isWakingUpRef.current) {
+          console.log('SpeechRecognition onend ignored during wake-up transition.');
+          isWakingUpRef.current = false;
+          return;
+        }
+
         const currentMode = modeRef.current;
         console.log('SpeechRecognition ended. Mode was:', currentMode);
         
         if (currentMode === 'standby') {
-          // Restart listening for the next phrase in standby
           safeStartRecognition();
         } else if (currentMode === 'active') {
-          // If active command timed out or finished without matching, return to standby
           setMode('standby');
           safeStartRecognition();
         }
@@ -62,7 +69,7 @@ export default function VoiceController({ setActiveTab, onLogout, alumniProfile 
           showToast('오류', '마이크 권한을 허용해 주세요.');
           setMode('off');
         } else if (event.error === 'no-speech') {
-          // Handle silently, onend will automatically restart it
+          // Handled silently, onend will trigger safe restart
         } else {
           if (modeRef.current !== 'off') {
             setMode('standby');
@@ -72,7 +79,6 @@ export default function VoiceController({ setActiveTab, onLogout, alumniProfile 
       };
 
       rec.onresult = (event) => {
-        // Since continuous is false, results reset each time, so index 0 is always the latest phrase
         const resultText = event.results[0][0].transcript;
         console.log('Speech recognition raw result:', resultText);
         handleSpeechResult(resultText);
@@ -150,7 +156,8 @@ export default function VoiceController({ setActiveTab, onLogout, alumniProfile 
   };
 
   const triggerWakeUp = () => {
-    // Abort current session to prevent hearing itself during TTS greeting
+    // Set wake transition flag to true before aborting to ignore this onend event
+    isWakingUpRef.current = true;
     if (recognition) {
       try {
         recognition.abort();
@@ -261,7 +268,7 @@ export default function VoiceController({ setActiveTab, onLogout, alumniProfile 
     setMode('standby');
     if (recognition) {
       try {
-        recognition.abort(); // Abort current session, onend will trigger safeStartRecognition in standby mode
+        recognition.abort(); // abort triggers onend, which safely starts standby via safeStartRecognition
       } catch (e) {
         safeStartRecognition();
       }
