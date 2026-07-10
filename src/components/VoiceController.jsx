@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Mic, MicOff, Volume2, Sparkles, Radio } from 'lucide-react';
+import { Mic, MicOff, Volume2, Sparkles } from 'lucide-react';
 
 export default function VoiceController({ setActiveTab, onLogout, alumniProfile }) {
   // Modes: 'off' (inactive), 'greeting' (speaking greeting), 'standby' (listening for wake word), 'active' (listening for command)
@@ -14,6 +14,20 @@ export default function VoiceController({ setActiveTab, onLogout, alumniProfile 
     modeRef.current = mode;
   }, [mode]);
 
+  // Safe wrapper to start Speech Recognition with a short delay to let browser release mic
+  const safeStartRecognition = () => {
+    if (!recognition) return;
+    setTimeout(() => {
+      try {
+        // Only start if not already running (SpeechRecognition doesn't expose active state, but try-catch handles it)
+        recognition.start();
+      } catch (err) {
+        // SpeechRecognition already started or in state of starting, which is fine
+        console.log('SpeechRecognition start status:', err.message);
+      }
+    }, 150); // 150ms delay solves browser InvalidStateError
+  };
+
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (SpeechRecognition) {
@@ -24,9 +38,9 @@ export default function VoiceController({ setActiveTab, onLogout, alumniProfile 
       
       rec.onstart = () => {
         if (modeRef.current === 'standby') {
-          showToast('호출 대기 모드 활성화', '"하이 시월이" 또는 "시월아"라고 불러보세요.');
+          showToast('시월이 대기 중 🍁', '"하이 시월이" 또는 "시월아"라고 불러보세요.');
         } else if (modeRef.current === 'active') {
-          showToast('명령어 입력 대기', '이동할 메뉴나 날씨를 말씀해 주세요.');
+          showToast('명령어 입력 대기 🎤', '이동할 메뉴나 날씨를 말씀해 주세요.');
         }
       };
 
@@ -34,19 +48,11 @@ export default function VoiceController({ setActiveTab, onLogout, alumniProfile 
         // Self-healing: restart recognition if we are still supposed to be listening
         const currentMode = modeRef.current;
         if (currentMode === 'standby') {
-          try {
-            rec.start();
-          } catch (e) {
-            console.error('Failed to restart standby recognition:', e);
-          }
+          safeStartRecognition();
         } else if (currentMode === 'active') {
           // If command recognition times out, automatically return to standby mode
           setMode('standby');
-          try {
-            rec.start();
-          } catch (e) {
-            console.error('Failed to return to standby from active:', e);
-          }
+          safeStartRecognition();
         }
       };
 
@@ -61,11 +67,7 @@ export default function VoiceController({ setActiveTab, onLogout, alumniProfile 
           // Other errors, reset to standby if in standby/active
           if (modeRef.current !== 'off') {
             setMode('standby');
-            try {
-              rec.start();
-            } catch (e) {
-              setMode('off');
-            }
+            safeStartRecognition();
           }
         }
       };
@@ -85,7 +87,7 @@ export default function VoiceController({ setActiveTab, onLogout, alumniProfile 
     setToast({ show: true, text, action });
     setTimeout(() => {
       setToast(prev => ({ ...prev, show: false }));
-    }, 4000);
+    }, 4500);
   };
 
   const speakTTS = (text, callback) => {
@@ -128,7 +130,7 @@ export default function VoiceController({ setActiveTab, onLogout, alumniProfile 
   };
 
   const triggerWakeUp = () => {
-    // Temporarily turn off recognition to prevent hearing itself
+    // Stop standby listening before TTS plays
     if (recognition) {
       try {
         recognition.stop();
@@ -143,13 +145,7 @@ export default function VoiceController({ setActiveTab, onLogout, alumniProfile 
     speakTTS(wakeMsg, () => {
       // Transition to active command listening mode
       setMode('active');
-      if (recognition) {
-        try {
-          recognition.start();
-        } catch (e) {
-          console.error(e);
-        }
-      }
+      safeStartRecognition();
     });
   };
 
@@ -243,8 +239,10 @@ export default function VoiceController({ setActiveTab, onLogout, alumniProfile 
     setMode('standby');
     if (recognition) {
       try {
-        recognition.stop(); // Stop to force restart in standby mode parameters
-      } catch (e) {}
+        recognition.stop(); // stop triggers onend, which safely starts standby via safeStartRecognition
+      } catch (e) {
+        safeStartRecognition();
+      }
     }
   };
 
@@ -333,11 +331,7 @@ export default function VoiceController({ setActiveTab, onLogout, alumniProfile 
       
       speakTTS(startMsg, () => {
         setMode('standby');
-        try {
-          recognition.start();
-        } catch (err) {
-          console.error(err);
-        }
+        safeStartRecognition();
       });
     }
   };
