@@ -26,6 +26,18 @@ export default function Chatbot({ session, alumniProfile }) {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isTyping]);
 
+  // Handle voice command activation
+  useEffect(() => {
+    const handleVoiceToggle = () => {
+      setIsOpen(true);
+    };
+
+    window.addEventListener('toggle-chatbot-voice', handleVoiceToggle);
+    return () => {
+      window.removeEventListener('toggle-chatbot-voice', handleVoiceToggle);
+    };
+  }, []);
+
   const quickReplies = [
     { key: 'xp', label: '★ 포인트(XP) 모으는 법' },
     { key: 'gallery', label: '📸 사진 등록 방법' },

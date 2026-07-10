@@ -10,6 +10,7 @@ import Admin from './components/Admin';
 import Auth from './components/Auth';
 import Board from './components/Board';
 import Chatbot from './components/Chatbot';
+import VoiceController from './components/VoiceController';
 import { supabase, isSupabaseConfigured, saveSupabaseCredentials } from './utils/supabaseClient';
 import { Database, ShieldAlert, KeyRound, Save } from 'lucide-react';
 
@@ -686,6 +687,14 @@ export default function App() {
         <Chatbot 
           session={session} 
           alumniProfile={alumniProfile} 
+        />
+      )}
+
+      {/* Global Voice Command Controller */}
+      {configured && (
+        <VoiceController 
+          setActiveTab={setActiveTab} 
+          onLogout={handleLogout} 
         />
       )}
     </div>

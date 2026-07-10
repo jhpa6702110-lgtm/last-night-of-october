@@ -16,6 +16,18 @@ export default function Home({ session, alumniProfile, setActiveTab }) {
   const [topRankers, setTopRankers] = useState([]);
   const [activeImageUrl, setActiveImageUrl] = useState(null);
   const [showUserManual, setShowUserManual] = useState(false);
+
+  // Handle voice command to open user manual
+  useEffect(() => {
+    const handleVoiceManual = () => {
+      setShowUserManual(true);
+    };
+
+    window.addEventListener('open-user-manual-voice', handleVoiceManual);
+    return () => {
+      window.removeEventListener('open-user-manual-voice', handleVoiceManual);
+    };
+  }, []);
   
   // Pinch-to-zoom & Pan states for mobile image viewer
   const [scale, setScale] = useState(1);
