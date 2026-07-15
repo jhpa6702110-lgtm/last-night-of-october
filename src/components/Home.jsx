@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../utils/supabaseClient';
-import { Image, Users, BookOpen, AlertCircle, X, ChevronRight, HelpCircle, Award, MessageSquare, Film, Key } from 'lucide-react';
+import { Image, Users, BookOpen, AlertCircle, X, ChevronRight, HelpCircle, Award, MessageSquare, Film, Key, Play, Pause, Volume2, VolumeX, Music } from 'lucide-react';
 
 const DEFAULT_HEROS = [
   'https://images.unsplash.com/photo-1509114397022-ed747cca3f65?auto=format&fit=crop&q=80&w=1600', // Starry night
@@ -16,6 +16,103 @@ export default function Home({ session, alumniProfile, setActiveTab }) {
   const [topRankers, setTopRankers] = useState([]);
   const [activeImageUrl, setActiveImageUrl] = useState(null);
   const [showUserManual, setShowUserManual] = useState(false);
+
+  // Audio Player states for background theme song
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [volume, setVolume] = useState(70);
+  const [isMuted, setIsMuted] = useState(false);
+  const [autoplayBlocked, setAutoplayBlocked] = useState(false);
+  const audioRef = useRef(null);
+
+  // Initialize and handle background music for logged in alumni
+  useEffect(() => {
+    // Only initialize audio if the user is logged in
+    if (!session || !alumniProfile) {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+        setIsPlaying(false);
+      }
+      return;
+    }
+
+    const audioUrl = 'https://jinheestate.blog/wp-content/uploads/2026/07/잊혀진-계절.mp3';
+    const audio = new Audio(audioUrl);
+    audio.loop = true;
+    audioRef.current = audio;
+
+    const handlePlay = () => setIsPlaying(true);
+    const handlePause = () => setIsPlaying(false);
+    const handleTimeUpdate = () => setCurrentTime(audio.currentTime);
+    const handleLoadedMetadata = () => setDuration(audio.duration || 0);
+
+    audio.addEventListener('play', handlePlay);
+    audio.addEventListener('pause', handlePause);
+    audio.addEventListener('timeupdate', handleTimeUpdate);
+    audio.addEventListener('loadedmetadata', handleLoadedMetadata);
+
+    // Apply volume
+    audio.volume = isMuted ? 0 : volume / 100;
+
+    // Try autoplay (often blocked by browser until user interaction)
+    const playPromise = audio.play();
+    if (playPromise !== undefined) {
+      playPromise
+        .then(() => {
+          setIsPlaying(true);
+          setAutoplayBlocked(false);
+        })
+        .catch((error) => {
+          console.log('Autoplay prevented:', error);
+          setAutoplayBlocked(true);
+          setIsPlaying(false);
+        });
+    }
+
+    return () => {
+      audio.pause();
+      audio.removeEventListener('play', handlePlay);
+      audio.removeEventListener('pause', handlePause);
+      audio.removeEventListener('timeupdate', handleTimeUpdate);
+      audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      audioRef.current = null;
+      setIsPlaying(false);
+    };
+  }, [session, alumniProfile]);
+
+  // Handle volume changes
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = isMuted ? 0 : volume / 100;
+    }
+  }, [volume, isMuted]);
+
+  const togglePlay = () => {
+    if (!audioRef.current) return;
+    if (isPlaying) {
+      audioRef.current.pause();
+    } else {
+      audioRef.current.play()
+        .then(() => setAutoplayBlocked(false))
+        .catch(err => console.log('Play failed:', err));
+    }
+  };
+
+  const handleSeek = (e) => {
+    if (!audioRef.current) return;
+    const seekTime = parseFloat(e.target.value);
+    audioRef.current.currentTime = seekTime;
+    setCurrentTime(seekTime);
+  };
+
+  const formatTime = (timeInSeconds) => {
+    if (isNaN(timeInSeconds)) return '0:00';
+    const mins = Math.floor(timeInSeconds / 60);
+    const secs = Math.floor(timeInSeconds % 60);
+    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+  };
 
   // Handle voice command to open user manual
   useEffect(() => {
@@ -275,6 +372,101 @@ export default function Home({ session, alumniProfile, setActiveTab }) {
           친구들과 함께하는 특별한 순간들을 공유하고 간직해 보세요. 
           우리들만의 소중한 사진과 앨범이 안전하게 보관되는 공간입니다.
         </p>
+
+        {/* Theme Song Radio Player (Only for logged-in alumni) */}
+        {session && alumniProfile && (
+          <div className="radio-player-card fade-in">
+            <div className="radio-visual-section">
+              {/* LP Turntable Graphic */}
+              <div className="lp-disc-container">
+                <div className={`lp-disc ${isPlaying ? 'lp-disc-spinning' : ''}`}>
+                  <div className="lp-disc-grooves" />
+                  <div className="lp-disc-label">
+                    <span style={{ fontSize: '12px' }}>🍂</span>
+                  </div>
+                  <div className="lp-disc-center-hole" />
+                </div>
+                {/* LP Tonearm Graphic */}
+                <svg className="lp-tonearm" style={{ transform: isPlaying ? 'rotate(18deg)' : 'rotate(0deg)' }} viewBox="0 0 40 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M25 8C25 9.10457 24.1046 10 23 10C21.8954 10 21 9.10457 21 8C21 6.89543 21.8954 6 23 6C24.1046 6 25 6.89543 25 8Z" fill="#a0aec0"/>
+                  <path d="M23 8L15 28L18 52" stroke="#cbd5e1" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  <rect x="15" y="48" width="6" height="8" rx="1" transform="rotate(15 15 48)" fill="#718096"/>
+                </svg>
+              </div>
+
+              {/* Music Metadata Info */}
+              <div className="radio-info-meta">
+                <div className="radio-song-title">잊혀진 계절</div>
+                <div className="radio-artist-name">
+                  <Music size={13} style={{ color: 'var(--accent-cyan)' }} />
+                  시월의 마지막 밤 주제곡
+                </div>
+              </div>
+
+              {/* Audio Equalizer dancing bars */}
+              <div className="eq-bars-container">
+                <div className={`eq-bar ${isPlaying ? 'eq-bar-active-1' : ''}`} />
+                <div className={`eq-bar ${isPlaying ? 'eq-bar-active-2' : ''}`} />
+                <div className={`eq-bar ${isPlaying ? 'eq-bar-active-3' : ''}`} />
+                <div className={`eq-bar ${isPlaying ? 'eq-bar-active-4' : ''}`} />
+                <div className={`eq-bar ${isPlaying ? 'eq-bar-active-5' : ''}`} />
+              </div>
+            </div>
+
+            {/* Controls and progress row */}
+            <div className="radio-controls-row">
+              {/* Play / Pause Toggle Button */}
+              <button className="radio-play-btn" onClick={togglePlay} aria-label={isPlaying ? '일시정지' : '재생'}>
+                {isPlaying ? <Pause size={18} fill="currentColor" /> : <Play size={18} fill="currentColor" style={{ marginLeft: '2px' }} />}
+              </button>
+
+              {/* Progress Slider */}
+              <div className="radio-progress-container">
+                <input
+                  type="range"
+                  min="0"
+                  max={duration || 100}
+                  value={currentTime}
+                  onChange={handleSeek}
+                  className="radio-progress-slider"
+                />
+                <div className="radio-time-labels">
+                  <span>{formatTime(currentTime)}</span>
+                  <span>{formatTime(duration)}</span>
+                </div>
+              </div>
+
+              {/* Volume Slider */}
+              <div className="radio-volume-container">
+                <button 
+                  onClick={() => setIsMuted(!isMuted)} 
+                  style={{ background: 'none', border: 'none', color: 'var(--color-primary)', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center' }}
+                  aria-label="음소거 토글"
+                >
+                  {isMuted || volume === 0 ? <VolumeX size={16} /> : <Volume2 size={16} />}
+                </button>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={isMuted ? 0 : volume}
+                  onChange={(e) => {
+                    setVolume(parseInt(e.target.value));
+                    if (isMuted) setIsMuted(false);
+                  }}
+                  className="radio-volume-slider"
+                />
+              </div>
+            </div>
+
+            {/* Autoplay blocked fallback guide */}
+            {autoplayBlocked && (
+              <div className="radio-autoplay-banner">
+                <span>📻 터치하여 시월의 마지막 밤 주제곡을 들어보세요!</span>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Buttons */}
         <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
