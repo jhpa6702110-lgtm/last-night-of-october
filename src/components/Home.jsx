@@ -1,11 +1,28 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../utils/supabaseClient';
-import { Image, Users, BookOpen, AlertCircle, X, ChevronRight, HelpCircle, Award, MessageSquare, Film, Key, Play, Pause, Volume2, VolumeX, Music } from 'lucide-react';
+import { Image, Users, BookOpen, AlertCircle, X, ChevronRight, HelpCircle, Award, MessageSquare, Film, Key, Play, Pause, Volume2, VolumeX, Music, SkipBack, SkipForward } from 'lucide-react';
 
 const DEFAULT_HEROS = [
   'https://images.unsplash.com/photo-1509114397022-ed747cca3f65?auto=format&fit=crop&q=80&w=1600', // Starry night
   'https://images.unsplash.com/photo-1517457373958-b7bdd4587205?auto=format&fit=crop&q=80&w=1600', // Friends gather bonfire
   'https://images.unsplash.com/photo-1470240731273-7821a6eeb6bd?auto=format&fit=crop&q=80&w=1600'  // Autumn evening trees
+];
+
+const THEME_SONGS = [
+  {
+    id: 'forgotten_season',
+    title: '잊혀진 계절',
+    artist: '이용',
+    url: 'https://jinheestate.blog/wp-content/uploads/2026/07/잊혀진-계절.mp3',
+    description: '첫 번째 주제곡'
+  },
+  {
+    id: 'sea_of_heartbreak',
+    title: 'Sea Of Heartbreak',
+    artist: 'Original',
+    url: 'https://jinheestate.blog/wp-content/uploads/2026/07/Sea-Of-Heartbreak-Ori.mp3',
+    description: '두 번째 주제곡'
+  }
 ];
 
 export default function Home({ session, alumniProfile, setActiveTab }) {
@@ -18,6 +35,7 @@ export default function Home({ session, alumniProfile, setActiveTab }) {
   const [showUserManual, setShowUserManual] = useState(false);
 
   // Audio Player states for background theme song
+  const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -25,6 +43,14 @@ export default function Home({ session, alumniProfile, setActiveTab }) {
   const [isMuted, setIsMuted] = useState(false);
   const [autoplayBlocked, setAutoplayBlocked] = useState(false);
   const audioRef = useRef(null);
+
+  const volumeRef = useRef(volume);
+  const isMutedRef = useRef(isMuted);
+
+  useEffect(() => {
+    volumeRef.current = volume;
+    isMutedRef.current = isMuted;
+  }, [volume, isMuted]);
 
   // Initialize and handle background music for logged in alumni
   useEffect(() => {
@@ -38,23 +64,28 @@ export default function Home({ session, alumniProfile, setActiveTab }) {
       return;
     }
 
-    const audioUrl = 'https://jinheestate.blog/wp-content/uploads/2026/07/잊혀진-계절.mp3';
-    const audio = new Audio(audioUrl);
-    audio.loop = true;
+    const currentTrack = THEME_SONGS[currentTrackIndex];
+    const audio = new Audio(currentTrack.url);
+    audio.loop = false; // Disable looping to allow next track transition
     audioRef.current = audio;
 
     const handlePlay = () => setIsPlaying(true);
     const handlePause = () => setIsPlaying(false);
     const handleTimeUpdate = () => setCurrentTime(audio.currentTime);
     const handleLoadedMetadata = () => setDuration(audio.duration || 0);
+    const handleEnded = () => {
+      // Auto advance to next song in playlist
+      setCurrentTrackIndex((prev) => (prev + 1) % THEME_SONGS.length);
+    };
 
     audio.addEventListener('play', handlePlay);
     audio.addEventListener('pause', handlePause);
     audio.addEventListener('timeupdate', handleTimeUpdate);
     audio.addEventListener('loadedmetadata', handleLoadedMetadata);
+    audio.addEventListener('ended', handleEnded);
 
     // Apply volume
-    audio.volume = isMuted ? 0 : volume / 100;
+    audio.volume = isMutedRef.current ? 0 : volumeRef.current / 100;
 
     // Try autoplay (often blocked by browser until user interaction)
     const playPromise = audio.play();
@@ -77,10 +108,11 @@ export default function Home({ session, alumniProfile, setActiveTab }) {
       audio.removeEventListener('pause', handlePause);
       audio.removeEventListener('timeupdate', handleTimeUpdate);
       audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      audio.removeEventListener('ended', handleEnded);
       audioRef.current = null;
       setIsPlaying(false);
     };
-  }, [session, alumniProfile]);
+  }, [session, alumniProfile, currentTrackIndex]);
 
   // Handle volume changes
   useEffect(() => {
@@ -105,6 +137,14 @@ export default function Home({ session, alumniProfile, setActiveTab }) {
     const seekTime = parseFloat(e.target.value);
     audioRef.current.currentTime = seekTime;
     setCurrentTime(seekTime);
+  };
+
+  const nextTrack = () => {
+    setCurrentTrackIndex((prev) => (prev + 1) % THEME_SONGS.length);
+  };
+
+  const prevTrack = () => {
+    setCurrentTrackIndex((prev) => (prev - 1 + THEME_SONGS.length) % THEME_SONGS.length);
   };
 
   const formatTime = (timeInSeconds) => {
@@ -396,10 +436,10 @@ export default function Home({ session, alumniProfile, setActiveTab }) {
 
               {/* Music Metadata Info */}
               <div className="radio-info-meta">
-                <div className="radio-song-title">잊혀진 계절</div>
+                <div className="radio-song-title">{THEME_SONGS[currentTrackIndex].title}</div>
                 <div className="radio-artist-name">
                   <Music size={13} style={{ color: 'var(--accent-cyan)' }} />
-                  시월의 마지막 밤 주제곡
+                  {THEME_SONGS[currentTrackIndex].artist} • {THEME_SONGS[currentTrackIndex].description}
                 </div>
               </div>
 
@@ -415,10 +455,18 @@ export default function Home({ session, alumniProfile, setActiveTab }) {
 
             {/* Controls and progress row */}
             <div className="radio-controls-row">
-              {/* Play / Pause Toggle Button */}
-              <button className="radio-play-btn" onClick={togglePlay} aria-label={isPlaying ? '일시정지' : '재생'}>
-                {isPlaying ? <Pause size={18} fill="currentColor" /> : <Play size={18} fill="currentColor" style={{ marginLeft: '2px' }} />}
-              </button>
+              {/* Control Buttons Group (Prev, Play/Pause, Next) */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                <button className="radio-control-sub-btn" onClick={prevTrack} aria-label="이전 곡">
+                  <SkipBack size={14} fill="currentColor" />
+                </button>
+                <button className="radio-play-btn" onClick={togglePlay} aria-label={isPlaying ? '일시정지' : '재생'}>
+                  {isPlaying ? <Pause size={18} fill="currentColor" /> : <Play size={18} fill="currentColor" style={{ marginLeft: '2px' }} />}
+                </button>
+                <button className="radio-control-sub-btn" onClick={nextTrack} aria-label="다음 곡">
+                  <SkipForward size={14} fill="currentColor" />
+                </button>
+              </div>
 
               {/* Progress Slider */}
               <div className="radio-progress-container">
@@ -457,6 +505,72 @@ export default function Home({ session, alumniProfile, setActiveTab }) {
                   className="radio-volume-slider"
                 />
               </div>
+            </div>
+
+            {/* Playlist Track List */}
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '6px',
+              marginTop: '10px',
+              borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+              paddingTop: '12px'
+            }}>
+              {THEME_SONGS.map((song, idx) => {
+                const isActive = idx === currentTrackIndex;
+                return (
+                  <button
+                    key={song.id}
+                    onClick={() => {
+                      setCurrentTrackIndex(idx);
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '8px 12px',
+                      borderRadius: '8px',
+                      background: isActive ? 'rgba(6, 182, 212, 0.15)' : 'rgba(255, 255, 255, 0.02)',
+                      border: isActive ? '1px solid rgba(6, 182, 212, 0.3)' : '1px solid rgba(255, 255, 255, 0.04)',
+                      color: isActive ? 'var(--accent-cyan)' : 'var(--color-secondary)',
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      transition: 'var(--transition-smooth)'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isActive) e.currentTarget.style.background = 'rgba(255, 255, 255, 0.06)';
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isActive) e.currentTarget.style.background = 'rgba(255, 255, 255, 0.02)';
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <span style={{ fontSize: '11px', opacity: 0.6, width: '14px', display: 'flex', alignItems: 'center' }}>
+                        {isActive && isPlaying ? (
+                          <div style={{ display: 'flex', gap: '2px', alignItems: 'flex-end', height: '10px', width: '10px' }}>
+                            <div className="eq-bar-tiny-1" style={{ width: '2px', background: 'var(--accent-cyan)', borderRadius: '1px 1px 0 0' }} />
+                            <div className="eq-bar-tiny-2" style={{ width: '2px', background: 'var(--accent-cyan)', borderRadius: '1px 1px 0 0' }} />
+                            <div className="eq-bar-tiny-3" style={{ width: '2px', background: 'var(--accent-cyan)', borderRadius: '1px 1px 0 0' }} />
+                          </div>
+                        ) : (
+                          `0${idx + 1}`
+                        )}
+                      </span>
+                      <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        <span style={{ fontSize: '13px', fontWeight: '600', color: isActive ? 'var(--accent-cyan)' : 'var(--color-primary)' }}>
+                          {song.title}
+                        </span>
+                        <span style={{ fontSize: '11px', opacity: 0.8 }}>
+                          {song.artist}
+                        </span>
+                      </div>
+                    </div>
+                    <span style={{ fontSize: '11px', opacity: 0.6 }}>
+                      {song.description}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
 
             {/* Autoplay blocked fallback guide */}
