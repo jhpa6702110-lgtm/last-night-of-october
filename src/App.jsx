@@ -294,13 +294,13 @@ export default function App() {
               if (updateError) throw updateError;
               setAlumniProfile(updated);
               await checkAttendanceAndDeduction(updated);
-            } else {
               const { data: inserted, error: insertError } = await supabase
                 .from('alumni')
                 .insert({
                   auth_id: session.user.id,
                   name: userName || '신규친구',
                   phone: session.user.user_metadata?.phone || '',
+                  email: session.user.email || '',
                   description: '반갑습니다! 새로 오신 친구입니다.',
                   is_president: false,
                   is_treasurer: false,

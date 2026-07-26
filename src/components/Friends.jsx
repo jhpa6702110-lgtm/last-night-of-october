@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../utils/supabaseClient';
-import { Search, Plus, Phone, Calendar, Edit3, X, UploadCloud, User } from 'lucide-react';
+import { Search, Plus, Phone, Calendar, Edit3, X, UploadCloud, User, Mail } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 export default function Friends({ session, alumniProfile }) {
@@ -16,6 +16,7 @@ export default function Friends({ session, alumniProfile }) {
   // Form State
   const [formName, setFormName] = useState('');
   const [formPhone, setFormPhone] = useState('');
+  const [formEmail, setFormEmail] = useState('');
   const [formBirthday, setFormBirthday] = useState('');
   const [formDesc, setFormDesc] = useState('');
   const [formIsPresident, setFormIsPresident] = useState(false);
@@ -145,9 +146,10 @@ export default function Friends({ session, alumniProfile }) {
   };
 
   // Open Add Friend Modal
-  const handleOpenAddModal = () => {
+  const resetForm = () => {
     setFormName('');
     setFormPhone('');
+    setFormEmail('');
     setFormBirthday('');
     setFormDesc('');
     setFormIsPresident(false);
@@ -198,6 +200,7 @@ export default function Friends({ session, alumniProfile }) {
         .insert({
           name: formName,
           phone: formPhone,
+          email: formEmail,
           birthday: formBirthday || null,
           description: formDesc,
           is_president: formIsPresident,
@@ -222,6 +225,7 @@ export default function Friends({ session, alumniProfile }) {
     setEditingProfile(friend);
     setFormName(friend.name);
     setFormPhone(friend.phone || '');
+    setFormEmail(friend.email || '');
     setFormBirthday(friend.birthday || '');
     setFormDesc(friend.description || '');
     setFormIsPresident(friend.is_president || false);
@@ -266,6 +270,7 @@ export default function Friends({ session, alumniProfile }) {
       const updates = {
         name: formName,
         phone: formPhone,
+        email: formEmail,
         birthday: formBirthday || null,
         description: formDesc,
         avatar_url: avatarUrl,
@@ -624,6 +629,11 @@ export default function Friends({ session, alumniProfile }) {
                 <span style={{ fontWeight: '500' }}>{selectedFriendForView.phone || '비공개'}</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '14px' }}>
+                <Mail size={16} color="var(--accent-cyan)" />
+                <span style={{ color: 'var(--color-secondary)' }}>이메일:</span>
+                <span style={{ fontWeight: '500' }}>{selectedFriendForView.email || '미등록'}</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '14px' }}>
                 <Calendar size={16} color="var(--accent-violet)" />
                 <span style={{ color: 'var(--color-secondary)' }}>생년월일:</span>
                 <span style={{ fontWeight: '500' }}>{selectedFriendForView.birthday ? new Date(selectedFriendForView.birthday).toLocaleDateString() : '미등록'}</span>
@@ -679,6 +689,17 @@ export default function Friends({ session, alumniProfile }) {
                   className="input-field"
                   value={formPhone}
                   onChange={(e) => setFormPhone(e.target.value)}
+                />
+              </div>
+
+              <div className="input-group">
+                <label className="input-label">이메일 주소</label>
+                <input
+                  type="email"
+                  placeholder="example@email.com"
+                  className="input-field"
+                  value={formEmail}
+                  onChange={(e) => setFormEmail(e.target.value)}
                 />
               </div>
 
@@ -808,6 +829,17 @@ export default function Friends({ session, alumniProfile }) {
                   className="input-field"
                   value={formPhone}
                   onChange={(e) => setFormPhone(e.target.value)}
+                />
+              </div>
+
+              <div className="input-group">
+                <label className="input-label">이메일 주소</label>
+                <input
+                  type="email"
+                  placeholder="example@email.com"
+                  className="input-field"
+                  value={formEmail}
+                  onChange={(e) => setFormEmail(e.target.value)}
                 />
               </div>
 

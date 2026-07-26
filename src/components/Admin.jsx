@@ -209,7 +209,7 @@ export default function Admin({ _session, _alumniProfile }) {
     }
 
     // CSV Headers
-    const headers = ['이름', '전화번호', '생년월일', '직책', '계정 연동 상태', '설명/소개'];
+    const headers = ['이름', '이메일', '전화번호', '생년월일', '직책', '계정 연동 상태', '설명/소개'];
     
     // CSV Rows
     const rows = friendsList.map(friend => {
@@ -220,6 +220,7 @@ export default function Admin({ _session, _alumniProfile }) {
 
       return [
         friend.name,
+        friend.email || '',
         friend.phone || '',
         friend.birthday || '',
         role,
@@ -611,6 +612,7 @@ CREATE TABLE point_logs (
               <thead>
                 <tr style={{ borderBottom: '1.5px solid rgba(255,255,255,0.1)' }}>
                   <th style={{ padding: '12px 10px', color: 'var(--color-secondary)', fontSize: '14px' }}>이름</th>
+                  <th style={{ padding: '12px 10px', color: 'var(--color-secondary)', fontSize: '14px' }}>이메일</th>
                   <th style={{ padding: '12px 10px', color: 'var(--color-secondary)', fontSize: '14px' }}>전화번호</th>
                   <th style={{ padding: '12px 10px', color: 'var(--color-secondary)', fontSize: '14px' }}>생년월일</th>
                   <th style={{ padding: '12px 10px', color: 'var(--color-secondary)', fontSize: '14px' }}>직책</th>
@@ -627,6 +629,7 @@ CREATE TABLE point_logs (
                   return (
                     <tr key={friend.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                       <td style={{ padding: '12px 10px', fontSize: '14px', fontWeight: '600' }}>{friend.name}</td>
+                      <td style={{ padding: '12px 10px', fontSize: '14px', color: 'var(--color-secondary)' }}>{friend.email || '-'}</td>
                       <td style={{ padding: '12px 10px', fontSize: '14px', color: 'var(--color-secondary)' }}>{friend.phone || '-'}</td>
                       <td style={{ padding: '12px 10px', fontSize: '14px', color: 'var(--color-secondary)' }}>{friend.birthday || '-'}</td>
                       <td style={{ padding: '12px 10px', fontSize: '14px' }}>{role}</td>

@@ -127,6 +127,7 @@ export default function Auth({ onAuthSuccess }) {
           .from('alumni')
           .update({ 
             auth_id: user.id,
+            email: email,
             ...(birthday && !matchedProfile.birthday ? { birthday } : {})
           })
           .eq('id', matchedProfile.id);
@@ -140,6 +141,7 @@ export default function Auth({ onAuthSuccess }) {
             auth_id: user.id,
             name: name.trim(),
             phone: phone.trim(),
+            email: email,
             birthday: birthday || null,
             description: '반갑습니다! 새로 가입한 친구입니다.',
             is_president: false,

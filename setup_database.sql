@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS alumni (
   auth_id UUID UNIQUE,
   name TEXT NOT NULL,
   phone TEXT,
+  email TEXT, -- 이메일 주소 추가
   birthday DATE,
   avatar_url TEXT,
   description TEXT,
