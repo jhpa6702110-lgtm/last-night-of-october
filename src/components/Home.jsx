@@ -22,6 +22,20 @@ const THEME_SONGS = [
     artist: 'Original',
     url: 'https://jinheestate.blog/wp-content/uploads/2026/07/Sea-Of-Heartbreak-Ori.mp3',
     description: '두 번째 주제곡'
+  },
+  {
+    id: 'sea_of_heartbreak_poco',
+    title: 'Sea Of Heartbreak',
+    artist: 'PoCo',
+    url: 'https://jinheestate.blog/wp-content/uploads/2026/07/Sea-Of-Heartbreak-Ori-by-PoCo.mp3',
+    description: '세 번째 주제곡'
+  },
+  {
+    id: 'forgotten_season_yong',
+    title: '잊혀진 계절 (이용)',
+    artist: '이용',
+    url: 'https://jinheestate.blog/wp-content/uploads/2026/07/잊혀진-계절-이용.mp3',
+    description: '네 번째 주제곡'
   }
 ];
 
