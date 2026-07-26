@@ -146,7 +146,7 @@ export default function Friends({ session, alumniProfile }) {
   };
 
   // Open Add Friend Modal
-  const resetForm = () => {
+  const handleOpenAddModal = () => {
     setFormName('');
     setFormPhone('');
     setFormEmail('');
