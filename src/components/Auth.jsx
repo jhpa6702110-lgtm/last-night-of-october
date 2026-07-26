@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { supabase } from '../utils/supabaseClient';
-import { LogIn, UserPlus, AlertCircle, CheckCircle, Mail, Lock, User, Phone, Calendar } from 'lucide-react';
+import { supabase, saveSupabaseCredentials, clearSupabaseCredentials } from '../utils/supabaseClient';
+import { LogIn, UserPlus, AlertCircle, CheckCircle, Mail, Lock, User, Phone, Calendar, Database } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 export default function Auth({ onAuthSuccess }) {
@@ -13,6 +13,26 @@ export default function Auth({ onAuthSuccess }) {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+
+  // Database Connection configuration states & helpers
+  const [showDbConfig, setShowDbConfig] = useState(false);
+  const [tempUrl, setTempUrl] = useState(localStorage.getItem('supabase_url') || '');
+  const [tempKey, setTempKey] = useState(localStorage.getItem('supabase_anon_key') || '');
+
+  const handleSaveDbConfig = (e) => {
+    e.preventDefault();
+    if (!tempUrl.trim() || !tempKey.trim()) {
+      alert('Supabase URL과 Anon Key를 모두 입력해 주세요.');
+      return;
+    }
+    saveSupabaseCredentials(tempUrl, tempKey);
+  };
+
+  const handleResetDbConfig = () => {
+    if (window.confirm('저장된 설정을 지우고 기본 설정값(.env)으로 복원하시겠습니까?')) {
+      clearSupabaseCredentials();
+    }
+  };
 
   const triggerConfetti = () => {
     confetti({
@@ -331,6 +351,63 @@ export default function Auth({ onAuthSuccess }) {
             </p>
           )}
         </div>
+
+        {/* Database Config Toggle */}
+        <div style={{ marginTop: '20px', paddingTop: '15px', borderTop: '1px solid rgba(255, 255, 255, 0.05)', textAlign: 'center' }}>
+          <span
+            onClick={() => setShowDbConfig(!showDbConfig)}
+            style={{ fontSize: '12px', color: 'var(--color-secondary)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+          >
+            <Database size={12} />
+            {showDbConfig ? '설정 닫기' : '데이터베이스 설정 변경 (임시/디버그)'}
+          </span>
+        </div>
+
+        {showDbConfig && (
+          <div className="glass" style={{ marginTop: '15px', padding: '15px', textAlign: 'left', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
+            <h4 style={{ fontSize: '14px', fontWeight: '600', marginBottom: '10px', color: 'var(--color-primary)' }}>Supabase 설정 변경</h4>
+            <div className="input-group" style={{ marginBottom: '10px' }}>
+              <label className="input-label" style={{ fontSize: '11px' }}>Project URL</label>
+              <input
+                type="url"
+                placeholder="https://your-project-id.supabase.co"
+                className="input-field"
+                style={{ height: '36px', fontSize: '13px', padding: '0 10px' }}
+                value={tempUrl}
+                onChange={(e) => setTempUrl(e.target.value)}
+              />
+            </div>
+            <div className="input-group" style={{ marginBottom: '15px' }}>
+              <label className="input-label" style={{ fontSize: '11px' }}>Anon Key</label>
+              <input
+                type="password"
+                placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                className="input-field"
+                style={{ height: '36px', fontSize: '13px', padding: '0 10px' }}
+                value={tempKey}
+                onChange={(e) => setTempKey(e.target.value)}
+              />
+            </div>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                type="button"
+                onClick={handleSaveDbConfig}
+                className="btn btn-primary"
+                style={{ height: '32px', fontSize: '12px', padding: '0 12px', flex: 1, minHeight: 'auto' }}
+              >
+                저장 및 연결
+              </button>
+              <button
+                type="button"
+                onClick={handleResetDbConfig}
+                className="btn btn-secondary"
+                style={{ height: '32px', fontSize: '12px', padding: '0 12px', minHeight: 'auto' }}
+              >
+                기본값 복원
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

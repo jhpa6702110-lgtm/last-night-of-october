@@ -1,14 +1,9 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Get credentials from environment variables or LocalStorage fallback (configured via UI)
-let supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-let supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
-
-// Fallback to LocalStorage if not set in environment variables
-if (!supabaseUrl || !supabaseAnonKey) {
-  supabaseUrl = localStorage.getItem('supabase_url') || '';
-  supabaseAnonKey = localStorage.getItem('supabase_anon_key') || '';
-}
+// Get credentials: prioritize LocalStorage overrides so users can configure/correct it via UI,
+// and fall back to environment variables.
+let supabaseUrl = localStorage.getItem('supabase_url') || import.meta.env.VITE_SUPABASE_URL || '';
+let supabaseAnonKey = localStorage.getItem('supabase_anon_key') || import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
 export const supabase = (supabaseUrl && supabaseAnonKey) 
   ? createClient(supabaseUrl, supabaseAnonKey) 

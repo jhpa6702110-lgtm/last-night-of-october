@@ -83,6 +83,62 @@ export default function Admin({ _session, _alumniProfile }) {
     });
   };
 
+  const compressImage = (file) => {
+    return new Promise((resolve) => {
+      if (!file.type.startsWith('image/')) {
+        resolve(file);
+        return;
+      }
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target.result;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 1920;
+          const MAX_HEIGHT = 1080;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+
+          canvas.toBlob((blob) => {
+            if (blob) {
+              const origName = file.name;
+              const dotIndex = origName.lastIndexOf('.');
+              const baseName = dotIndex !== -1 ? origName.substring(0, dotIndex) : origName;
+              const compressedFile = new File([blob], `${baseName}_compressed.jpg`, {
+                type: 'image/jpeg',
+                lastModified: Date.now(),
+              });
+              resolve(compressedFile);
+            } else {
+              resolve(file);
+            }
+          }, 'image/jpeg', 0.75);
+        };
+        img.onerror = () => resolve(file);
+      };
+      reader.onerror = () => resolve(file);
+    });
+  };
+
   // Upload landing page background slider image
   const handleUploadHero = async (e) => {
     e.preventDefault();
@@ -90,16 +146,17 @@ export default function Admin({ _session, _alumniProfile }) {
     setUploadingHero(true);
 
     try {
+      const compressedFile = await compressImage(heroFile);
       let imageUrl = '';
       
       try {
-        const fileExt = heroFile.name.split('.').pop();
+        const fileExt = compressedFile.name.split('.').pop();
         const safeName = `hero-${Date.now()}.${fileExt}`;
         const filePath = `${safeName}`;
 
         const { error: uploadErr } = await supabase.storage
           .from('gallery')
-          .upload(filePath, heroFile, { cacheControl: '3600', upsert: true });
+          .upload(filePath, compressedFile, { cacheControl: '3600', upsert: true });
 
         if (uploadErr) throw uploadErr;
 
