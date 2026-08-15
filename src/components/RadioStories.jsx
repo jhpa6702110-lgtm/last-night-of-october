@@ -4,6 +4,13 @@ import { generateGeminiAudio, DJ_VOICE_PRESETS } from '../utils/geminiTTS';
 import { Radio, Volume2, VolumeX, Music, Heart, Plus, Sparkles, MessageCircle, Send, Play, Pause, Square, User, X, Check, Share2, HelpCircle, CheckCircle } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
+const PRESET_SONGS = [
+  { id: 'song-1', title: '잊혀진 계절', artist: '이용', url: 'https://jinheestate.blog/wp-content/uploads/2026/07/잊혀진-계절.mp3' },
+  { id: 'song-2', title: 'Sea Of Heartbreak (Original)', artist: 'Don Gibson', url: 'https://jinheestate.blog/wp-content/uploads/2026/07/Sea-Of-Heartbreak-Ori.mp3' },
+  { id: 'song-3', title: 'Sea Of Heartbreak (PoCo)', artist: 'PoCo', url: 'https://jinheestate.blog/wp-content/uploads/2026/07/Sea-Of-Heartbreak-Ori-by-PoCo.mp3' },
+  { id: 'song-4', title: '잊혀진 계절 (이용 - 원곡)', artist: '이용', url: 'https://jinheestate.blog/wp-content/uploads/2026/07/잊혀진-계절-이용.mp3' }
+];
+
 export default function RadioStories({ session, alumniProfile, setActiveTab }) {
   const [stories, setStories] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -20,8 +27,9 @@ export default function RadioStories({ session, alumniProfile, setActiveTab }) {
   const [showAddModal, setShowAddModal] = useState(false);
   const [formSenderName, setFormSenderName] = useState(alumniProfile?.name || '');
   const [formRecipientName, setFormRecipientName] = useState('사랑하는 동창 친구들 전체');
-  const [formSongTitle, setFormSongTitle] = useState('');
-  const [formArtistName, setFormArtistName] = useState('');
+  const [formSongTitle, setFormSongTitle] = useState(PRESET_SONGS[0].title);
+  const [formArtistName, setFormArtistName] = useState(PRESET_SONGS[0].artist);
+  const [formSongUrl, setFormSongUrl] = useState(PRESET_SONGS[0].url);
   const [formContent, setFormContent] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -96,6 +104,7 @@ export default function RadioStories({ session, alumniProfile, setActiveTab }) {
 
   const fetchStories = async () => {
     setLoading(true);
+    let dbStories = [];
     try {
       const { data, error } = await supabase
         .from('radio_stories')
@@ -103,39 +112,51 @@ export default function RadioStories({ session, alumniProfile, setActiveTab }) {
         .order('created_at', { ascending: false });
 
       if (!error && data && data.length > 0) {
-        setStories(data);
-      } else {
-        // Fallback sample data if DB table is not created yet
-        setStories([
-          {
-            id: 'story-1',
-            sender_name: '김철수',
-            recipient_name: '3학년 2반 친구들 전체',
-            song_title: '잊혀진 계절',
-            artist_name: '이용',
-            song_url: 'https://jinheestate.blog/wp-content/uploads/2026/07/잊혀진-계절.mp3',
-            content: `어느덧 세월이 흘러 5070이 된 사랑하는 친구들아!\n시월의 마지막 밤 노래만 나오면 고등학교 때 교정에 흩날리던 붉은 단풍잎과, 수업 마치고 빵집에 모여 도란도란 수다 떨던 너희들 얼굴이 눈에 선하단다.\n다들 건강 잘 챙기고 10월 정기 모임에서 반가운 얼굴로 꼭 만나자구나!`,
-            likes_count: 14,
-            created_at: new Date().toISOString()
-          },
-          {
-            id: 'story-2',
-            sender_name: '이영희',
-            recipient_name: '보고 싶은 친구 박영수에게',
-            song_title: 'Sea Of Heartbreak',
-            artist_name: 'Original',
-            song_url: 'https://jinheestate.blog/wp-content/uploads/2026/07/Sea-Of-Heartbreak-Ori.mp3',
-            content: `영수야, 지난번 야유회 때 맛있는 과일 챙겨줘서 너무 고마웠어.\n우리가 벌써 환갑을 지나 70을 바라보는 나이가 되었지만, 마음만은 여전히 18세 청춘 같구나.\n네가 좋아하던 올드팝 함께 들으며 건강하길 바란다!`,
-            likes_count: 9,
-            created_at: new Date(Date.now() - 86400000 * 2).toISOString()
-          }
-        ]);
+        dbStories = data;
       }
     } catch (err) {
       console.error('Error fetching radio stories:', err);
-    } finally {
-      setLoading(false);
     }
+
+    let localSavedStories = [];
+    try {
+      const stored = localStorage.getItem('local_radio_stories');
+      if (stored) localSavedStories = JSON.parse(stored);
+    } catch (e) {}
+
+    const defaultSamples = [
+      {
+        id: 'story-1',
+        sender_name: '김철수',
+        recipient_name: '3학년 2반 친구들 전체',
+        song_title: '잊혀진 계절',
+        artist_name: '이용',
+        song_url: 'https://jinheestate.blog/wp-content/uploads/2026/07/잊혀진-계절.mp3',
+        content: `어느덧 세월이 흘러 5070이 된 사랑하는 친구들아!\n시월의 마지막 밤 노래만 나오면 고등학교 때 교정에 흩날리던 붉은 단풍잎과, 수업 마치고 빵집에 모여 도란도란 수다 떨던 너희들 얼굴이 눈에 선하단다.\n다들 건강 잘 챙기고 10월 정기 모임에서 반가운 얼굴로 꼭 만나자구나!`,
+        likes_count: 14,
+        created_at: new Date().toISOString()
+      },
+      {
+        id: 'story-2',
+        sender_name: '이영희',
+        recipient_name: '보고 싶은 친구 박영수에게',
+        song_title: 'Sea Of Heartbreak',
+        artist_name: 'Original',
+        song_url: 'https://jinheestate.blog/wp-content/uploads/2026/07/Sea-Of-Heartbreak-Ori.mp3',
+        content: `영수야, 지난번 야유회 때 맛있는 과일 챙겨줘서 너무 고마웠어.\n우리가 벌써 환갑을 지나 70을 바라보는 나이가 되었지만, 마음만은 여전히 18세 청춘 같구나.\n네가 좋아하던 올드팝 함께 들으며 건강하길 바란다!`,
+        likes_count: 9,
+        created_at: new Date(Date.now() - 86400000 * 2).toISOString()
+      }
+    ];
+
+    const combined = [...localSavedStories, ...dbStories];
+    if (combined.length === 0) {
+      setStories(defaultSamples);
+    } else {
+      const unique = Array.from(new Map(combined.map(s => [s.id, s])).values());
+      setStories(unique);
+    }
+    setLoading(false);
   };
 
   // TTS Helper Functions
@@ -381,12 +402,22 @@ export default function RadioStories({ session, alumniProfile, setActiveTab }) {
         recipient_name: formRecipientName || '동창 친구들 전체',
         song_title: formSongTitle,
         artist_name: formArtistName || '가수 미지정',
-        song_url: 'https://jinheestate.blog/wp-content/uploads/2026/07/잊혀진-계절.mp3',
+        song_url: formSongUrl || 'https://jinheestate.blog/wp-content/uploads/2026/07/잊혀진-계절.mp3',
         content: formContent,
         likes_count: 1,
         created_at: new Date().toISOString()
       };
 
+      // 1. Save locally to localStorage so it is immediately preserved on device
+      try {
+        const stored = localStorage.getItem('local_radio_stories');
+        const existing = stored ? JSON.parse(stored) : [];
+        localStorage.setItem('local_radio_stories', JSON.stringify([newStory, ...existing]));
+      } catch (lErr) {}
+
+      setStories(prev => [newStory, ...prev.filter(s => s.id !== newStory.id)]);
+
+      // 2. Insert to Supabase DB for cross-device sync
       const { data, error } = await supabase
         .from('radio_stories')
         .insert(newStory)
@@ -394,18 +425,15 @@ export default function RadioStories({ session, alumniProfile, setActiveTab }) {
         .single();
 
       if (error) {
-        console.warn('DB fallback:', error.message);
-        setStories(prev => [newStory, ...prev]);
+        console.warn('Supabase DB insert warning (local storage fallback active):', error.message);
       } else if (data) {
-        setStories(prev => [data, ...prev]);
+        setStories(prev => [data, ...prev.filter(s => s.id !== newStory.id)]);
       }
 
       triggerConfetti();
       setShowAddModal(false);
-      setFormSongTitle('');
-      setFormArtistName('');
       setFormContent('');
-      alert('📻 라디오 사연과 신청곡이 성공적으로 방송판에 등록되었습니다!');
+      alert('📻 라디오 사연과 신청곡이 성공적으로 등록되었습니다!');
     } catch (err) {
       console.error('Error adding story:', err);
       alert('사연 등록 중 오류가 발생했습니다.');
@@ -829,11 +857,42 @@ export default function RadioStories({ session, alumniProfile, setActiveTab }) {
               </div>
 
               <div>
-                <label style={{ fontSize: '13px', color: '#38bdf8', display: 'block', marginBottom: '6px', fontWeight: '700' }}>🎵 추억의 신청곡 (곡 제목 & 가수)</label>
+                <label style={{ fontSize: '13px', color: '#38bdf8', display: 'block', marginBottom: '6px', fontWeight: '700' }}>
+                  🎵 보유 음원 라이브러리에서 원클릭 선택
+                </label>
+                <select
+                  value={formSongUrl}
+                  onChange={(e) => {
+                    const selected = PRESET_SONGS.find(s => s.url === e.target.value);
+                    if (selected) {
+                      setFormSongTitle(selected.title);
+                      setFormArtistName(selected.artist);
+                      setFormSongUrl(selected.url);
+                    }
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    borderRadius: '8px',
+                    border: '1px solid rgba(56, 189, 248, 0.4)',
+                    background: '#0f172a',
+                    color: '#38bdf8',
+                    fontSize: '14px',
+                    fontWeight: '700',
+                    marginBottom: '10px'
+                  }}
+                >
+                  {PRESET_SONGS.map(s => (
+                    <option key={s.id} value={s.url}>
+                      🎶 {s.title} ({s.artist})
+                    </option>
+                  ))}
+                </select>
+
                 <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '8px' }}>
                   <input
                     type="text"
-                    placeholder="신청곡 제목 (예: 잊혀진 계절)"
+                    placeholder="신청곡 제목 (직접 수정 가능)"
                     value={formSongTitle}
                     onChange={(e) => setFormSongTitle(e.target.value)}
                     style={{ padding: '12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(0,0,0,0.3)', color: 'white', fontSize: '14px' }}
@@ -841,7 +900,7 @@ export default function RadioStories({ session, alumniProfile, setActiveTab }) {
                   />
                   <input
                     type="text"
-                    placeholder="가수 이름 (예: 이용)"
+                    placeholder="가수 이름 (직접 수정 가능)"
                     value={formArtistName}
                     onChange={(e) => setFormArtistName(e.target.value)}
                     style={{ padding: '12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(0,0,0,0.3)', color: 'white', fontSize: '14px' }}
@@ -850,10 +909,16 @@ export default function RadioStories({ session, alumniProfile, setActiveTab }) {
               </div>
 
               <div>
-                <label style={{ fontSize: '13px', color: '#94a3b8', display: 'block', marginBottom: '6px', fontWeight: '700' }}>💌 진솔한 라디오 사연 편지글</label>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                  <label style={{ fontSize: '13px', color: '#94a3b8', fontWeight: '700' }}>💌 진솔한 라디오 사연 편지글</label>
+                  <span style={{ fontSize: '12px', color: formContent.length > 900 ? '#f43f5e' : '#38bdf8', fontWeight: '700' }}>
+                    ({formContent.length.toLocaleString()} / 1,000자)
+                  </span>
+                </div>
                 <textarea
                   rows="5"
-                  placeholder="친구들과 함께 나누고 싶은 학창 시절 추억이나 안부 인사를 편지처럼 자유롭게 적어주세요. (DJ가 따뜻한 음성으로 직접 읽어드립니다)"
+                  maxLength={1000}
+                  placeholder="친구들과 함께 나누고 싶은 학창 시절 추억이나 안부 인사를 편지처럼 자유롭게 적어주세요. (최대 1,000자, DJ가 따뜻한 음성으로 직접 읽어드립니다)"
                   value={formContent}
                   onChange={(e) => setFormContent(e.target.value)}
                   style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(0,0,0,0.3)', color: 'white', fontSize: '14px', resize: 'none', lineHeight: '1.6' }}
