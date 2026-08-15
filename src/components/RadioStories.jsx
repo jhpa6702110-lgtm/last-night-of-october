@@ -24,6 +24,9 @@ export default function RadioStories({ session, alumniProfile, setActiveTab }) {
   const [formContent, setFormContent] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
+  const [djStyle, setDjStyle] = useState('female'); // 'female' (따뜻한 아나운서 DJ), 'male' (나긋나긋 중저음 DJ)
+  const [availableVoices, setAvailableVoices] = useState([]);
+
   // Audio & TTS refs
   const audioRef = useRef(null);
   const utteranceRef = useRef(null);
@@ -36,8 +39,50 @@ export default function RadioStories({ session, alumniProfile, setActiveTab }) {
     });
   };
 
+  // Web Audio Soft Radio Chime Sound (띵동~)
+  const playRadioChime = () => {
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(523.25, ctx.currentTime); // C5
+      osc.frequency.exponentialRampToValueAtTime(659.25, ctx.currentTime + 0.15); // E5
+      osc.frequency.exponentialRampToValueAtTime(783.99, ctx.currentTime + 0.35); // G5
+      
+      gain.gain.setValueAtTime(0.12, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.7);
+      
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      
+      osc.start();
+      osc.stop(ctx.currentTime + 0.7);
+    } catch (err) {
+      console.log('Chime sound blocked:', err);
+    }
+  };
+
+  // Load browser speech voices
   useEffect(() => {
     fetchStories();
+
+    const loadVoices = () => {
+      if ('speechSynthesis' in window) {
+        const voices = window.speechSynthesis.getVoices();
+        const koVoices = voices.filter(v => v.lang.includes('ko'));
+        setAvailableVoices(koVoices);
+      }
+    };
+
+    loadVoices();
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.onvoiceschanged = loadVoices;
+    }
+
     return () => {
       stopTTS();
       stopBGM();
@@ -104,6 +149,32 @@ export default function RadioStories({ session, alumniProfile, setActiveTab }) {
     setActiveAudioStoryId(null);
   };
 
+  // Find best natural Korean voice
+  const selectBestVoice = (gender) => {
+    if (!('speechSynthesis' in window)) return null;
+    const voices = window.speechSynthesis.getVoices();
+    const koVoices = voices.filter(v => v.lang.includes('ko') || v.lang.includes('KO'));
+    if (koVoices.length === 0) return null;
+
+    if (gender === 'male') {
+      const maleVoice = koVoices.find(v => 
+        v.name.includes('InJoon') || v.name.includes('YunJie') || v.name.includes('Male') || v.name.includes('남성')
+      );
+      if (maleVoice) return maleVoice;
+    } else {
+      const femaleVoice = koVoices.find(v => 
+        v.name.includes('SunHi') || v.name.includes('Heami') || v.name.includes('Female') || v.name.includes('여성')
+      );
+      if (femaleVoice) return femaleVoice;
+    }
+
+    // Fallback: Natural / Online / Google voice
+    const naturalVoice = koVoices.find(v => 
+      v.name.includes('Natural') || v.name.includes('Online') || v.name.includes('Google')
+    );
+    return naturalVoice || koVoices[0];
+  };
+
   const handlePlayTTS = (story) => {
     // If currently speaking this story, stop it
     if (speakingStoryId === story.id) {
@@ -111,20 +182,45 @@ export default function RadioStories({ session, alumniProfile, setActiveTab }) {
       return;
     }
 
-    stopTTS(); // Stop any other speech
+    stopTTS(); // Stop any active speech
 
     if (!('speechSynthesis' in window)) {
       alert('죄송합니다. 사용 중이신 브라우저는 음성 낭독(TTS)을 지원하지 않습니다.');
       return;
     }
 
-    const djIntro = `라디오 DJ가 전하는 동문 사연입니다. ${story.sender_name} 동문이 ${story.recipient_name}에게 보낸 편지입니다.`;
-    const fullSpeechText = `${djIntro} ... ${story.content}`;
+    // Play subtle radio chime sound effect
+    playRadioChime();
+
+    // Natural Speech Formatting with radio DJ pauses
+    const formattedContent = story.content
+      .replace(/!/g, '! ... ')
+      .replace(/\?/g, '? ... ')
+      .replace(/\./g, '. ... ')
+      .replace(/,/g, ', ... ')
+      .replace(/\n/g, ' ... ');
+
+    const djGreeting = djStyle === 'male' 
+      ? `안녕하세요. 시월의 밤 라디오 중저음 DJ입니다. ... ` 
+      : `안녕하세요. 시월의 밤 라디오 아나운서 DJ입니다. ... `;
+
+    const djIntro = `${djGreeting} ... ${story.sender_name} 동문이 ${story.recipient_name}에게 전하는 따뜻한 사연입니다. ... 사연 함께 들어보시죠. ... `;
+    const djOutro = ` ... 이상 ${story.sender_name} 동문의 사연이었습니다. ... 신청곡 ${story.song_title} 함께 감상해 보세요.`;
+
+    const fullSpeechText = `${djIntro} ${formattedContent} ${djOutro}`;
 
     const utterance = new SpeechSynthesisUtterance(fullSpeechText);
     utterance.lang = 'ko-KR';
-    utterance.rate = 0.92; // Slightly calm radio DJ speed
-    utterance.pitch = 1.0;
+    
+    // DJ Voice Settings for maximum warmth
+    utterance.rate = 0.85; // Calm, relaxed DJ speed (default 1.0 is too fast & robotic)
+    utterance.pitch = djStyle === 'male' ? 0.85 : 0.95; // Deeper & softer tone
+
+    const bestVoice = selectBestVoice(djStyle);
+    if (bestVoice) {
+      utterance.voice = bestVoice;
+    }
+
     utteranceRef.current = utterance;
 
     utterance.onstart = () => {
@@ -140,11 +236,11 @@ export default function RadioStories({ session, alumniProfile, setActiveTab }) {
       setSpeakingStoryId(null);
     };
 
-    // If story has background music URL, play BGM softly together
+    // Play soft BGM simultaneously underneath DJ voice
     if (story.song_url) {
       stopBGM();
       const audio = new Audio(story.song_url);
-      audio.volume = 0.25; // Soft BGM under voice
+      audio.volume = 0.15; // Soft 15% BGM volume under DJ voice
       audioRef.current = audio;
       audio.play().catch(err => console.log('BGM play blocked:', err));
       setActiveAudioStoryId(story.id);
@@ -269,6 +365,40 @@ export default function RadioStories({ session, alumniProfile, setActiveTab }) {
           <p style={{ color: 'var(--color-secondary)', fontSize: '15px', marginTop: '6px', margin: 0 }}>
             친구에게 전하고 싶은 사연과 노래를 보내세요. <strong>[🔊 DJ가 읽어주기]</strong>로 따뜻한 음성을 청취하실 수 있습니다!
           </p>
+
+          <div style={{ display: 'flex', gap: '8px', marginTop: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '13px', color: '#c084fc', fontWeight: '700' }}>🎙️ DJ 음성 톤:</span>
+            <button
+              onClick={() => setDjStyle('female')}
+              style={{
+                padding: '5px 12px',
+                borderRadius: '8px',
+                border: djStyle === 'female' ? '1px solid #c084fc' : '1px solid rgba(255,255,255,0.1)',
+                background: djStyle === 'female' ? 'rgba(192, 132, 252, 0.3)' : 'rgba(255,255,255,0.04)',
+                color: djStyle === 'female' ? 'white' : 'var(--color-secondary)',
+                fontSize: '12px',
+                fontWeight: '700',
+                cursor: 'pointer'
+              }}
+            >
+              📻 따뜻한 아나운서 (여성 DJ)
+            </button>
+            <button
+              onClick={() => setDjStyle('male')}
+              style={{
+                padding: '5px 12px',
+                borderRadius: '8px',
+                border: djStyle === 'male' ? '1px solid #38bdf8' : '1px solid rgba(255,255,255,0.1)',
+                background: djStyle === 'male' ? 'rgba(56, 189, 248, 0.3)' : 'rgba(255,255,255,0.04)',
+                color: djStyle === 'male' ? 'white' : 'var(--color-secondary)',
+                fontSize: '12px',
+                fontWeight: '700',
+                cursor: 'pointer'
+              }}
+            >
+              🎙️ 나긋나긋 중저음 (남성 DJ)
+            </button>
+          </div>
         </div>
 
         <button
