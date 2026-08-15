@@ -433,25 +433,6 @@ export default function RadioStories({ session, alumniProfile, setActiveTab }) {
             >
               🎙️ 나긋나긋 중저음 (남성 DJ)
             </button>
-
-            <button
-              onClick={() => setShowKeyModal(true)}
-              style={{
-                padding: '5px 12px',
-                borderRadius: '8px',
-                border: '1px solid rgba(234, 179, 8, 0.4)',
-                background: 'rgba(234, 179, 8, 0.15)',
-                color: '#facc15',
-                fontSize: '12px',
-                fontWeight: '700',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px'
-              }}
-            >
-              <Key size={13} /> 🔑 AI 성우 키 설정
-            </button>
           </div>
         </div>
 
@@ -822,68 +803,7 @@ export default function RadioStories({ session, alumniProfile, setActiveTab }) {
         </div>
       )}
 
-      {/* MODAL: GEMINI API KEY MODAL */}
-      {showKeyModal && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          backgroundColor: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)',
-          zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px'
-        }}
-        onClick={() => setShowKeyModal(false)}
-        >
-          <div 
-            style={{
-              width: '100%', maxWidth: '480px', backgroundColor: '#0f172a',
-              border: '1px solid rgba(234, 179, 8, 0.4)', borderRadius: '20px', padding: '24px'
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <h3 style={{ fontSize: '18px', fontWeight: '800', color: '#facc15', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Key size={20} /> 🔑 Gemini AI 성우 API 키 설정
-              </h3>
-              <button onClick={() => setShowKeyModal(false)} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}>
-                <X size={20} />
-              </button>
-            </div>
 
-            <p style={{ fontSize: '13px', color: '#cbd5e1', lineHeight: '1.6', marginBottom: '14px' }}>
-              구글 Gemini / Text-to-Speech API 키를 입력해 두시면 브라우저에서 성우급 AI 꿀보이스로 라디오 사연을 낭독해 드립니다!
-            </p>
-
-            <input
-              type="text"
-              placeholder="API 키 입력 (예: AIzaSy...)"
-              value={userApiKeyInput}
-              onChange={(e) => setUserApiKeyInput(e.target.value)}
-              style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(0,0,0,0.4)', color: 'white', fontSize: '14px', marginBottom: '16px' }}
-            />
-
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <button
-                type="button"
-                onClick={() => setShowKeyModal(false)}
-                style={{ flex: 1, padding: '12px', borderRadius: '10px', border: 'none', background: 'rgba(255,255,255,0.1)', color: 'white', fontWeight: '700', cursor: 'pointer' }}
-              >
-                취소
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  if (typeof window !== 'undefined') {
-                    localStorage.setItem('user_gemini_api_key', userApiKeyInput.trim());
-                  }
-                  setShowKeyModal(false);
-                  alert('🔑 Gemini API 키가 브라우저에 안전하게 저장되었습니다!');
-                }}
-                style={{ flex: 2, padding: '12px', borderRadius: '10px', border: 'none', background: 'linear-gradient(135deg, #facc15, #eab308)', color: '#1e293b', fontWeight: '800', cursor: 'pointer' }}
-              >
-                저장하기
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
     </div>
   );
