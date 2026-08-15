@@ -396,15 +396,19 @@ export default function RadioStories({ session, alumniProfile, setActiveTab }) {
 
     setSubmitting(true);
     try {
-      const newStory = {
-        id: 'story-' + Date.now(),
+      const dbPayload = {
         sender_name: formSenderName || alumniProfile?.name || '동문',
         recipient_name: formRecipientName || '동창 친구들 전체',
         song_title: formSongTitle,
         artist_name: formArtistName || '가수 미지정',
         song_url: formSongUrl || 'https://jinheestate.blog/wp-content/uploads/2026/07/잊혀진-계절.mp3',
         content: formContent,
-        likes_count: 1,
+        likes_count: 1
+      };
+
+      const newStory = {
+        id: 'story-' + Date.now(),
+        ...dbPayload,
         created_at: new Date().toISOString()
       };
 
@@ -417,10 +421,10 @@ export default function RadioStories({ session, alumniProfile, setActiveTab }) {
 
       setStories(prev => [newStory, ...prev.filter(s => s.id !== newStory.id)]);
 
-      // 2. Insert to Supabase DB for cross-device sync
+      // 2. Insert to Supabase DB for cross-device sync (omitting string ID for UUID)
       const { data, error } = await supabase
         .from('radio_stories')
-        .insert(newStory)
+        .insert(dbPayload)
         .select()
         .single();
 
