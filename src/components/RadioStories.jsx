@@ -178,9 +178,20 @@ export default function RadioStories({ session, alumniProfile, setActiveTab }) {
   };
 
   // Preview Voice Sample Button Handler
-  const handlePreviewVoice = (e, preset) => {
+  const handlePreviewVoice = async (e, preset) => {
     e.stopPropagation(); // Don't trigger main tab button toggle
     stopTTS();
+
+    const sampleTitle = preset.label.replace(/^[^\s]+\s*/, '');
+    const sampleText = `안녕하세요! 시월의 밤 라디오 ${sampleTitle}입니다. 감미로운 사연 함께 나누어요!`;
+
+    // 1. Try Google Cloud Neural2 Real AI Voice Engine
+    const cloudAudioResult = await generateGeminiAudio(sampleText, preset.id);
+    if (cloudAudioResult && cloudAudioResult.audioUrl) {
+      const aiAudio = new Audio(cloudAudioResult.audioUrl);
+      aiAudio.play().catch(err => console.warn('Preview play error:', err));
+      return;
+    }
 
     if (!('speechSynthesis' in window)) {
       alert('사용 중이신 브라우저는 음성 낭독(TTS)을 지원하지 않습니다.');
@@ -189,9 +200,6 @@ export default function RadioStories({ session, alumniProfile, setActiveTab }) {
 
     try {
       window.speechSynthesis.cancel();
-      const sampleTitle = preset.label.replace(/^[^\s]+\s*/, '');
-      const sampleText = `안녕하세요! 시월의 밤 라디오 ${sampleTitle}입니다. 감미로운 사연 함께 나누어요!`;
-      
       const utterance = new SpeechSynthesisUtterance(sampleText);
       utterance.lang = 'ko-KR';
       utterance.rate = preset.rate || 0.88;
@@ -240,6 +248,34 @@ export default function RadioStories({ session, alumniProfile, setActiveTab }) {
 
     const fullSpeechText = `${djIntro} ${formattedContent} ${djOutro}`;
 
+    // 1. Try Google Cloud Neural2 Real AI Voice Engine (100% Genuine Male/Female Voice MP3)
+    setSpeakingStoryId(story.id);
+    const cloudAudioResult = await generateGeminiAudio(fullSpeechText, userDjVoice);
+
+    if (cloudAudioResult && cloudAudioResult.audioUrl) {
+      const aiAudio = new Audio(cloudAudioResult.audioUrl);
+      aiAudio.volume = 1.0;
+      
+      aiAudio.onended = () => setSpeakingStoryId(null);
+      aiAudio.onerror = () => setSpeakingStoryId(null);
+      
+      if (story.song_url) {
+        stopBGM();
+        const audio = new Audio(story.song_url);
+        audio.volume = 0.15;
+        audioRef.current = audio;
+        audio.play().catch(err => console.log('BGM play blocked:', err));
+        setActiveAudioStoryId(story.id);
+      }
+
+      aiAudio.play().catch(err => {
+        console.warn('AI Audio play failed:', err);
+        setSpeakingStoryId(null);
+      });
+      return;
+    }
+
+    // 2. Fallback to Local Tuned Voice Engine
     if (!('speechSynthesis' in window)) {
       alert('사용 중이신 브라우저는 음성 낭독(TTS)을 지원하지 않습니다.');
       setSpeakingStoryId(null);
