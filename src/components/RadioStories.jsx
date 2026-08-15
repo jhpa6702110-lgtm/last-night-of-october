@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../utils/supabaseClient';
 import { generateGeminiAudio, DJ_VOICE_PRESETS } from '../utils/geminiTTS';
-import { Radio, Volume2, VolumeX, Music, Heart, Plus, Sparkles, MessageCircle, Send, Play, Pause, Square, User, X, Check, Share2, HelpCircle, CheckCircle } from 'lucide-react';
+import { Radio, Volume2, VolumeX, Music, Heart, Plus, Sparkles, MessageCircle, Send, Play, Pause, Square, User, X, Check, Share2, HelpCircle, CheckCircle, Edit2, Trash2 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 const PRESET_SONGS = [
@@ -32,6 +32,15 @@ export default function RadioStories({ session, alumniProfile, setActiveTab }) {
   const [formSongUrl, setFormSongUrl] = useState(PRESET_SONGS[0].url);
   const [formContent, setFormContent] = useState('');
   const [submitting, setSubmitting] = useState(false);
+
+  // Edit Story Modal State
+  const [editingStory, setEditingStory] = useState(null);
+  const [editSenderName, setEditSenderName] = useState('');
+  const [editRecipientName, setEditRecipientName] = useState('');
+  const [editSongTitle, setEditSongTitle] = useState('');
+  const [editArtistName, setEditArtistName] = useState('');
+  const [editSongUrl, setEditSongUrl] = useState('');
+  const [editContent, setEditContent] = useState('');
 
   // User Preferred DJ Voice State (Persisted in localStorage)
   const [userDjVoice, setUserDjVoice] = useState(() => {
@@ -445,6 +454,95 @@ export default function RadioStories({ session, alumniProfile, setActiveTab }) {
       setSubmitting(false);
     }
   };
+  // Handle Start Edit
+  const handleStartEdit = (story) => {
+    setEditingStory(story);
+    setEditSenderName(story.sender_name || '');
+    setEditRecipientName(story.recipient_name || '');
+    setEditSongTitle(story.song_title || '');
+    setEditArtistName(story.artist_name || '');
+    setEditSongUrl(story.song_url || PRESET_SONGS[0].url);
+    setEditContent(story.content || '');
+  };
+
+  // Handle Save Edit
+  const handleSaveEdit = async (e) => {
+    e.preventDefault();
+    if (!editingStory) return;
+    if (!editSongTitle || !editContent.trim()) {
+      alert('신청곡 제목과 사연 내용을 모두 입력해 주세요.');
+      return;
+    }
+
+    const updatedFields = {
+      sender_name: editSenderName,
+      recipient_name: editRecipientName,
+      song_title: editSongTitle,
+      artist_name: editArtistName,
+      song_url: editSongUrl,
+      content: editContent
+    };
+
+    // 1. Update in local React state
+    setStories(prev => prev.map(s => s.id === editingStory.id ? { ...s, ...updatedFields } : s));
+
+    // 2. Update in localStorage
+    try {
+      const stored = localStorage.getItem('local_radio_stories');
+      if (stored) {
+        const localList = JSON.parse(stored);
+        const updatedList = localList.map(s => s.id === editingStory.id ? { ...s, ...updatedFields } : s);
+        localStorage.setItem('local_radio_stories', JSON.stringify(updatedList));
+      }
+    } catch (lErr) {}
+
+    // 3. Update in Supabase DB
+    try {
+      await supabase
+        .from('radio_stories')
+        .update(updatedFields)
+        .eq('id', editingStory.id);
+    } catch (dbErr) {
+      console.warn('Supabase DB update warning:', dbErr);
+    }
+
+    alert('✏️ 사연이 성공적으로 수정되었습니다!');
+    setEditingStory(null);
+  };
+
+  // Handle Delete Story
+  const handleDeleteStory = async (storyId) => {
+    if (!window.confirm('이 라디오 사연을 정말 삭제하시겠습니까?')) return;
+
+    // Stop playback if speaking or playing BGM
+    if (speakingStoryId === storyId) stopTTS();
+    if (activeAudioStoryId === storyId) stopBGM();
+
+    // 1. Update local React state
+    setStories(prev => prev.filter(s => s.id !== storyId));
+
+    // 2. Update localStorage
+    try {
+      const stored = localStorage.getItem('local_radio_stories');
+      if (stored) {
+        const localList = JSON.parse(stored);
+        const filtered = localList.filter(s => s.id !== storyId);
+        localStorage.setItem('local_radio_stories', JSON.stringify(filtered));
+      }
+    } catch (lErr) {}
+
+    // 3. Delete from Supabase DB
+    try {
+      await supabase
+        .from('radio_stories')
+        .delete()
+        .eq('id', storyId);
+    } catch (dbErr) {
+      console.warn('Supabase DB delete warning:', dbErr);
+    }
+
+    alert('🗑️ 사연이 삭제되었습니다.');
+  };
 
   const handleAddComment = (storyId) => {
     if (!newCommentText.trim()) return;
@@ -621,20 +719,66 @@ export default function RadioStories({ session, alumniProfile, setActiveTab }) {
                   </div>
                 </div>
 
-                {/* Song Info Badge */}
-                <div style={{
-                  background: 'rgba(6, 182, 212, 0.15)',
-                  border: '1px solid rgba(6, 182, 212, 0.3)',
-                  padding: '6px 14px',
-                  borderRadius: '20px',
-                  color: '#38bdf8',
-                  fontSize: '13px',
-                  fontWeight: '700',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px'
-                }}>
-                  <Music size={14} /> 신청곡: {story.song_title} ({story.artist_name})
+                {/* Song Info Badge & Edit/Delete Action Buttons */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <div style={{
+                    background: 'rgba(6, 182, 212, 0.15)',
+                    border: '1px solid rgba(6, 182, 212, 0.3)',
+                    padding: '6px 14px',
+                    borderRadius: '20px',
+                    color: '#38bdf8',
+                    fontSize: '13px',
+                    fontWeight: '700',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}>
+                    <Music size={14} /> 신청곡: {story.song_title} ({story.artist_name})
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <button
+                      onClick={() => handleStartEdit(story)}
+                      title="사연 수정하기"
+                      style={{
+                        background: 'rgba(255, 255, 255, 0.08)',
+                        border: '1px solid rgba(255, 255, 255, 0.15)',
+                        color: '#cbd5e1',
+                        padding: '5px 10px',
+                        borderRadius: '10px',
+                        fontSize: '12px',
+                        fontWeight: '700',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        transition: 'all 0.2s ease'
+                      }}
+                    >
+                      <Edit2 size={13} color="#38bdf8" /> 수정
+                    </button>
+
+                    <button
+                      onClick={() => handleDeleteStory(story.id)}
+                      title="사연 삭제하기"
+                      style={{
+                        background: 'rgba(244, 63, 94, 0.15)',
+                        border: '1px solid rgba(244, 63, 94, 0.3)',
+                        color: '#fda4af',
+                        padding: '5px 10px',
+                        borderRadius: '10px',
+                        fontSize: '12px',
+                        fontWeight: '700',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        transition: 'all 0.2s ease'
+                      }}
+                    >
+                      <Trash2 size={13} color="#f43f5e" /> 삭제
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -944,6 +1088,158 @@ export default function RadioStories({ session, alumniProfile, setActiveTab }) {
                   style={{ flex: 2, padding: '12px', borderRadius: '10px', border: 'none', background: 'linear-gradient(135deg, #a855f7, #06b6d4)', color: 'white', fontWeight: '700', cursor: 'pointer' }}
                 >
                   {submitting ? '등록 중...' : '사연 방송 등록하기'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: EDIT STORY */}
+      {editingStory && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.8)',
+          backdropFilter: 'blur(8px)',
+          zIndex: 9999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '20px'
+        }}
+        onClick={() => setEditingStory(null)}
+        >
+          <div 
+            style={{
+              width: '100%',
+              maxWidth: '520px',
+              backgroundColor: '#0f172a',
+              border: '1px solid rgba(56, 189, 248, 0.4)',
+              borderRadius: '20px',
+              padding: '24px',
+              maxHeight: '90vh',
+              overflowY: 'auto'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h3 style={{ fontSize: '20px', fontWeight: '800', color: 'white', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Edit2 size={22} color="#38bdf8" /> ✏️ 라디오 사연 수정하기
+              </h3>
+              <button onClick={() => setEditingStory(null)} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEdit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div>
+                <label style={{ fontSize: '13px', color: '#94a3b8', display: 'block', marginBottom: '6px', fontWeight: '700' }}>보내는 사람 & 받는 사람</label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '8px' }}>
+                  <input
+                    type="text"
+                    placeholder="보내는 동문 이름"
+                    value={editSenderName}
+                    onChange={(e) => setEditSenderName(e.target.value)}
+                    style={{ padding: '12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(0,0,0,0.3)', color: 'white', fontSize: '14px' }}
+                    required
+                  />
+                  <input
+                    type="text"
+                    placeholder="받는 사람 (예: 3반 친구들)"
+                    value={editRecipientName}
+                    onChange={(e) => setEditRecipientName(e.target.value)}
+                    style={{ padding: '12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(0,0,0,0.3)', color: 'white', fontSize: '14px' }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '13px', color: '#38bdf8', display: 'block', marginBottom: '6px', fontWeight: '700' }}>
+                  🎵 신청곡 변경 (보유 음원 라이브러리)
+                </label>
+                <select
+                  value={editSongUrl}
+                  onChange={(e) => {
+                    const selected = PRESET_SONGS.find(s => s.url === e.target.value);
+                    if (selected) {
+                      setEditSongTitle(selected.title);
+                      setEditArtistName(selected.artist);
+                      setEditSongUrl(selected.url);
+                    }
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    borderRadius: '8px',
+                    border: '1px solid rgba(56, 189, 248, 0.4)',
+                    background: '#0f172a',
+                    color: '#38bdf8',
+                    fontSize: '14px',
+                    fontWeight: '700',
+                    marginBottom: '10px'
+                  }}
+                >
+                  {PRESET_SONGS.map(s => (
+                    <option key={s.id} value={s.url}>
+                      🎶 {s.title} ({s.artist})
+                    </option>
+                  ))}
+                </select>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '8px' }}>
+                  <input
+                    type="text"
+                    placeholder="신청곡 제목"
+                    value={editSongTitle}
+                    onChange={(e) => setEditSongTitle(e.target.value)}
+                    style={{ padding: '12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(0,0,0,0.3)', color: 'white', fontSize: '14px' }}
+                    required
+                  />
+                  <input
+                    type="text"
+                    placeholder="가수 이름"
+                    value={editArtistName}
+                    onChange={(e) => setEditArtistName(e.target.value)}
+                    style={{ padding: '12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(0,0,0,0.3)', color: 'white', fontSize: '14px' }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                  <label style={{ fontSize: '13px', color: '#94a3b8', fontWeight: '700' }}>💌 진솔한 라디오 사연 편지글</label>
+                  <span style={{ fontSize: '12px', color: editContent.length > 900 ? '#f43f5e' : '#38bdf8', fontWeight: '700' }}>
+                    ({editContent.length.toLocaleString()} / 1,000자)
+                  </span>
+                </div>
+                <textarea
+                  rows="5"
+                  maxLength={1000}
+                  placeholder="사연 내용을 입력하세요."
+                  value={editContent}
+                  onChange={(e) => setEditContent(e.target.value)}
+                  style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(0,0,0,0.3)', color: 'white', fontSize: '14px', resize: 'none', lineHeight: '1.6' }}
+                  required
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+                <button
+                  type="button"
+                  onClick={() => setEditingStory(null)}
+                  style={{ flex: 1, padding: '12px', borderRadius: '10px', border: 'none', background: 'rgba(255,255,255,0.1)', color: 'white', fontWeight: '700', cursor: 'pointer' }}
+                >
+                  취소
+                </button>
+                <button
+                  type="submit"
+                  style={{ flex: 2, padding: '12px', borderRadius: '10px', border: 'none', background: 'linear-gradient(135deg, #38bdf8, #a855f7)', color: 'white', fontWeight: '700', cursor: 'pointer' }}
+                >
+                  수정사항 저장하기
                 </button>
               </div>
             </form>
