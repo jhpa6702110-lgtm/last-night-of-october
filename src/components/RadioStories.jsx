@@ -189,6 +189,7 @@ export default function RadioStories({ session, alumniProfile, setActiveTab }) {
     const cloudAudioResult = await generateGeminiAudio(sampleText, preset.id);
     if (cloudAudioResult && cloudAudioResult.audioUrl) {
       const aiAudio = new Audio(cloudAudioResult.audioUrl);
+      aiAudio.playbackRate = cloudAudioResult.playbackRate || 1.0;
       aiAudio.play().catch(err => console.warn('Preview play error:', err));
       return;
     }
@@ -253,6 +254,7 @@ export default function RadioStories({ session, alumniProfile, setActiveTab }) {
     if (cloudAudioResult && cloudAudioResult.audioUrl) {
       const aiAudio = new Audio(cloudAudioResult.audioUrl);
       aiAudio.volume = 1.0;
+      aiAudio.playbackRate = cloudAudioResult.playbackRate || 1.0;
       
       aiAudio.onended = () => setSpeakingStoryId(null);
       aiAudio.onerror = () => setSpeakingStoryId(null);
