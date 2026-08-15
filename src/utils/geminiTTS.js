@@ -1,6 +1,15 @@
 // Google Gemini / Google Cloud Text-to-Speech AI Voice Service Helper
 
-export const generateGeminiAudio = async (text, gender = 'female', apiKey = null) => {
+export const DJ_VOICE_PRESETS = [
+  { id: 'female_warm', label: '📻 따뜻한 아나운서 여성 DJ', voiceName: 'ko-KR-Neural2-A', gender: 'FEMALE', rate: 0.88, pitch: -0.5 },
+  { id: 'male_deep', label: '🎙️ 나긋나긋 중저음 남성 DJ', voiceName: 'ko-KR-Neural2-C', gender: 'MALE', rate: 0.88, pitch: -2.0 },
+  { id: 'female_gentle', label: '🌸 다정한 낭만 낭독 여성 DJ', voiceName: 'ko-KR-Wavenet-A', gender: 'FEMALE', rate: 0.86, pitch: -1.0 },
+  { id: 'male_soft', label: '🌙 꿀보이스 심야 낭독 남성 DJ', voiceName: 'ko-KR-Neural2-B', gender: 'MALE', rate: 0.86, pitch: -1.2 },
+  { id: 'female_sweet', label: '✨ 감미로운 추억의 여성 DJ', voiceName: 'ko-KR-Wavenet-B', gender: 'FEMALE', rate: 0.90, pitch: 0.0 },
+  { id: 'male_classic', label: '📻 클래식 명품 아나운서 DJ', voiceName: 'ko-KR-Wavenet-D', gender: 'MALE', rate: 0.86, pitch: -2.5 }
+];
+
+export const generateGeminiAudio = async (text, voicePresetId = 'female_warm', apiKey = null) => {
   // Check localStorage first, then env variables
   const savedKey = typeof window !== 'undefined' ? localStorage.getItem('user_gemini_api_key') : null;
   const key = apiKey || savedKey || import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.VITE_GOOGLE_TTS_API_KEY;
@@ -10,21 +19,20 @@ export const generateGeminiAudio = async (text, gender = 'female', apiKey = null
     return null;
   }
 
-  // Google Cloud Neural2 / WaveNet Voice selection for realistic Radio DJ quality
-  // ko-KR-Neural2-A (Soft Female), ko-KR-Neural2-C (Smooth Male)
-  const voiceName = gender === 'male' ? 'ko-KR-Neural2-C' : 'ko-KR-Neural2-A';
+  // Match voice preset
+  const preset = DJ_VOICE_PRESETS.find(p => p.id === voicePresetId) || DJ_VOICE_PRESETS[0];
 
   const requestBody = {
     input: { text },
     voice: {
       languageCode: 'ko-KR',
-      name: voiceName,
-      ssmlGender: gender === 'male' ? 'MALE' : 'FEMALE'
+      name: preset.voiceName,
+      ssmlGender: preset.gender
     },
     audioConfig: {
       audioEncoding: 'MP3',
-      speakingRate: 0.88, // Calm radio DJ pace
-      pitch: gender === 'male' ? -2.0 : -0.5 // Warm, silky DJ pitch
+      speakingRate: preset.rate,
+      pitch: preset.pitch
     }
   };
 

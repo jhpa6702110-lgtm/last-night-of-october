@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../utils/supabaseClient';
-import { generateGeminiAudio } from '../utils/geminiTTS';
-import { Radio, Volume2, VolumeX, Music, Heart, Plus, Sparkles, MessageCircle, Send, Play, Pause, Square, User, X, Check, Share2, HelpCircle, Key } from 'lucide-react';
+import { generateGeminiAudio, DJ_VOICE_PRESETS } from '../utils/geminiTTS';
+import { Radio, Volume2, VolumeX, Music, Heart, Plus, Sparkles, MessageCircle, Send, Play, Pause, Square, User, X, Check, Share2, HelpCircle, CheckCircle } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 export default function RadioStories({ session, alumniProfile, setActiveTab }) {
@@ -25,8 +25,20 @@ export default function RadioStories({ session, alumniProfile, setActiveTab }) {
   const [formContent, setFormContent] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  const [djStyle, setDjStyle] = useState('female'); // 'female' (따뜻한 아나운서 DJ), 'male' (나긋나긋 중저음 DJ)
-  const [availableVoices, setAvailableVoices] = useState([]);
+  // User Preferred DJ Voice State (Persisted in localStorage)
+  const [userDjVoice, setUserDjVoice] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('user_preferred_dj_voice') || 'female_warm';
+    }
+    return 'female_warm';
+  });
+
+  const handleSelectVoice = (presetId) => {
+    setUserDjVoice(presetId);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('user_preferred_dj_voice', presetId);
+    }
+  };
 
   // API Key Modal State
   const [showKeyModal, setShowKeyModal] = useState(false);
@@ -202,10 +214,9 @@ export default function RadioStories({ session, alumniProfile, setActiveTab }) {
       .replace(/,/g, ', ... ')
       .replace(/\n/g, ' ... ');
 
-    const djGreeting = djStyle === 'male' 
-      ? `안녕하세요. 시월의 밤 라디오 중저음 DJ입니다. ... ` 
-      : `안녕하세요. 시월의 밤 라디오 아나운서 DJ입니다. ... `;
+    const currentPreset = DJ_VOICE_PRESETS.find(p => p.id === userDjVoice) || DJ_VOICE_PRESETS[0];
 
+    const djGreeting = `안녕하세요. 시월의 밤 라디오 ${currentPreset.label.replace(/^[^\s]+\s*/, '')}입니다. ... `;
     const djIntro = `${djGreeting} ... ${story.sender_name} 동문이 ${story.recipient_name}에게 전하는 따뜻한 사연입니다. ... 사연 함께 들어보시죠. ... `;
     const djOutro = ` ... 이상 ${story.sender_name} 동문의 사연이었습니다. ... 신청곡 ${story.song_title} 함께 감상해 보세요.`;
 
@@ -213,7 +224,7 @@ export default function RadioStories({ session, alumniProfile, setActiveTab }) {
 
     // 1. Try Gemini AI Audio (High Quality Neural Voice Stream)
     setSpeakingStoryId(story.id);
-    const geminiAudioUrl = await generateGeminiAudio(fullSpeechText, djStyle);
+    const geminiAudioUrl = await generateGeminiAudio(fullSpeechText, userDjVoice);
 
     if (geminiAudioUrl) {
       const aiAudio = new Audio(geminiAudioUrl);
@@ -401,38 +412,41 @@ export default function RadioStories({ session, alumniProfile, setActiveTab }) {
             친구에게 전하고 싶은 사연과 노래를 보내세요. <strong>[🔊 DJ가 읽어주기]</strong>로 따뜻한 음성을 청취하실 수 있습니다!
           </p>
 
-          <div style={{ display: 'flex', gap: '8px', marginTop: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '13px', color: '#c084fc', fontWeight: '700' }}>🎙️ DJ 음성 톤:</span>
-            <button
-              onClick={() => setDjStyle('female')}
-              style={{
-                padding: '5px 12px',
-                borderRadius: '8px',
-                border: djStyle === 'female' ? '1px solid #c084fc' : '1px solid rgba(255,255,255,0.1)',
-                background: djStyle === 'female' ? 'rgba(192, 132, 252, 0.3)' : 'rgba(255,255,255,0.04)',
-                color: djStyle === 'female' ? 'white' : 'var(--color-secondary)',
-                fontSize: '12px',
-                fontWeight: '700',
-                cursor: 'pointer'
-              }}
-            >
-              📻 따뜻한 아나운서 (여성 DJ)
-            </button>
-            <button
-              onClick={() => setDjStyle('male')}
-              style={{
-                padding: '5px 12px',
-                borderRadius: '8px',
-                border: djStyle === 'male' ? '1px solid #38bdf8' : '1px solid rgba(255,255,255,0.1)',
-                background: djStyle === 'male' ? 'rgba(56, 189, 248, 0.3)' : 'rgba(255,255,255,0.04)',
-                color: djStyle === 'male' ? 'white' : 'var(--color-secondary)',
-                fontSize: '12px',
-                fontWeight: '700',
-                cursor: 'pointer'
-              }}
-            >
-              🎙️ 나긋나긋 중저음 (남성 DJ)
-            </button>
+          {/* Preferred DJ Voice Selection Bar */}
+          <div style={{ marginTop: '14px' }}>
+            <div style={{ fontSize: '13px', color: '#c084fc', fontWeight: '800', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Radio size={14} /> 👑 내 전담 DJ 목소리 선택 (선택 시 내 기본 목소리로 자동 저장됩니다)
+            </div>
+
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+              {DJ_VOICE_PRESETS.map((preset) => {
+                const isSelected = userDjVoice === preset.id;
+                return (
+                  <button
+                    key={preset.id}
+                    onClick={() => handleSelectVoice(preset.id)}
+                    style={{
+                      padding: '6px 14px',
+                      borderRadius: '10px',
+                      border: isSelected ? '1px solid #c084fc' : '1px solid rgba(255,255,255,0.1)',
+                      background: isSelected ? 'linear-gradient(135deg, rgba(192, 132, 252, 0.35), rgba(168, 85, 247, 0.2))' : 'rgba(255,255,255,0.04)',
+                      color: isSelected ? '#white' : 'var(--color-secondary)',
+                      fontSize: '12px',
+                      fontWeight: '700',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      boxShadow: isSelected ? '0 0 12px rgba(192, 132, 252, 0.3)' : 'none',
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    {isSelected && <CheckCircle size={13} color="#c084fc" />}
+                    {preset.label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
 
