@@ -116,7 +116,7 @@ export default function RadioStories({ session, alumniProfile, setActiveTab }) {
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (!error && data) {
+      if (!error && data && data.length > 0) {
         setStories(data);
       } else {
         // Fallback sample data if DB table is not created yet

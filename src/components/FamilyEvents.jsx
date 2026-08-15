@@ -59,7 +59,7 @@ export default function FamilyEvents({ session, alumniProfile, setActiveTab }) {
         .select('*')
         .order('event_date', { ascending: true });
 
-      if (!eventErr && eventData) {
+      if (!eventErr && eventData && eventData.length > 0) {
         setFamilyEvents(eventData);
       } else {
         // Fallback sample data if table not created in database yet

@@ -43,7 +43,7 @@ export default function MapCarpool({ session, alumniProfile, setActiveTab }) {
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (!carpoolErr && carpoolData) {
+      if (!carpoolErr && carpoolData && carpoolData.length > 0) {
         setCarpools(carpoolData);
       } else {
         // Fallback sample data
