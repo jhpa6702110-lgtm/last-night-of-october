@@ -257,6 +257,9 @@ export default function VoiceController({ setActiveTab, onLogout, alumniProfile 
     } else if (text.includes('명예') || text.includes('전당') || text.includes('출석왕') || text.includes('랭킹') || text.includes('순위')) {
       setActiveTab('hall_of_fame');
       actionDescription = '이달의 출석왕 및 명예의 전당으로 이동합니다.';
+    } else if (text.includes('길안내') || text.includes('카풀') || text.includes('지도') || text.includes('네비')) {
+      setActiveTab('map_carpool');
+      actionDescription = '모임 장소 길안내 및 카풀 매칭으로 이동합니다.';
     } else if (text.includes('관리자') || text.includes('설정') || text.includes('운영')) {
       setActiveTab('admin');
       actionDescription = '관리자 페이지로 이동합니다.';

@@ -116,3 +116,18 @@ CREATE TABLE IF NOT EXISTS family_events (
   author_id UUID REFERENCES alumni(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ DEFAULT now()
 );
+
+-- 11. 카풀 태워주기 매칭 테이블
+CREATE TABLE IF NOT EXISTS carpools (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  driver_name TEXT NOT NULL,
+  driver_phone TEXT,
+  start_location TEXT NOT NULL,
+  destination TEXT NOT NULL,
+  departure_time TEXT NOT NULL,
+  car_model TEXT,
+  total_seats INT DEFAULT 3,
+  passengers TEXT[] DEFAULT '{}',
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
+);

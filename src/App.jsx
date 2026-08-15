@@ -14,6 +14,7 @@ import VoiceController from './components/VoiceController';
 import WadizDetailModal from './components/WadizDetailModal';
 import FamilyEvents from './components/FamilyEvents';
 import HallOfFame from './components/HallOfFame';
+import MapCarpool from './components/MapCarpool';
 import { supabase, isSupabaseConfigured, saveSupabaseCredentials } from './utils/supabaseClient';
 import { Database, ShieldAlert, KeyRound, Save } from 'lucide-react';
 
@@ -576,6 +577,15 @@ export default function App() {
       case 'hall_of_fame':
         return (
           <HallOfFame 
+            session={session} 
+            alumniProfile={alumniProfile} 
+            setActiveTab={setActiveTab} 
+          />
+        );
+
+      case 'map_carpool':
+        return (
+          <MapCarpool 
             session={session} 
             alumniProfile={alumniProfile} 
             setActiveTab={setActiveTab} 
