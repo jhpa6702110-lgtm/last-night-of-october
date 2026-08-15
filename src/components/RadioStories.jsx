@@ -182,13 +182,17 @@ export default function RadioStories({ session, alumniProfile, setActiveTab }) {
     e.stopPropagation(); // Don't trigger main tab button toggle
     stopTTS();
 
+    // Unlock mobile audio stack synchronously on touch gesture
+    const aiAudio = new Audio();
+    aiAudio.play().catch(() => {});
+
     const sampleTitle = preset.label.replace(/^[^\s]+\s*/, '');
     const sampleText = `안녕하세요! 시월의 밤 라디오 ${sampleTitle}입니다. 감미로운 사연 함께 나누어요!`;
 
     // 1. Try Google Cloud Neural2 Real AI Voice Engine (100% Genuine Male/Female Human Voice Audio)
     const cloudAudioResult = await generateGeminiAudio(sampleText, preset.id);
     if (cloudAudioResult && cloudAudioResult.audioUrl) {
-      const aiAudio = new Audio(cloudAudioResult.audioUrl);
+      aiAudio.src = cloudAudioResult.audioUrl;
       aiAudio.playbackRate = cloudAudioResult.playbackRate || 1.0;
       aiAudio.play().catch(err => console.warn('Preview play error:', err));
       return;
@@ -227,6 +231,10 @@ export default function RadioStories({ session, alumniProfile, setActiveTab }) {
     stopTTS(); // Stop any active speech
     playRadioChime(); // Play subtle radio chime sound effect
 
+    // Unlock mobile audio stack synchronously on touch gesture
+    const aiAudio = new Audio();
+    aiAudio.play().catch(() => {});
+
     // Natural Speech Formatting with radio DJ pauses
     const formattedContent = (story.content || '')
       .replace(/!/g, '! ... ')
@@ -252,7 +260,7 @@ export default function RadioStories({ session, alumniProfile, setActiveTab }) {
     const cloudAudioResult = await generateGeminiAudio(fullSpeechText, userDjVoice);
 
     if (cloudAudioResult && cloudAudioResult.audioUrl) {
-      const aiAudio = new Audio(cloudAudioResult.audioUrl);
+      aiAudio.src = cloudAudioResult.audioUrl;
       aiAudio.volume = 1.0;
       aiAudio.playbackRate = cloudAudioResult.playbackRate || 1.0;
       
