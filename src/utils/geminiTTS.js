@@ -10,8 +10,11 @@ export const DJ_VOICE_PRESETS = [
 ];
 
 export const generateGeminiAudio = async (text, voicePresetId = 'female_warm', apiKey = null) => {
+  // 환경 변수 키를 최우선으로 탐색하고, 로컬스토리지 키가 유효할 때만 사용
+  const envKey = import.meta.env.VITE_GOOGLE_TTS_API_KEY || import.meta.env.VITE_GEMINI_API_KEY;
   const savedKey = typeof window !== 'undefined' ? localStorage.getItem('user_gemini_api_key') : null;
-  const key = apiKey || savedKey || import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.VITE_GOOGLE_TTS_API_KEY;
+  const key = apiKey || envKey || savedKey;
+
   const preset = DJ_VOICE_PRESETS.find(p => p.id === voicePresetId) || DJ_VOICE_PRESETS[0];
 
   if (!key || key.length < 15) {
@@ -27,7 +30,6 @@ export const generateGeminiAudio = async (text, voicePresetId = 'female_warm', a
         input: { text },
         voice: {
           languageCode: 'ko-KR',
-          // 프리셋에 지정된 고유 성우 모델 전달 (Neural2-A/B/C, Wavenet-C/D)
           name: preset.voiceName,
           ssmlGender: preset.gender
         },
@@ -50,6 +52,10 @@ export const generateGeminiAudio = async (text, voicePresetId = 'female_warm', a
     } else {
       const errorData = await response.json();
       console.error('Google Cloud TTS API 오류:', errorData);
+      // 만약 401/400 인증 에러인 경우 오염된 로컬 키 자동 제거
+      if (response.status === 401 && typeof window !== 'undefined') {
+        localStorage.removeItem('user_gemini_api_key');
+      }
     }
   } catch (err) {
     console.error('TTS 호출 중 네트워크 에러 발생:', err);

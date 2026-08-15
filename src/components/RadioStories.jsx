@@ -66,6 +66,24 @@ export default function RadioStories({ session, alumniProfile, setActiveTab }) {
   // Audio & TTS refs
   const audioRef = useRef(null);
   const utteranceRef = useRef(null);
+  const previewAudioRef = useRef(new Audio());
+
+  // 미리듣기 정지 함수 (중복 재생 방지)
+  const stopPreviewAudio = () => {
+    if (previewAudioRef.current) {
+      previewAudioRef.current.pause();
+      previewAudioRef.current.currentTime = 0;
+    }
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+  };
+
+  // TTS Helper Functions
+  const stopTTS = () => {
+    stopPreviewAudio();
+    setSpeakingStoryId(null);
+  };
 
   const triggerConfetti = () => {
     confetti({
@@ -134,13 +152,6 @@ export default function RadioStories({ session, alumniProfile, setActiveTab }) {
     }
   };
 
-  // TTS Helper Functions
-  const stopTTS = () => {
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-    }
-    setSpeakingStoryId(null);
-  };
 
   const stopBGM = () => {
     if (audioRef.current) {
@@ -175,47 +186,42 @@ export default function RadioStories({ session, alumniProfile, setActiveTab }) {
 
   // Preview Voice Sample Button Handler (Neural2 Real AI Voice Stream)
   const handlePreviewVoice = async (e, preset) => {
-    e.stopPropagation(); // Don't trigger main tab button toggle
+    e.stopPropagation(); // 부모 선택 클릭 방지
+    
+    // 1. 기존 재생 중이던 메인 TTS 및 미리듣기 즉시 중단
     stopTTS();
+    stopPreviewAudio();
 
-    // 1. 유저 제스처 직후 무음 Audio 재생을 통한 모바일 오디오 세션 언락
-    const aiAudio = new Audio();
-    aiAudio.src = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA';
-    aiAudio.play().catch(() => {});
+    // 2. 모바일 오디오 락 해제
+    previewAudioRef.current.src = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA';
+    previewAudioRef.current.play().catch(() => {});
 
     const sampleTitle = preset.label.replace(/^[^\s]+\s*/, '');
     const sampleText = `안녕하세요! 시월의 밤 라디오 ${sampleTitle}입니다. 감미로운 사연 함께 나누어요!`;
 
-    // 2. Try Google Cloud Neural2 Real AI Voice Engine (100% Genuine Male/Female Human Voice Audio)
+    // 3. API 호출
     const cloudAudioResult = await generateGeminiAudio(sampleText, preset.id);
+
     if (cloudAudioResult && cloudAudioResult.audioUrl) {
-      aiAudio.pause();
-      aiAudio.src = cloudAudioResult.audioUrl;
-      aiAudio.volume = 1.0;
-      aiAudio.play().catch(err => console.warn('Preview play error:', err));
+      previewAudioRef.current.pause();
+      previewAudioRef.current.src = cloudAudioResult.audioUrl;
+      previewAudioRef.current.volume = 1.0;
+      previewAudioRef.current.play().catch(err => console.warn('Preview play error:', err));
       return;
     }
 
-    if (!('speechSynthesis' in window)) {
-      alert('사용 중이신 브라우저는 음성 낭독(TTS)을 지원하지 않습니다.');
-      return;
-    }
-
-    try {
-      window.speechSynthesis.cancel();
+    // 4. 폴백 (피치/속도 보정 반영)
+    if ('speechSynthesis' in window) {
       const utterance = new SpeechSynthesisUtterance(sampleText);
       utterance.lang = 'ko-KR';
-      utterance.rate = 1.0;
-      utterance.pitch = 1.0;
-
-      const bestVoice = selectBestVoice(preset.gender === 'MALE' ? 'male' : 'female');
-      if (bestVoice) {
-        try { utterance.voice = bestVoice; } catch (vErr) {}
-      }
+      utterance.rate = preset.rate || 0.9;
+      utterance.pitch = preset.gender === 'MALE' ? 0.75 : 1.15;
+      
+      const voices = window.speechSynthesis.getVoices();
+      const koVoice = voices.find(v => v.lang.startsWith('ko'));
+      if (koVoice) utterance.voice = koVoice;
 
       window.speechSynthesis.speak(utterance);
-    } catch (err) {
-      console.error('Preview error:', err);
     }
   };
 
@@ -545,7 +551,7 @@ export default function RadioStories({ session, alumniProfile, setActiveTab }) {
               {DJ_VOICE_PRESETS.map((preset) => {
                 const isSelected = userDjVoice === preset.id;
                 return (
-                  <button
+                  <div
                     key={preset.id}
                     onClick={() => handleSelectVoice(preset.id)}
                     style={{
@@ -561,29 +567,33 @@ export default function RadioStories({ session, alumniProfile, setActiveTab }) {
                       alignItems: 'center',
                       gap: '6px',
                       boxShadow: isSelected ? '0 0 12px rgba(192, 132, 252, 0.3)' : 'none',
-                      transition: 'all 0.2s ease'
+                      transition: 'all 0.2s ease',
+                      userSelect: 'none'
                     }}
                   >
                     {isSelected && <CheckCircle size={13} color="#c084fc" />}
-                    {preset.label}
-                    <span
+                    <span>{preset.label}</span>
+                    <button
+                      type="button"
                       onClick={(e) => handlePreviewVoice(e, preset)}
                       title="목소리 샘플 미리듣기"
                       style={{
                         background: 'rgba(255, 255, 255, 0.15)',
+                        border: 'none',
                         padding: '2px 6px',
                         borderRadius: '6px',
                         fontSize: '11px',
                         color: '#38bdf8',
                         fontWeight: '800',
+                        cursor: 'pointer',
                         display: 'inline-flex',
                         alignItems: 'center',
                         gap: '2px'
                       }}
                     >
                       ▶️ 미리듣기
-                    </span>
-                  </button>
+                    </button>
+                  </div>
                 );
               })}
             </div>
