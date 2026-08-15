@@ -4,7 +4,7 @@ import { generateGeminiAudio, DJ_VOICE_PRESETS } from '../utils/geminiTTS';
 import { Radio, Volume2, VolumeX, Music, Heart, Plus, Sparkles, MessageCircle, Send, Play, Pause, Square, User, X, Check, Share2, HelpCircle, CheckCircle, Edit2, Trash2 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
-const PRESET_SONGS = [
+const DEFAULT_PRESET_SONGS = [
   { id: 'song-1', title: '잊혀진 계절', artist: '이용', url: 'https://jinheestate.blog/wp-content/uploads/2026/07/잊혀진-계절.mp3' },
   { id: 'song-2', title: 'Sea Of Heartbreak (Original)', artist: 'Don Gibson', url: 'https://jinheestate.blog/wp-content/uploads/2026/07/Sea-Of-Heartbreak-Ori.mp3' },
   { id: 'song-3', title: 'Sea Of Heartbreak (PoCo)', artist: 'PoCo', url: 'https://jinheestate.blog/wp-content/uploads/2026/07/Sea-Of-Heartbreak-Ori-by-PoCo.mp3' },
@@ -18,6 +18,9 @@ export default function RadioStories({ session, alumniProfile, setActiveTab }) {
   const [speakingStoryId, setSpeakingStoryId] = useState(null);
   const [likesMap, setLikesMap] = useState({});
 
+  // Dynamic Preset Songs List (Auto-learned from Submitted Stories)
+  const [presetSongs, setPresetSongs] = useState(DEFAULT_PRESET_SONGS);
+
   // Comments / Replies state
   const [expandedCommentsId, setExpandedCommentsId] = useState(null);
   const [commentsMap, setCommentsMap] = useState({});
@@ -27,9 +30,9 @@ export default function RadioStories({ session, alumniProfile, setActiveTab }) {
   const [showAddModal, setShowAddModal] = useState(false);
   const [formSenderName, setFormSenderName] = useState(alumniProfile?.name || '');
   const [formRecipientName, setFormRecipientName] = useState('사랑하는 동창 친구들 전체');
-  const [formSongTitle, setFormSongTitle] = useState(PRESET_SONGS[0].title);
-  const [formArtistName, setFormArtistName] = useState(PRESET_SONGS[0].artist);
-  const [formSongUrl, setFormSongUrl] = useState(PRESET_SONGS[0].url);
+  const [formSongTitle, setFormSongTitle] = useState(DEFAULT_PRESET_SONGS[0].title);
+  const [formArtistName, setFormArtistName] = useState(DEFAULT_PRESET_SONGS[0].artist);
+  const [formSongUrl, setFormSongUrl] = useState(DEFAULT_PRESET_SONGS[0].url);
   const [formContent, setFormContent] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -143,6 +146,26 @@ export default function RadioStories({ session, alumniProfile, setActiveTab }) {
         setStories([]);
       } else {
         setStories(data || []);
+
+        // Auto-extract unique songs submitted by users and dynamically merge into preset dropdown
+        if (data && data.length > 0) {
+          const customSongs = data
+            .filter(s => s.song_title && s.song_url)
+            .map(s => ({
+              id: 'song-' + (s.id || s.song_title),
+              title: s.song_title,
+              artist: s.artist_name || '가수 미지정',
+              url: s.song_url
+            }));
+
+          const merged = [...DEFAULT_PRESET_SONGS];
+          customSongs.forEach(cs => {
+            if (!merged.some(m => m.url === cs.url || (m.title === cs.title && m.artist === cs.artist))) {
+              merged.push(cs);
+            }
+          });
+          setPresetSongs(merged);
+        }
       }
     } catch (err) {
       console.error('Network Error:', err);
@@ -421,7 +444,7 @@ export default function RadioStories({ session, alumniProfile, setActiveTab }) {
     setEditRecipientName(story.recipient_name || '');
     setEditSongTitle(story.song_title || '');
     setEditArtistName(story.artist_name || '');
-    setEditSongUrl(story.song_url || PRESET_SONGS[0].url);
+    setEditSongUrl(story.song_url || presetSongs[0]?.url || DEFAULT_PRESET_SONGS[0].url);
     setEditContent(story.content || '');
   };
 
@@ -966,7 +989,7 @@ export default function RadioStories({ session, alumniProfile, setActiveTab }) {
                 <select
                   value={formSongUrl}
                   onChange={(e) => {
-                    const selected = PRESET_SONGS.find(s => s.url === e.target.value);
+                    const selected = presetSongs.find(s => s.url === e.target.value);
                     if (selected) {
                       setFormSongTitle(selected.title);
                       setFormArtistName(selected.artist);
@@ -985,7 +1008,7 @@ export default function RadioStories({ session, alumniProfile, setActiveTab }) {
                     marginBottom: '10px'
                   }}
                 >
-                  {PRESET_SONGS.map(s => (
+                  {presetSongs.map(s => (
                     <option key={s.id} value={s.url}>
                       🎶 {s.title} ({s.artist})
                     </option>
@@ -1119,7 +1142,7 @@ export default function RadioStories({ session, alumniProfile, setActiveTab }) {
                 <select
                   value={editSongUrl}
                   onChange={(e) => {
-                    const selected = PRESET_SONGS.find(s => s.url === e.target.value);
+                    const selected = presetSongs.find(s => s.url === e.target.value);
                     if (selected) {
                       setEditSongTitle(selected.title);
                       setEditArtistName(selected.artist);
@@ -1138,7 +1161,7 @@ export default function RadioStories({ session, alumniProfile, setActiveTab }) {
                     marginBottom: '10px'
                   }}
                 >
-                  {PRESET_SONGS.map(s => (
+                  {presetSongs.map(s => (
                     <option key={s.id} value={s.url}>
                       🎶 {s.title} ({s.artist})
                     </option>

@@ -279,8 +279,8 @@ export default function WadizDetailModal({ isOpen, onClose, setActiveTab }) {
                       <Radio size={20} />
                     </div>
                     <div>
-                      <h4 style={{ fontSize: '17px', fontWeight: '700', color: 'white', margin: 0 }}>📻 전국 실시간 지상파 라디오 & BGM (Radio)</h4>
-                      <p style={{ fontSize: '12px', color: '#93c5fd', margin: 0 }}>KBS, MBC, SBS, CBS 등 13개 이상 채널 100% 무료 라이브 청취</p>
+                      <h4 style={{ fontSize: '17px', fontWeight: '700', color: 'white', margin: 0 }}>📻 7080 추억의 라디오 사연 & 실시간 방송</h4>
+                      <p style={{ fontSize: '12px', color: '#93c5fd', margin: 0 }}>Google Cloud AI DJ 성우 + 무배포 음원 라이브러리 + 지상파 13개 무료 라이브</p>
                     </div>
                   </div>
                   <button 
@@ -289,6 +289,21 @@ export default function WadizDetailModal({ isOpen, onClose, setActiveTab }) {
                   >
                     라디오 바로가기 <ChevronRight size={14} />
                   </button>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', marginBottom: '14px' }}>
+                  <div style={{ background: 'rgba(0, 0, 0, 0.3)', padding: '12px', borderRadius: '10px', fontSize: '13px', borderLeft: '3px solid #38bdf8' }}>
+                    <strong style={{ color: '#38bdf8', display: 'block', marginBottom: '4px' }}>🎙️ 5종 고유 AI DJ 성우</strong>
+                    Neural2-A/B/C, Wavenet-C/D 실제 성우 모델 할당으로 감미로운 심야 DJ부터 중저음 남성 DJ까지 완벽 지원!
+                  </div>
+                  <div style={{ background: 'rgba(0, 0, 0, 0.3)', padding: '12px', borderRadius: '10px', fontSize: '13px', borderLeft: '3px solid #c084fc' }}>
+                    <strong style={{ color: '#c084fc', display: 'block', marginBottom: '4px' }}>🎵 무배포 자동 음원 등록</strong>
+                    신청곡 작성 시 새 MP3를 입력하면 별도 배포/작업 없이 전 회원 보유 음원 라이브러리에 100% 자동 등록!
+                  </div>
+                  <div style={{ background: 'rgba(0, 0, 0, 0.3)', padding: '12px', borderRadius: '10px', fontSize: '13px', borderLeft: '3px solid #34d399' }}>
+                    <strong style={{ color: '#34d399', display: 'block', marginBottom: '4px' }}>✏️ 실시간 수정 & 삭제</strong>
+                    모바일과 PC 간 사연 작성, 수정, 삭제가 Supabase DB 서버를 통해 100% 실시간으로 즉시 공유!
+                  </div>
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px' }}>
