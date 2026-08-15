@@ -113,59 +113,25 @@ export default function RadioStories({ session, alumniProfile, setActiveTab }) {
 
   const fetchStories = async () => {
     setLoading(true);
-    let dbStories = [];
     try {
       const { data, error } = await supabase
         .from('radio_stories')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (!error && data && data.length > 0) {
-        dbStories = data;
+      if (error) {
+        console.error('Supabase DB 조회 오류:', error);
+        alert(`❌ Supabase DB 사연 조회 실패:\n${error.message}\n(테이블이 생성되었는지 또는 RLS 권한을 확인하세요)`);
+        setStories([]);
+      } else {
+        setStories(data || []);
       }
     } catch (err) {
-      console.error('Error fetching radio stories:', err);
+      console.error('Network Error:', err);
+      setStories([]);
+    } finally {
+      setLoading(false);
     }
-
-    let localSavedStories = [];
-    try {
-      const stored = localStorage.getItem('local_radio_stories');
-      if (stored) localSavedStories = JSON.parse(stored);
-    } catch (e) {}
-
-    const defaultSamples = [
-      {
-        id: 'story-1',
-        sender_name: '김철수',
-        recipient_name: '3학년 2반 친구들 전체',
-        song_title: '잊혀진 계절',
-        artist_name: '이용',
-        song_url: 'https://jinheestate.blog/wp-content/uploads/2026/07/잊혀진-계절.mp3',
-        content: `어느덧 세월이 흘러 5070이 된 사랑하는 친구들아!\n시월의 마지막 밤 노래만 나오면 고등학교 때 교정에 흩날리던 붉은 단풍잎과, 수업 마치고 빵집에 모여 도란도란 수다 떨던 너희들 얼굴이 눈에 선하단다.\n다들 건강 잘 챙기고 10월 정기 모임에서 반가운 얼굴로 꼭 만나자구나!`,
-        likes_count: 14,
-        created_at: new Date().toISOString()
-      },
-      {
-        id: 'story-2',
-        sender_name: '이영희',
-        recipient_name: '보고 싶은 친구 박영수에게',
-        song_title: 'Sea Of Heartbreak',
-        artist_name: 'Original',
-        song_url: 'https://jinheestate.blog/wp-content/uploads/2026/07/Sea-Of-Heartbreak-Ori.mp3',
-        content: `영수야, 지난번 야유회 때 맛있는 과일 챙겨줘서 너무 고마웠어.\n우리가 벌써 환갑을 지나 70을 바라보는 나이가 되었지만, 마음만은 여전히 18세 청춘 같구나.\n네가 좋아하던 올드팝 함께 들으며 건강하길 바란다!`,
-        likes_count: 9,
-        created_at: new Date(Date.now() - 86400000 * 2).toISOString()
-      }
-    ];
-
-    const combined = [...localSavedStories, ...dbStories];
-    if (combined.length === 0) {
-      setStories(defaultSamples);
-    } else {
-      const unique = Array.from(new Map(combined.map(s => [s.id, s])).values());
-      setStories(unique);
-    }
-    setLoading(false);
   };
 
   // TTS Helper Functions
@@ -412,25 +378,9 @@ export default function RadioStories({ session, alumniProfile, setActiveTab }) {
         artist_name: formArtistName || '가수 미지정',
         song_url: formSongUrl || 'https://jinheestate.blog/wp-content/uploads/2026/07/잊혀진-계절.mp3',
         content: formContent,
-        likes_count: 1
+        likes_count: 0
       };
 
-      const newStory = {
-        id: 'story-' + Date.now(),
-        ...dbPayload,
-        created_at: new Date().toISOString()
-      };
-
-      // 1. Save locally to localStorage so it is immediately preserved on device
-      try {
-        const stored = localStorage.getItem('local_radio_stories');
-        const existing = stored ? JSON.parse(stored) : [];
-        localStorage.setItem('local_radio_stories', JSON.stringify([newStory, ...existing]));
-      } catch (lErr) {}
-
-      setStories(prev => [newStory, ...prev.filter(s => s.id !== newStory.id)]);
-
-      // 2. Insert to Supabase DB for cross-device sync (omitting string ID for UUID)
       const { data, error } = await supabase
         .from('radio_stories')
         .insert(dbPayload)
@@ -438,22 +388,26 @@ export default function RadioStories({ session, alumniProfile, setActiveTab }) {
         .single();
 
       if (error) {
-        console.warn('Supabase DB insert warning (local storage fallback active):', error.message);
-      } else if (data) {
-        setStories(prev => [data, ...prev.filter(s => s.id !== newStory.id)]);
+        console.error('Supabase DB Insert Error:', error);
+        alert(`❌ Supabase DB 저장 실패:\n${error.message}\n(오류 코드: ${error.code})`);
+        return;
       }
 
-      triggerConfetti();
-      setShowAddModal(false);
-      setFormContent('');
-      alert('📻 라디오 사연과 신청곡이 성공적으로 등록되었습니다!');
+      if (data) {
+        setStories(prev => [data, ...prev]);
+        triggerConfetti();
+        setShowAddModal(false);
+        setFormContent('');
+        alert('📻 Supabase DB에 사연이 성공적으로 저장되었습니다!');
+      }
     } catch (err) {
       console.error('Error adding story:', err);
-      alert('사연 등록 중 오류가 발생했습니다.');
+      alert(`사연 등록 중 오류가 발생했습니다: ${err.message}`);
     } finally {
       setSubmitting(false);
     }
   };
+
   // Handle Start Edit
   const handleStartEdit = (story) => {
     setEditingStory(story);
@@ -465,7 +419,7 @@ export default function RadioStories({ session, alumniProfile, setActiveTab }) {
     setEditContent(story.content || '');
   };
 
-  // Handle Save Edit
+  // Handle Save Edit (100% Pure Supabase DB)
   const handleSaveEdit = async (e) => {
     e.preventDefault();
     if (!editingStory) return;
@@ -483,65 +437,56 @@ export default function RadioStories({ session, alumniProfile, setActiveTab }) {
       content: editContent
     };
 
-    // 1. Update in local React state
-    setStories(prev => prev.map(s => s.id === editingStory.id ? { ...s, ...updatedFields } : s));
-
-    // 2. Update in localStorage
     try {
-      const stored = localStorage.getItem('local_radio_stories');
-      if (stored) {
-        const localList = JSON.parse(stored);
-        const updatedList = localList.map(s => s.id === editingStory.id ? { ...s, ...updatedFields } : s);
-        localStorage.setItem('local_radio_stories', JSON.stringify(updatedList));
-      }
-    } catch (lErr) {}
-
-    // 3. Update in Supabase DB
-    try {
-      await supabase
+      const { data, error } = await supabase
         .from('radio_stories')
         .update(updatedFields)
-        .eq('id', editingStory.id);
-    } catch (dbErr) {
-      console.warn('Supabase DB update warning:', dbErr);
-    }
+        .eq('id', editingStory.id)
+        .select()
+        .single();
 
-    alert('✏️ 사연이 성공적으로 수정되었습니다!');
-    setEditingStory(null);
+      if (error) {
+        console.error('Supabase DB Update Error:', error);
+        alert(`❌ Supabase DB 수정 실패:\n${error.message}`);
+        return;
+      }
+
+      if (data) {
+        setStories(prev => prev.map(s => s.id === editingStory.id ? data : s));
+        alert('✏️ Supabase DB 사연이 수정되었습니다!');
+        setEditingStory(null);
+      }
+    } catch (err) {
+      console.error('Update error:', err);
+      alert(`수정 처리 오류: ${err.message}`);
+    }
   };
 
-  // Handle Delete Story
+  // Handle Delete Story (100% Pure Supabase DB)
   const handleDeleteStory = async (storyId) => {
-    if (!window.confirm('이 라디오 사연을 정말 삭제하시겠습니까?')) return;
+    if (!window.confirm('이 라디오 사연을 vraiment 삭제하시겠습니까?')) return;
 
-    // Stop playback if speaking or playing BGM
     if (speakingStoryId === storyId) stopTTS();
     if (activeAudioStoryId === storyId) stopBGM();
 
-    // 1. Update local React state
-    setStories(prev => prev.filter(s => s.id !== storyId));
-
-    // 2. Update localStorage
     try {
-      const stored = localStorage.getItem('local_radio_stories');
-      if (stored) {
-        const localList = JSON.parse(stored);
-        const filtered = localList.filter(s => s.id !== storyId);
-        localStorage.setItem('local_radio_stories', JSON.stringify(filtered));
-      }
-    } catch (lErr) {}
-
-    // 3. Delete from Supabase DB
-    try {
-      await supabase
+      const { error } = await supabase
         .from('radio_stories')
         .delete()
         .eq('id', storyId);
-    } catch (dbErr) {
-      console.warn('Supabase DB delete warning:', dbErr);
-    }
 
-    alert('🗑️ 사연이 삭제되었습니다.');
+      if (error) {
+        console.error('Supabase DB Delete Error:', error);
+        alert(`❌ Supabase DB 삭제 실패:\n${error.message}`);
+        return;
+      }
+
+      setStories(prev => prev.filter(s => s.id !== storyId));
+      alert('🗑️ Supabase DB에서 사연이 완전 삭제되었습니다.');
+    } catch (err) {
+      console.error('Delete error:', err);
+      alert(`삭제 처리 오류: ${err.message}`);
+    }
   };
 
   const handleAddComment = (storyId) => {
