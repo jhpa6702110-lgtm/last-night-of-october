@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../utils/supabaseClient';
+import { generateGeminiAudio } from '../utils/geminiTTS';
 import { Radio, Volume2, VolumeX, Music, Heart, Plus, Sparkles, MessageCircle, Send, Play, Pause, Square, User, X, Check, Share2, HelpCircle } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -175,7 +176,7 @@ export default function RadioStories({ session, alumniProfile, setActiveTab }) {
     return naturalVoice || koVoices[0];
   };
 
-  const handlePlayTTS = (story) => {
+  const handlePlayTTS = async (story) => {
     // If currently speaking this story, stop it
     if (speakingStoryId === story.id) {
       stopTTS();
@@ -183,11 +184,6 @@ export default function RadioStories({ session, alumniProfile, setActiveTab }) {
     }
 
     stopTTS(); // Stop any active speech
-
-    if (!('speechSynthesis' in window)) {
-      alert('죄송합니다. 사용 중이신 브라우저는 음성 낭독(TTS)을 지원하지 않습니다.');
-      return;
-    }
 
     // Play subtle radio chime sound effect
     playRadioChime();
@@ -209,12 +205,45 @@ export default function RadioStories({ session, alumniProfile, setActiveTab }) {
 
     const fullSpeechText = `${djIntro} ${formattedContent} ${djOutro}`;
 
+    // 1. Try Gemini AI Audio (High Quality Neural Voice Stream)
+    setSpeakingStoryId(story.id);
+    const geminiAudioUrl = await generateGeminiAudio(fullSpeechText, djStyle);
+
+    if (geminiAudioUrl) {
+      const aiAudio = new Audio(geminiAudioUrl);
+      aiAudio.volume = 1.0;
+      
+      aiAudio.onended = () => setSpeakingStoryId(null);
+      aiAudio.onerror = () => setSpeakingStoryId(null);
+      
+      // Play soft BGM simultaneously underneath DJ voice
+      if (story.song_url) {
+        stopBGM();
+        const audio = new Audio(story.song_url);
+        audio.volume = 0.15;
+        audioRef.current = audio;
+        audio.play().catch(err => console.log('BGM play blocked:', err));
+        setActiveAudioStoryId(story.id);
+      }
+
+      aiAudio.play().catch(err => {
+        console.warn('Gemini Audio play failed:', err);
+        setSpeakingStoryId(null);
+      });
+      return;
+    }
+
+    // 2. Fallback to Tuned Web Speech API if Gemini Key is not configured
+    if (!('speechSynthesis' in window)) {
+      alert('죄송합니다. 사용 중이신 브라우저는 음성 낭독(TTS)을 지원하지 않습니다.');
+      setSpeakingStoryId(null);
+      return;
+    }
+
     const utterance = new SpeechSynthesisUtterance(fullSpeechText);
     utterance.lang = 'ko-KR';
-    
-    // DJ Voice Settings for maximum warmth
-    utterance.rate = 0.85; // Calm, relaxed DJ speed (default 1.0 is too fast & robotic)
-    utterance.pitch = djStyle === 'male' ? 0.85 : 0.95; // Deeper & softer tone
+    utterance.rate = 0.85;
+    utterance.pitch = djStyle === 'male' ? 0.85 : 0.95;
 
     const bestVoice = selectBestVoice(djStyle);
     if (bestVoice) {
@@ -240,7 +269,7 @@ export default function RadioStories({ session, alumniProfile, setActiveTab }) {
     if (story.song_url) {
       stopBGM();
       const audio = new Audio(story.song_url);
-      audio.volume = 0.15; // Soft 15% BGM volume under DJ voice
+      audio.volume = 0.15;
       audioRef.current = audio;
       audio.play().catch(err => console.log('BGM play blocked:', err));
       setActiveAudioStoryId(story.id);
