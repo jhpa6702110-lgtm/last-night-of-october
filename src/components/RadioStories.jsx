@@ -193,7 +193,7 @@ export default function RadioStories({ session, alumniProfile, setActiveTab }) {
     playRadioChime();
 
     // Natural Speech Formatting with radio DJ pauses
-    const formattedContent = story.content
+    const formattedContent = (story.content || '')
       .replace(/!/g, '! ... ')
       .replace(/\?/g, '? ... ')
       .replace(/\./g, '. ... ')
@@ -202,42 +202,16 @@ export default function RadioStories({ session, alumniProfile, setActiveTab }) {
 
     const currentPreset = DJ_VOICE_PRESETS.find(p => p.id === userDjVoice) || DJ_VOICE_PRESETS[0];
 
+    const senderName = story.sender_name || '동문';
+    const recipientName = story.recipient_name || '동문들';
+    const songTitle = story.song_title || '추억의 곡';
+
     const djGreeting = `안녕하세요. 시월의 밤 라디오 ${currentPreset.label.replace(/^[^\s]+\s*/, '')}입니다. ... `;
-    const djIntro = `${djGreeting} ... ${story.sender_name} 동문이 ${story.recipient_name}에게 전하는 따뜻한 사연입니다. ... 사연 함께 들어보시죠. ... `;
-    const djOutro = ` ... 이상 ${story.sender_name} 동문의 사연이었습니다. ... 신청곡 ${story.song_title} 함께 감상해 보세요.`;
+    const djIntro = `${djGreeting} ... ${senderName} 동문이 ${recipientName}에게 전하는 따뜻한 사연입니다. ... 사연 함께 들어보시죠. ... `;
+    const djOutro = ` ... 이상 ${senderName} 동문의 사연이었습니다. ... 신청곡 ${songTitle} 함께 감상해 보세요.`;
 
     const fullSpeechText = `${djIntro} ${formattedContent} ${djOutro}`;
 
-    // 1. High Quality Mobile-Compatible AI Audio Stream
-    setSpeakingStoryId(story.id);
-    const audioResult = await generateGeminiAudio(fullSpeechText, userDjVoice);
-
-    if (audioResult && audioResult.audioUrl) {
-      const aiAudio = new Audio(audioResult.audioUrl);
-      aiAudio.volume = 1.0;
-      aiAudio.playbackRate = audioResult.playbackRate || 1.0;
-      
-      aiAudio.onended = () => setSpeakingStoryId(null);
-      aiAudio.onerror = () => setSpeakingStoryId(null);
-      
-      // Play soft BGM simultaneously underneath DJ voice
-      if (story.song_url) {
-        stopBGM();
-        const audio = new Audio(story.song_url);
-        audio.volume = 0.15;
-        audioRef.current = audio;
-        audio.play().catch(err => console.log('BGM play blocked:', err));
-        setActiveAudioStoryId(story.id);
-      }
-
-      aiAudio.play().catch(err => {
-        console.warn('AI Audio play failed:', err);
-        setSpeakingStoryId(null);
-      });
-      return;
-    }
-
-    // 2. Fallback to Tuned Web Speech API if Gemini Key is not configured
     if (!('speechSynthesis' in window)) {
       alert('사용 중이신 브라우저는 음성 낭독(TTS)을 지원하지 않습니다.');
       setSpeakingStoryId(null);
@@ -250,7 +224,16 @@ export default function RadioStories({ session, alumniProfile, setActiveTab }) {
       const utterance = new SpeechSynthesisUtterance(fullSpeechText);
       utterance.lang = 'ko-KR';
       utterance.rate = currentPreset.rate || 0.88;
-      utterance.pitch = currentPreset.gender === 'MALE' ? 0.85 : 0.95;
+      utterance.pitch = currentPreset.pitch || 1.0; // Pitch 0.50 ~ 1.35 distinct voice modulation
+
+      const bestVoice = selectBestVoice(currentPreset.gender === 'MALE' ? 'male' : 'female');
+      if (bestVoice) {
+        try {
+          utterance.voice = bestVoice;
+        } catch (vErr) {
+          console.warn('Voice set error:', vErr);
+        }
+      }
 
       utterance.onstart = () => {
         setSpeakingStoryId(story.id);
