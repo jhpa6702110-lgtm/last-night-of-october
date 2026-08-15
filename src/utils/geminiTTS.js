@@ -17,6 +17,14 @@ export const generateGeminiAudio = async (text, voicePresetId = 'female_warm', a
 
   if (key && key.length > 15) {
     try {
+      // Set semitone pitch shift for Neural2 voice
+      let semitonePitch = 0.0;
+      if (preset.id === 'male_deep') semitonePitch = -6.0;
+      else if (preset.id === 'male_classic') semitonePitch = -8.5;
+      else if (preset.id === 'male_soft') semitonePitch = -4.0;
+      else if (preset.id === 'female_sweet') semitonePitch = 2.5;
+      else if (preset.id === 'female_warm') semitonePitch = 1.0;
+
       const response = await fetch(`https://texttospeech.googleapis.com/v1/text:synthesize?key=${key}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -29,8 +37,8 @@ export const generateGeminiAudio = async (text, voicePresetId = 'female_warm', a
           },
           audioConfig: {
             audioEncoding: 'MP3',
-            speakingRate: preset.rate,
-            pitch: preset.gender === 'MALE' ? -1.5 : 0.0
+            speakingRate: preset.rate || 0.88,
+            pitch: semitonePitch
           }
         })
       });
