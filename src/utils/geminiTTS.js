@@ -1,12 +1,12 @@
-// Google Cloud Neural2 Real AI Voice Engine Presets
+// Google Cloud Neural2 Real AI Voice Engine Presets (Standard 1.0 Default Parameters)
 
 export const DJ_VOICE_PRESETS = [
-  { id: 'female_warm', label: '📻 따뜻한 아나운서 여성 DJ', gender: 'FEMALE', voiceName: 'ko-KR-Neural2-A', pitch: 0.0, rate: 0.95 },
-  { id: 'male_deep', label: '🎙️ 나긋나긋 중저음 남성 DJ', gender: 'MALE', voiceName: 'ko-KR-Neural2-C', pitch: -2.0, rate: 0.90 },
-  { id: 'female_gentle', label: '🌸 다정한 낭만 낭독 여성 DJ', gender: 'FEMALE', voiceName: 'ko-KR-Neural2-B', pitch: 0.5, rate: 0.92 },
-  { id: 'male_soft', label: '🌙 꿀보이스 심야 낭독 남성 DJ', gender: 'MALE', voiceName: 'ko-KR-Neural2-C', pitch: -1.0, rate: 0.92 },
-  { id: 'female_sweet', label: '✨ 감미로운 추억의 여성 DJ', gender: 'FEMALE', voiceName: 'ko-KR-Neural2-A', pitch: 1.0, rate: 0.98 },
-  { id: 'male_classic', label: '📻 클래식 명품 아나운서 DJ', gender: 'MALE', voiceName: 'ko-KR-Neural2-C', pitch: -2.5, rate: 0.88 }
+  { id: 'female_warm', label: '📻 따뜻한 아나운서 여성 DJ', gender: 'FEMALE', voiceName: 'ko-KR-Neural2-A', pitch: 0.0, rate: 1.0 },
+  { id: 'male_deep', label: '🎙️ 나긋나긋 중저음 남성 DJ', gender: 'MALE', voiceName: 'ko-KR-Neural2-C', pitch: 0.0, rate: 1.0 },
+  { id: 'female_gentle', label: '🌸 다정한 낭만 낭독 여성 DJ', gender: 'FEMALE', voiceName: 'ko-KR-Neural2-B', pitch: 0.0, rate: 1.0 },
+  { id: 'male_soft', label: '🌙 꿀보이스 심야 낭독 남성 DJ', gender: 'MALE', voiceName: 'ko-KR-Neural2-C', pitch: 0.0, rate: 1.0 },
+  { id: 'female_sweet', label: '✨ 감미로운 추억의 여성 DJ', gender: 'FEMALE', voiceName: 'ko-KR-Neural2-A', pitch: 0.0, rate: 1.0 },
+  { id: 'male_classic', label: '📻 클래식 명품 아나운서 DJ', gender: 'MALE', voiceName: 'ko-KR-Neural2-C', pitch: 0.0, rate: 1.0 }
 ];
 
 export const generateGeminiAudio = async (text, voicePresetId = 'female_warm', apiKey = null) => {
@@ -32,8 +32,8 @@ export const generateGeminiAudio = async (text, voicePresetId = 'female_warm', a
         },
         audioConfig: {
           audioEncoding: 'MP3',
-          speakingRate: preset.rate || 0.92,
-          pitch: preset.pitch || 0.0
+          speakingRate: 1.0,
+          pitch: 0.0
         }
       })
     });

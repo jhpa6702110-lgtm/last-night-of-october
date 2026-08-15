@@ -205,8 +205,8 @@ export default function RadioStories({ session, alumniProfile, setActiveTab }) {
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(sampleText);
       utterance.lang = 'ko-KR';
-      utterance.rate = preset.rate || 0.82;
-      utterance.pitch = preset.pitch || 0.5;
+      utterance.rate = 1.0;
+      utterance.pitch = 1.0;
 
       const bestVoice = selectBestVoice(preset.gender === 'MALE' ? 'male' : 'female');
       if (bestVoice) {
@@ -297,8 +297,8 @@ export default function RadioStories({ session, alumniProfile, setActiveTab }) {
 
       const utterance = new SpeechSynthesisUtterance(fullSpeechText);
       utterance.lang = 'ko-KR';
-      utterance.rate = currentPreset.rate || 0.82;
-      utterance.pitch = currentPreset.pitch || 0.5;
+      utterance.rate = 1.0;
+      utterance.pitch = 1.0;
 
       const bestVoice = selectBestVoice(currentPreset.gender === 'MALE' ? 'male' : 'female');
       if (bestVoice) {
