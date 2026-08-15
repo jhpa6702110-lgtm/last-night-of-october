@@ -1,10 +1,12 @@
 // Google Gemini / Google Cloud Text-to-Speech AI Voice Service Helper
 
 export const generateGeminiAudio = async (text, gender = 'female', apiKey = null) => {
-  const key = apiKey || import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.VITE_GOOGLE_TTS_API_KEY;
+  // Check localStorage first, then env variables
+  const savedKey = typeof window !== 'undefined' ? localStorage.getItem('user_gemini_api_key') : null;
+  const key = apiKey || savedKey || import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.VITE_GOOGLE_TTS_API_KEY;
 
   if (!key) {
-    console.warn('Gemini / Google Cloud TTS API Key not found in .env. Falling back to tuned Web Speech API.');
+    console.warn('Gemini / Google Cloud TTS API Key not found in .env or localStorage. Falling back to tuned Web Speech API.');
     return null;
   }
 
