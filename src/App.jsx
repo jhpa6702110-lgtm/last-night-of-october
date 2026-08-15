@@ -17,7 +17,39 @@ import HallOfFame from './components/HallOfFame';
 import MapCarpool from './components/MapCarpool';
 import RadioStories from './components/RadioStories';
 import { supabase, isSupabaseConfigured, saveSupabaseCredentials } from './utils/supabaseClient';
-import { Database, ShieldAlert, KeyRound, Save } from 'lucide-react';
+class TabErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error('TabErrorBoundary caught an error:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="glass" style={{ margin: '40px auto', maxWidth: '800px', padding: '40px', textAlign: 'center', borderRadius: '20px' }}>
+          <h3 style={{ fontSize: '20px', color: '#f43f5e', marginBottom: '12px' }}>⚠️ 화면을 불러오는 도중 잠시 오류가 발생했습니다.</h3>
+          <p style={{ color: 'var(--color-secondary)', fontSize: '14px', marginBottom: '20px' }}>아래 버튼을 누르시면 화면이 즉시 복구됩니다.</p>
+          <button
+            onClick={() => { this.setState({ hasError: false }); window.location.reload(); }}
+            style={{ background: 'linear-gradient(135deg, #06b6d4, #10b981)', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '10px', fontWeight: '700', cursor: 'pointer' }}
+          >
+            🔄 화면 새로고침하기
+          </button>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
 
 export default function App() {
   // Get initial tab from URL hash
@@ -732,7 +764,9 @@ export default function App() {
             <p style={{ marginTop: '15px', color: 'var(--color-secondary)', fontSize: '14px' }}>프로필 정보를 불러오는 중입니다...</p>
           </div>
         ) : (
-          renderContent()
+          <TabErrorBoundary key={activeTab}>
+            {renderContent()}
+          </TabErrorBoundary>
         )}
       </main>
 

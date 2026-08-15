@@ -85,22 +85,8 @@ export default function RadioStories({ session, alumniProfile, setActiveTab }) {
     }
   };
 
-  // Load browser speech voices
   useEffect(() => {
     fetchStories();
-
-    const loadVoices = () => {
-      if ('speechSynthesis' in window) {
-        const voices = window.speechSynthesis.getVoices();
-        const koVoices = voices.filter(v => v.lang.includes('ko'));
-        setAvailableVoices(koVoices);
-      }
-    };
-
-    loadVoices();
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.onvoiceschanged = loadVoices;
-    }
 
     return () => {
       stopTTS();
