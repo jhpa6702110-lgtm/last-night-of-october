@@ -182,18 +182,20 @@ export default function RadioStories({ session, alumniProfile, setActiveTab }) {
     e.stopPropagation(); // Don't trigger main tab button toggle
     stopTTS();
 
-    // Unlock mobile audio stack synchronously on touch gesture
+    // 1. 유저 제스처 직후 무음 Audio 재생을 통한 모바일 오디오 세션 언락
     const aiAudio = new Audio();
+    aiAudio.src = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA';
     aiAudio.play().catch(() => {});
 
     const sampleTitle = preset.label.replace(/^[^\s]+\s*/, '');
     const sampleText = `안녕하세요! 시월의 밤 라디오 ${sampleTitle}입니다. 감미로운 사연 함께 나누어요!`;
 
-    // 1. Try Google Cloud Neural2 Real AI Voice Engine (100% Genuine Male/Female Human Voice Audio)
+    // 2. Try Google Cloud Neural2 Real AI Voice Engine (100% Genuine Male/Female Human Voice Audio)
     const cloudAudioResult = await generateGeminiAudio(sampleText, preset.id);
     if (cloudAudioResult && cloudAudioResult.audioUrl) {
+      aiAudio.pause();
       aiAudio.src = cloudAudioResult.audioUrl;
-      aiAudio.playbackRate = cloudAudioResult.playbackRate || 1.0;
+      aiAudio.volume = 1.0;
       aiAudio.play().catch(err => console.warn('Preview play error:', err));
       return;
     }
@@ -231,8 +233,9 @@ export default function RadioStories({ session, alumniProfile, setActiveTab }) {
     stopTTS(); // Stop any active speech
     playRadioChime(); // Play subtle radio chime sound effect
 
-    // Unlock mobile audio stack synchronously on touch gesture
+    // 1. 유저 제스처 직후 무음 Audio 재생을 통한 모바일 오디오 세션 언락
     const aiAudio = new Audio();
+    aiAudio.src = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA';
     aiAudio.play().catch(() => {});
 
     // Natural Speech Formatting with radio DJ pauses
@@ -255,17 +258,20 @@ export default function RadioStories({ session, alumniProfile, setActiveTab }) {
 
     const fullSpeechText = `${djIntro} ${formattedContent} ${djOutro}`;
 
-    // 1. Try Google Cloud Neural2 Real AI Voice Engine (100% Genuine Male/Female Voice MP3)
+    // 2. Try Google Cloud Neural2 Real AI Voice Engine (100% Genuine Male/Female Voice MP3)
     setSpeakingStoryId(story.id);
     const cloudAudioResult = await generateGeminiAudio(fullSpeechText, userDjVoice);
 
     if (cloudAudioResult && cloudAudioResult.audioUrl) {
+      aiAudio.pause();
       aiAudio.src = cloudAudioResult.audioUrl;
       aiAudio.volume = 1.0;
-      aiAudio.playbackRate = cloudAudioResult.playbackRate || 1.0;
       
       aiAudio.onended = () => setSpeakingStoryId(null);
-      aiAudio.onerror = () => setSpeakingStoryId(null);
+      aiAudio.onerror = (e) => {
+        console.error('AI Audio playback error:', e);
+        setSpeakingStoryId(null);
+      };
       
       if (story.song_url) {
         stopBGM();
@@ -283,7 +289,7 @@ export default function RadioStories({ session, alumniProfile, setActiveTab }) {
       return;
     }
 
-    // 2. Fallback to Local Tuned Voice Engine
+    // 3. Fallback to Local Tuned Voice Engine
     if (!('speechSynthesis' in window)) {
       alert('사용 중이신 브라우저는 음성 낭독(TTS)을 지원하지 않습니다.');
       setSpeakingStoryId(null);
