@@ -274,7 +274,7 @@ export default function HallOfFame({ session, alumniProfile, setActiveTab }) {
                   marginTop: is1st ? '10px' : '8px',
                   marginBottom: '14px'
                 }}>
-                  {!alumnus.avatar_url && alumnus.name.slice(0, 1)}
+                  {!alumnus.avatar_url && (alumnus.name || '동문').slice(0, 1)}
                 </div>
 
                 {/* Name */}
@@ -390,7 +390,7 @@ export default function HallOfFame({ session, alumniProfile, setActiveTab }) {
                     color: 'white',
                     flexShrink: 0
                   }}>
-                    {!alumnus.avatar_url && alumnus.name.slice(0, 1)}
+                    {!alumnus.avatar_url && (alumnus.name || '동문').slice(0, 1)}
                   </div>
 
                   <div>

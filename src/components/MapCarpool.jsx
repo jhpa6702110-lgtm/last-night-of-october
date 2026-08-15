@@ -302,10 +302,12 @@ export default function MapCarpool({ session, alumniProfile, setActiveTab }) {
       {activeTab === 'carpool' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
           {carpools.map((carpool) => {
-            const seatsLeft = carpool.total_seats - carpool.passengers.length;
+            const passengers = Array.isArray(carpool.passengers) ? carpool.passengers : [];
+            const seatsLeft = (carpool.total_seats || 3) - passengers.length;
             const isFull = seatsLeft <= 0;
             const userName = alumniProfile?.name || '동문';
-            const isJoined = carpool.passengers.includes(userName);
+            const isJoined = passengers.includes(userName);
+            const driverName = carpool.driver_name || '동문';
 
             return (
               <div 
@@ -336,11 +338,11 @@ export default function MapCarpool({ session, alumniProfile, setActiveTab }) {
                       fontSize: '20px',
                       fontWeight: '800'
                     }}>
-                      {carpool.driver_name.slice(0, 1)}
+                      {driverName.slice(0, 1)}
                     </div>
                     <div>
                       <div style={{ fontSize: '18px', fontWeight: '800', color: 'white', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        🚗 {carpool.driver_name} 동문의 카풀 차량
+                        🚗 {driverName} 동문의 카풀 차량
                         <span style={{ fontSize: '12px', color: '#94a3b8', fontWeight: '500' }}>({carpool.car_model})</span>
                       </div>
                       <div style={{ fontSize: '13px', color: 'var(--color-secondary)', marginTop: '2px' }}>

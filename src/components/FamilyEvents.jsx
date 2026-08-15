@@ -394,7 +394,7 @@ export default function FamilyEvents({ session, alumniProfile, setActiveTab }) {
                       color: 'white',
                       border: '2px solid rgba(255, 255, 255, 0.15)'
                     }}>
-                      {!friend.avatar_url && friend.name.slice(0, 1)}
+                      {!friend.avatar_url && (friend.name || '동문').slice(0, 1)}
                     </div>
 
                     <div>

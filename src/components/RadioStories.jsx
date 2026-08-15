@@ -511,15 +511,15 @@ export default function RadioStories({ session, alumniProfile, setActiveTab }) {
                     fontSize: '18px',
                     fontWeight: '800'
                   }}>
-                    {story.sender_name.slice(0, 1)}
+                    {(story.sender_name || '동문').slice(0, 1)}
                   </div>
                   <div>
                     <div style={{ fontSize: '17px', fontWeight: '800', color: 'white', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      👤 {story.sender_name} 동문의 사연
-                      <span style={{ fontSize: '13px', color: '#c084fc', fontWeight: '500' }}>➔ 💌 {story.recipient_name}에게</span>
+                      👤 {story.sender_name || '동문'} 동문의 사연
+                      <span style={{ fontSize: '13px', color: '#c084fc', fontWeight: '500' }}>➔ 💌 {story.recipient_name || '동문들'}에게</span>
                     </div>
                     <div style={{ fontSize: '12px', color: 'var(--color-secondary)', marginTop: '2px' }}>
-                      {new Date(story.created_at).toLocaleDateString('ko-KR')} 작성
+                      {story.created_at ? new Date(story.created_at).toLocaleDateString('ko-KR') : '최근'} 작성
                     </div>
                   </div>
                 </div>
