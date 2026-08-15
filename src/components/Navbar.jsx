@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Home, Image, BookOpen, Users, Lock, LogOut, LogIn, Menu, X, Download, Film, Radio, MessageSquare, Sparkles, Cake } from 'lucide-react';
+import { Home, Image, BookOpen, Users, Lock, LogOut, LogIn, Menu, X, Download, Film, Radio, MessageSquare, Sparkles, Cake, Trophy } from 'lucide-react';
 
 export default function Navbar({ activeTab, setActiveTab, session, alumniProfile, activeUsers = [], onLogout, onInstallApp, onOpenDetailModal, isKakaoTalk, isInAppBrowser }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -20,6 +20,7 @@ export default function Navbar({ activeTab, setActiveTab, session, alumniProfile
 
   const navItems = [
     { id: 'home', label: '홈', icon: Home, public: true },
+    { id: 'hall_of_fame', label: '명예의전당', icon: Trophy, public: true },
     { id: 'family_events', label: '생일·경조사', icon: Cake, public: true },
     { id: 'board', label: '게시판', icon: MessageSquare, public: false },
     { id: 'gallery', label: '갤러리', icon: Image, public: false },

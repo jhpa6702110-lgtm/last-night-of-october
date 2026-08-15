@@ -13,6 +13,7 @@ import Chatbot from './components/Chatbot';
 import VoiceController from './components/VoiceController';
 import WadizDetailModal from './components/WadizDetailModal';
 import FamilyEvents from './components/FamilyEvents';
+import HallOfFame from './components/HallOfFame';
 import { supabase, isSupabaseConfigured, saveSupabaseCredentials } from './utils/supabaseClient';
 import { Database, ShieldAlert, KeyRound, Save } from 'lucide-react';
 
@@ -566,6 +567,15 @@ export default function App() {
       case 'family_events':
         return (
           <FamilyEvents 
+            session={session} 
+            alumniProfile={alumniProfile} 
+            setActiveTab={setActiveTab} 
+          />
+        );
+
+      case 'hall_of_fame':
+        return (
+          <HallOfFame 
             session={session} 
             alumniProfile={alumniProfile} 
             setActiveTab={setActiveTab} 

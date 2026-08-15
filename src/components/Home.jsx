@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../utils/supabaseClient';
-import { Image, Users, BookOpen, AlertCircle, X, ChevronRight, HelpCircle, Award, MessageSquare, Film, Key, Play, Pause, Volume2, VolumeX, Music, SkipBack, SkipForward, Sparkles, Cake, Heart } from 'lucide-react';
+import { Image, Users, BookOpen, AlertCircle, X, ChevronRight, HelpCircle, Award, MessageSquare, Film, Key, Play, Pause, Volume2, VolumeX, Music, SkipBack, SkipForward, Sparkles, Cake, Heart, Trophy } from 'lucide-react';
 
 const DEFAULT_HEROS = [
   'https://images.unsplash.com/photo-1509114397022-ed747cca3f65?auto=format&fit=crop&q=80&w=1600', // Starry night
@@ -763,10 +763,20 @@ export default function Home({ session, alumniProfile, setActiveTab, onOpenDetai
 
       {/* Top Rankers / Hall of Fame Widget */}
       <div id="ranking-section" style={{ marginBottom: '60px' }}>
-        <h3 style={{ fontSize: '22px', fontWeight: '700', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <span style={{ width: '4px', height: '18px', background: 'var(--accent-gradient)', borderRadius: '2px', display: 'inline-block' }} />
-          👑 열정 랭킹 (명예의 전당)
-        </h3>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '10px' }}>
+          <h3 style={{ fontSize: '22px', fontWeight: '700', margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span style={{ width: '4px', height: '18px', background: 'var(--accent-gradient)', borderRadius: '2px', display: 'inline-block' }} />
+            👑 이달의 출석왕 & 명예의 전당
+          </h3>
+
+          <button
+            onClick={() => setActiveTab('hall_of_fame')}
+            className="btn btn-secondary"
+            style={{ padding: '6px 14px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '4px', color: '#f59e0b', borderColor: 'rgba(245, 158, 11, 0.4)' }}
+          >
+            <Trophy size={14} /> 전체 명예의 전당 보러가기 <ChevronRight size={14} />
+          </button>
+        </div>
         
         {topRankers.length === 0 ? (
           <div className="glass" style={{ padding: '30px', textAlign: 'center', color: 'var(--color-secondary)' }}>

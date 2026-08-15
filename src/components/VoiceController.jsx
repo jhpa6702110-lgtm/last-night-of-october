@@ -254,6 +254,9 @@ export default function VoiceController({ setActiveTab, onLogout, alumniProfile 
     } else if (text.includes('생일') || text.includes('경조사') || text.includes('부고') || text.includes('결혼') || text.includes('축하')) {
       setActiveTab('family_events');
       actionDescription = '생일 및 경조사 알림판으로 이동합니다.';
+    } else if (text.includes('명예') || text.includes('전당') || text.includes('출석왕') || text.includes('랭킹') || text.includes('순위')) {
+      setActiveTab('hall_of_fame');
+      actionDescription = '이달의 출석왕 및 명예의 전당으로 이동합니다.';
     } else if (text.includes('관리자') || text.includes('설정') || text.includes('운영')) {
       setActiveTab('admin');
       actionDescription = '관리자 페이지로 이동합니다.';
