@@ -208,13 +208,14 @@ export default function RadioStories({ session, alumniProfile, setActiveTab }) {
 
     const fullSpeechText = `${djIntro} ${formattedContent} ${djOutro}`;
 
-    // 1. Try Gemini AI Audio (High Quality Neural Voice Stream)
+    // 1. High Quality Mobile-Compatible AI Audio Stream
     setSpeakingStoryId(story.id);
-    const geminiAudioUrl = await generateGeminiAudio(fullSpeechText, userDjVoice);
+    const audioResult = await generateGeminiAudio(fullSpeechText, userDjVoice);
 
-    if (geminiAudioUrl) {
-      const aiAudio = new Audio(geminiAudioUrl);
+    if (audioResult && audioResult.audioUrl) {
+      const aiAudio = new Audio(audioResult.audioUrl);
       aiAudio.volume = 1.0;
+      aiAudio.playbackRate = audioResult.playbackRate || 1.0;
       
       aiAudio.onended = () => setSpeakingStoryId(null);
       aiAudio.onerror = () => setSpeakingStoryId(null);
@@ -230,7 +231,7 @@ export default function RadioStories({ session, alumniProfile, setActiveTab }) {
       }
 
       aiAudio.play().catch(err => {
-        console.warn('Gemini Audio play failed:', err);
+        console.warn('AI Audio play failed:', err);
         setSpeakingStoryId(null);
       });
       return;
