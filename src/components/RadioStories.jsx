@@ -177,21 +177,13 @@ export default function RadioStories({ session, alumniProfile, setActiveTab }) {
     return femaleVoice || koVoices[0];
   };
 
-  // Preview Voice Sample Button Handler
-  const handlePreviewVoice = async (e, preset) => {
+  // Preview Voice Sample Button Handler (Synchronous for Mobile Touch Permission)
+  const handlePreviewVoice = (e, preset) => {
     e.stopPropagation(); // Don't trigger main tab button toggle
     stopTTS();
 
     const sampleTitle = preset.label.replace(/^[^\s]+\s*/, '');
     const sampleText = `안녕하세요! 시월의 밤 라디오 ${sampleTitle}입니다. 감미로운 사연 함께 나누어요!`;
-
-    // 1. Try Google Cloud Neural2 Real AI Voice Engine
-    const cloudAudioResult = await generateGeminiAudio(sampleText, preset.id);
-    if (cloudAudioResult && cloudAudioResult.audioUrl) {
-      const aiAudio = new Audio(cloudAudioResult.audioUrl);
-      aiAudio.play().catch(err => console.warn('Preview play error:', err));
-      return;
-    }
 
     if (!('speechSynthesis' in window)) {
       alert('사용 중이신 브라우저는 음성 낭독(TTS)을 지원하지 않습니다.');
@@ -202,8 +194,8 @@ export default function RadioStories({ session, alumniProfile, setActiveTab }) {
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(sampleText);
       utterance.lang = 'ko-KR';
-      utterance.rate = preset.rate || 0.88;
-      utterance.pitch = preset.pitch || 1.0;
+      utterance.rate = preset.rate || 0.82;
+      utterance.pitch = preset.pitch || 0.5;
 
       const bestVoice = selectBestVoice(preset.gender === 'MALE' ? 'male' : 'female');
       if (bestVoice) {
@@ -216,7 +208,7 @@ export default function RadioStories({ session, alumniProfile, setActiveTab }) {
     }
   };
 
-  const handlePlayTTS = async (story) => {
+  const handlePlayTTS = (story) => {
     // If currently speaking this story, stop it
     if (speakingStoryId === story.id) {
       stopTTS();
@@ -224,9 +216,7 @@ export default function RadioStories({ session, alumniProfile, setActiveTab }) {
     }
 
     stopTTS(); // Stop any active speech
-
-    // Play subtle radio chime sound effect
-    playRadioChime();
+    playRadioChime(); // Play subtle radio chime sound effect
 
     // Natural Speech Formatting with radio DJ pauses
     const formattedContent = (story.content || '')
@@ -248,34 +238,6 @@ export default function RadioStories({ session, alumniProfile, setActiveTab }) {
 
     const fullSpeechText = `${djIntro} ${formattedContent} ${djOutro}`;
 
-    // 1. Try Google Cloud Neural2 Real AI Voice Engine (100% Genuine Male/Female Voice MP3)
-    setSpeakingStoryId(story.id);
-    const cloudAudioResult = await generateGeminiAudio(fullSpeechText, userDjVoice);
-
-    if (cloudAudioResult && cloudAudioResult.audioUrl) {
-      const aiAudio = new Audio(cloudAudioResult.audioUrl);
-      aiAudio.volume = 1.0;
-      
-      aiAudio.onended = () => setSpeakingStoryId(null);
-      aiAudio.onerror = () => setSpeakingStoryId(null);
-      
-      if (story.song_url) {
-        stopBGM();
-        const audio = new Audio(story.song_url);
-        audio.volume = 0.15;
-        audioRef.current = audio;
-        audio.play().catch(err => console.log('BGM play blocked:', err));
-        setActiveAudioStoryId(story.id);
-      }
-
-      aiAudio.play().catch(err => {
-        console.warn('AI Audio play failed:', err);
-        setSpeakingStoryId(null);
-      });
-      return;
-    }
-
-    // 2. Fallback to Local Tuned Voice Engine
     if (!('speechSynthesis' in window)) {
       alert('사용 중이신 브라우저는 음성 낭독(TTS)을 지원하지 않습니다.');
       setSpeakingStoryId(null);
@@ -287,8 +249,8 @@ export default function RadioStories({ session, alumniProfile, setActiveTab }) {
 
       const utterance = new SpeechSynthesisUtterance(fullSpeechText);
       utterance.lang = 'ko-KR';
-      utterance.rate = currentPreset.rate || 0.88;
-      utterance.pitch = currentPreset.pitch || 1.0; // Pitch 0.50 ~ 1.35 distinct voice modulation
+      utterance.rate = currentPreset.rate || 0.82;
+      utterance.pitch = currentPreset.pitch || 0.5;
 
       const bestVoice = selectBestVoice(currentPreset.gender === 'MALE' ? 'male' : 'female');
       if (bestVoice) {
