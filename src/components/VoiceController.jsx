@@ -245,6 +245,9 @@ export default function VoiceController({ setActiveTab, onLogout, alumniProfile 
     } else if (text.includes('영화') || text.includes('시네마') || text.includes('비디오') || text.includes('영상')) {
       setActiveTab('cinema');
       actionDescription = '영화관으로 이동합니다.';
+    } else if (text.includes('사연') || text.includes('신청곡') || text.includes('편지')) {
+      setActiveTab('radio_stories');
+      actionDescription = '라디오 사연 및 신청곡 게시판으로 이동합니다.';
     } else if (text.includes('라디오') || text.includes('방송') || text.includes('음악')) {
       setActiveTab('radio');
       actionDescription = '라디오방송으로 이동합니다.';

@@ -131,3 +131,16 @@ CREATE TABLE IF NOT EXISTS carpools (
   notes TEXT,
   created_at TIMESTAMPTZ DEFAULT now()
 );
+
+-- 12. 라디오 사연 및 신청곡 테이블
+CREATE TABLE IF NOT EXISTS radio_stories (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  sender_name TEXT NOT NULL,
+  recipient_name TEXT NOT NULL,
+  song_title TEXT NOT NULL,
+  artist_name TEXT,
+  song_url TEXT,
+  content TEXT NOT NULL,
+  likes_count INT DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT now()
+);

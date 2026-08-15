@@ -20,6 +20,7 @@ export default function Navbar({ activeTab, setActiveTab, session, alumniProfile
 
   const navItems = [
     { id: 'home', label: '홈', icon: Home, public: true },
+    { id: 'radio_stories', label: '라디오사연', icon: Radio, public: true },
     { id: 'map_carpool', label: '길안내·카풀', icon: Navigation, public: true },
     { id: 'hall_of_fame', label: '명예의전당', icon: Trophy, public: true },
     { id: 'family_events', label: '생일·경조사', icon: Cake, public: true },
@@ -27,7 +28,7 @@ export default function Navbar({ activeTab, setActiveTab, session, alumniProfile
     { id: 'gallery', label: '갤러리', icon: Image, public: false },
     { id: 'album', label: '앨범', icon: BookOpen, public: false },
     { id: 'cinema', label: '영화관', icon: Film, public: true },
-    { id: 'radio', label: '라디오방송', icon: Radio, public: true },
+    { id: 'radio', label: '라이브라디오', icon: Radio, public: true },
     { id: 'friends', label: '친구들', icon: Users, public: false },
     ...(isAdmin ? [{ id: 'admin', label: '관리자', icon: Lock, public: false }] : []),
   ];
