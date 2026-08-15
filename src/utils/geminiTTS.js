@@ -1,12 +1,12 @@
-// Google Cloud Neural2 Real AI Voice Engine Presets (Standard 1.0 Default Parameters)
+// Google Cloud TTS 6종 라디오 DJ 성우 전용 모델 매핑
 
 export const DJ_VOICE_PRESETS = [
-  { id: 'female_warm', label: '📻 따뜻한 아나운서 여성 DJ', gender: 'FEMALE', voiceName: 'ko-KR-Neural2-A', pitch: 0.0, rate: 1.0 },
-  { id: 'male_deep', label: '🎙️ 나긋나긋 중저음 남성 DJ', gender: 'MALE', voiceName: 'ko-KR-Neural2-C', pitch: 0.0, rate: 1.0 },
-  { id: 'female_gentle', label: '🌸 다정한 낭만 낭독 여성 DJ', gender: 'FEMALE', voiceName: 'ko-KR-Neural2-B', pitch: 0.0, rate: 1.0 },
-  { id: 'male_soft', label: '🌙 꿀보이스 심야 낭독 남성 DJ', gender: 'MALE', voiceName: 'ko-KR-Neural2-C', pitch: 0.0, rate: 1.0 },
-  { id: 'female_sweet', label: '✨ 감미로운 추억의 여성 DJ', gender: 'FEMALE', voiceName: 'ko-KR-Neural2-A', pitch: 0.0, rate: 1.0 },
-  { id: 'male_classic', label: '📻 클래식 명품 아나운서 DJ', gender: 'MALE', voiceName: 'ko-KR-Neural2-C', pitch: 0.0, rate: 1.0 }
+  { id: 'female_warm', label: '📻 따뜻한 아나운서 여성 DJ', gender: 'FEMALE', voiceName: 'ko-KR-Neural2-A', pitch: 0.0, rate: 0.95 },
+  { id: 'male_deep', label: '🎙️ 나긋나긋 중저음 남성 DJ', gender: 'MALE', voiceName: 'ko-KR-Neural2-C', pitch: -1.5, rate: 0.88 },
+  { id: 'female_gentle', label: '🌸 다정한 낭만 낭독 여성 DJ', gender: 'FEMALE', voiceName: 'ko-KR-Neural2-B', pitch: 0.5, rate: 0.90 },
+  { id: 'male_soft', label: '🌙 꿀보이스 심야 낭독 남성 DJ', gender: 'MALE', voiceName: 'ko-KR-Wavenet-D', pitch: -0.5, rate: 0.85 },
+  { id: 'female_sweet', label: '✨ 감미로운 추억의 여성 DJ', gender: 'FEMALE', voiceName: 'ko-KR-Neural2-A', pitch: 1.2, rate: 0.98 },
+  { id: 'male_classic', label: '📻 클래식 명품 아나운서 DJ', gender: 'MALE', voiceName: 'ko-KR-Wavenet-C', pitch: -1.8, rate: 0.90 }
 ];
 
 export const generateGeminiAudio = async (text, voicePresetId = 'female_warm', apiKey = null) => {
@@ -15,7 +15,7 @@ export const generateGeminiAudio = async (text, voicePresetId = 'female_warm', a
   const preset = DJ_VOICE_PRESETS.find(p => p.id === voicePresetId) || DJ_VOICE_PRESETS[0];
 
   if (!key || key.length < 15) {
-    console.error('TTS API Key가 누락되었거나 유효하지 않습니다.');
+    console.warn('Google Cloud TTS API 키가 유효하지 않습니다.');
     return { audioUrl: null, preset };
   }
 
@@ -27,13 +27,14 @@ export const generateGeminiAudio = async (text, voicePresetId = 'female_warm', a
         input: { text },
         voice: {
           languageCode: 'ko-KR',
-          name: preset.voiceName || (preset.gender === 'MALE' ? 'ko-KR-Neural2-C' : 'ko-KR-Neural2-A'),
+          // 프리셋에 지정된 고유 성우 모델 전달 (Neural2-A/B/C, Wavenet-C/D)
+          name: preset.voiceName,
           ssmlGender: preset.gender
         },
         audioConfig: {
           audioEncoding: 'MP3',
-          speakingRate: 1.0,
-          pitch: 0.0
+          speakingRate: preset.rate,
+          pitch: preset.pitch
         }
       })
     });
@@ -48,10 +49,10 @@ export const generateGeminiAudio = async (text, voicePresetId = 'female_warm', a
       }
     } else {
       const errorData = await response.json();
-      console.error('Google Cloud TTS Error:', errorData);
+      console.error('Google Cloud TTS API 오류:', errorData);
     }
   } catch (err) {
-    console.error('Cloud Neural2 TTS Network Error:', err);
+    console.error('TTS 호출 중 네트워크 에러 발생:', err);
   }
 
   return { audioUrl: null, preset };
