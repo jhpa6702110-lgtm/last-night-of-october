@@ -248,8 +248,8 @@ export default function RadioStories({ session, alumniProfile, setActiveTab }) {
 
       const utterance = new SpeechSynthesisUtterance(fullSpeechText);
       utterance.lang = 'ko-KR';
-      utterance.rate = 0.85;
-      utterance.pitch = djStyle === 'male' ? 0.85 : 0.95;
+      utterance.rate = currentPreset.rate || 0.88;
+      utterance.pitch = currentPreset.gender === 'MALE' ? 0.85 : 0.95;
 
       utterance.onstart = () => {
         setSpeakingStoryId(story.id);
