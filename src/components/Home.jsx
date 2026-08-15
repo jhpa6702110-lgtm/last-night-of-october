@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../utils/supabaseClient';
-import { Image, Users, BookOpen, AlertCircle, X, ChevronRight, HelpCircle, Award, MessageSquare, Film, Key, Play, Pause, Volume2, VolumeX, Music, SkipBack, SkipForward, Sparkles } from 'lucide-react';
+import { Image, Users, BookOpen, AlertCircle, X, ChevronRight, HelpCircle, Award, MessageSquare, Film, Key, Play, Pause, Volume2, VolumeX, Music, SkipBack, SkipForward, Sparkles, Cake, Heart } from 'lucide-react';
 
 const DEFAULT_HEROS = [
   'https://images.unsplash.com/photo-1509114397022-ed747cca3f65?auto=format&fit=crop&q=80&w=1600', // Starry night
@@ -694,6 +694,71 @@ export default function Home({ session, alumniProfile, setActiveTab, onOpenDetai
           </span>
           <span style={{ fontSize: '13px', color: 'var(--color-secondary)', marginTop: '4px' }}>추억 앨범</span>
         </div>
+      </div>
+
+      {/* Family Events & Birthday Quick Widget Banner */}
+      <div 
+        className="glass hover-card" 
+        onClick={() => setActiveTab('family_events')}
+        style={{
+          width: '100%',
+          maxWidth: '750px',
+          padding: '20px 24px',
+          borderRadius: '20px',
+          background: 'linear-gradient(135deg, rgba(244, 63, 94, 0.15), rgba(168, 85, 247, 0.15))',
+          border: '1px solid rgba(244, 63, 94, 0.3)',
+          marginBottom: '50px',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '16px'
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+          <div style={{
+            width: '46px',
+            height: '46px',
+            borderRadius: '14px',
+            background: 'linear-gradient(135deg, #f43f5e, #ec4899)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'white',
+            boxShadow: '0 4px 12px rgba(244, 63, 94, 0.4)'
+          }}>
+            <Cake size={24} />
+          </div>
+
+          <div>
+            <div style={{ fontSize: '17px', fontWeight: '800', color: 'white', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              🎂 이번 달 생일 & 🌹 경조사 알림판
+              <span style={{ fontSize: '11px', background: '#f43f5e', color: 'white', padding: '2px 8px', borderRadius: '10px', fontWeight: '800' }}>NEW</span>
+            </div>
+            <div style={{ fontSize: '13px', color: 'var(--color-secondary)', marginTop: '2px' }}>
+              이번 달 친구들의 생일과 경조사 소식을 확인하고 따뜻한 축하를 전하세요!
+            </div>
+          </div>
+        </div>
+
+        <button
+          className="btn"
+          style={{
+            background: 'rgba(244, 63, 94, 0.2)',
+            color: '#f43f5e',
+            border: '1px solid rgba(244, 63, 94, 0.4)',
+            padding: '8px 16px',
+            borderRadius: '10px',
+            fontSize: '13px',
+            fontWeight: '700',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px'
+          }}
+        >
+          소식 보러가기 <ChevronRight size={16} />
+        </button>
       </div>
 
       {/* Top Rankers / Hall of Fame Widget */}

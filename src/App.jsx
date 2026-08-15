@@ -12,6 +12,7 @@ import Board from './components/Board';
 import Chatbot from './components/Chatbot';
 import VoiceController from './components/VoiceController';
 import WadizDetailModal from './components/WadizDetailModal';
+import FamilyEvents from './components/FamilyEvents';
 import { supabase, isSupabaseConfigured, saveSupabaseCredentials } from './utils/supabaseClient';
 import { Database, ShieldAlert, KeyRound, Save } from 'lucide-react';
 
@@ -561,6 +562,15 @@ export default function App() {
 
       case 'radio':
         return <Radio />;
+
+      case 'family_events':
+        return (
+          <FamilyEvents 
+            session={session} 
+            alumniProfile={alumniProfile} 
+            setActiveTab={setActiveTab} 
+          />
+        );
 
       case 'friends':
         // Guard tab for authenticated users

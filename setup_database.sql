@@ -98,3 +98,21 @@ CREATE TABLE IF NOT EXISTS point_logs (
   reason TEXT NOT NULL,
   created_at TIMESTAMPTZ DEFAULT now()
 );
+
+-- 10. 동문 경조사 및 생일 소식 테이블
+CREATE TABLE IF NOT EXISTS family_events (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  category TEXT NOT NULL, -- 'wedding', 'funeral', 'party', 'other'
+  title TEXT NOT NULL,
+  alumni_name TEXT NOT NULL,
+  event_date DATE NOT NULL,
+  event_time TEXT,
+  location TEXT NOT NULL,
+  address TEXT,
+  account_bank TEXT,
+  account_number TEXT,
+  account_holder TEXT,
+  content TEXT,
+  author_id UUID REFERENCES alumni(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ DEFAULT now()
+);

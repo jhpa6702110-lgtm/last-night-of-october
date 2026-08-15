@@ -251,6 +251,9 @@ export default function VoiceController({ setActiveTab, onLogout, alumniProfile 
     } else if (text.includes('친구') || text.includes('동창') || text.includes('주소')) {
       setActiveTab('friends');
       actionDescription = '친구들 목록으로 이동합니다.';
+    } else if (text.includes('생일') || text.includes('경조사') || text.includes('부고') || text.includes('결혼') || text.includes('축하')) {
+      setActiveTab('family_events');
+      actionDescription = '생일 및 경조사 알림판으로 이동합니다.';
     } else if (text.includes('관리자') || text.includes('설정') || text.includes('운영')) {
       setActiveTab('admin');
       actionDescription = '관리자 페이지로 이동합니다.';
