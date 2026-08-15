@@ -11,6 +11,7 @@ import Auth from './components/Auth';
 import Board from './components/Board';
 import Chatbot from './components/Chatbot';
 import VoiceController from './components/VoiceController';
+import WadizDetailModal from './components/WadizDetailModal';
 import { supabase, isSupabaseConfigured, saveSupabaseCredentials } from './utils/supabaseClient';
 import { Database, ShieldAlert, KeyRound, Save } from 'lucide-react';
 
@@ -29,6 +30,17 @@ export default function App() {
   const [authKey, setAuthKey] = useState(0);
   const [isKakaoTalk, setIsKakaoTalk] = useState(false);
   const [isInAppBrowser, setIsInAppBrowser] = useState(false);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+
+  useEffect(() => {
+    const handleVoiceDetailModal = () => {
+      setIsDetailModalOpen(true);
+    };
+    window.addEventListener('open-detail-modal-voice', handleVoiceDetailModal);
+    return () => {
+      window.removeEventListener('open-detail-modal-voice', handleVoiceDetailModal);
+    };
+  }, []);
 
   useEffect(() => {
     const ua = navigator.userAgent.toLowerCase();
@@ -504,6 +516,7 @@ export default function App() {
             session={session} 
             alumniProfile={alumniProfile} 
             setActiveTab={setActiveTab} 
+            onOpenDetailModal={() => setIsDetailModalOpen(true)}
           />
         );
       
@@ -666,6 +679,7 @@ export default function App() {
         activeUsers={activeUsers}
         onLogout={handleLogout} 
         onInstallApp={handleInstallApp}
+        onOpenDetailModal={() => setIsDetailModalOpen(true)}
         isKakaoTalk={isKakaoTalk}
         isInAppBrowser={isInAppBrowser}
       />
@@ -698,6 +712,13 @@ export default function App() {
           alumniProfile={alumniProfile}
         />
       )}
+
+      {/* Wadiz Crowdfunding Detail Modal */}
+      <WadizDetailModal 
+        isOpen={isDetailModalOpen}
+        onClose={() => setIsDetailModalOpen(false)}
+        setActiveTab={setActiveTab}
+      />
     </div>
   );
 }

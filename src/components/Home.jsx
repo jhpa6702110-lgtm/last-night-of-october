@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../utils/supabaseClient';
-import { Image, Users, BookOpen, AlertCircle, X, ChevronRight, HelpCircle, Award, MessageSquare, Film, Key, Play, Pause, Volume2, VolumeX, Music, SkipBack, SkipForward } from 'lucide-react';
+import { Image, Users, BookOpen, AlertCircle, X, ChevronRight, HelpCircle, Award, MessageSquare, Film, Key, Play, Pause, Volume2, VolumeX, Music, SkipBack, SkipForward, Sparkles } from 'lucide-react';
 
 const DEFAULT_HEROS = [
   'https://images.unsplash.com/photo-1509114397022-ed747cca3f65?auto=format&fit=crop&q=80&w=1600', // Starry night
@@ -39,7 +39,7 @@ const THEME_SONGS = [
   }
 ];
 
-export default function Home({ session, alumniProfile, setActiveTab }) {
+export default function Home({ session, alumniProfile, setActiveTab, onOpenDetailModal }) {
   const [heroImages, setHeroImages] = useState(DEFAULT_HEROS);
   const [currentHeroIndex, setCurrentHeroIndex] = useState(0);
   const [stats, setStats] = useState({ photos: 0, friends: 0, albums: 0 });
@@ -630,6 +630,25 @@ export default function Home({ session, alumniProfile, setActiveTab }) {
           >
             <HelpCircle size={16} />
             사용자 매뉴얼
+          </button>
+
+          <button
+            onClick={onOpenDetailModal}
+            className="btn"
+            style={{ 
+              padding: '14px 24px', 
+              borderColor: 'rgba(168, 85, 247, 0.5)', 
+              color: '#ffffff',
+              background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.3), rgba(168, 85, 247, 0.3))',
+              boxShadow: '0 4px 15px rgba(6, 182, 212, 0.2)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              fontWeight: '700'
+            }}
+          >
+            <Sparkles size={18} color="#06b6d4" />
+            상세기능 (와디즈)
           </button>
         </div>
       </div>

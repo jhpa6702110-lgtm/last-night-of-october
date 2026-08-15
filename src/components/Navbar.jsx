@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Home, Image, BookOpen, Users, Lock, LogOut, LogIn, Menu, X, Download, Film, Radio, MessageSquare } from 'lucide-react';
+import { Home, Image, BookOpen, Users, Lock, LogOut, LogIn, Menu, X, Download, Film, Radio, MessageSquare, Sparkles } from 'lucide-react';
 
-export default function Navbar({ activeTab, setActiveTab, session, alumniProfile, activeUsers = [], onLogout, onInstallApp, isKakaoTalk, isInAppBrowser }) {
+export default function Navbar({ activeTab, setActiveTab, session, alumniProfile, activeUsers = [], onLogout, onInstallApp, onOpenDetailModal, isKakaoTalk, isInAppBrowser }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
 
@@ -168,6 +168,37 @@ export default function Navbar({ activeTab, setActiveTab, session, alumniProfile
             </button>
           );
         })}
+
+        <button
+          onClick={onOpenDetailModal}
+          style={{
+            background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.2), rgba(139, 92, 246, 0.2))',
+            color: '#38bdf8',
+            border: '1px solid rgba(56, 189, 248, 0.4)',
+            borderRadius: '10px',
+            padding: '6px 12px',
+            fontSize: '13px',
+            fontWeight: '700',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            whiteSpace: 'nowrap',
+            cursor: 'pointer',
+            boxShadow: '0 0 10px rgba(6, 182, 212, 0.2)',
+            transition: 'var(--transition-smooth)'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'linear-gradient(135deg, rgba(6, 182, 212, 0.35), rgba(139, 92, 246, 0.35))';
+            e.currentTarget.style.color = '#ffffff';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'linear-gradient(135deg, rgba(6, 182, 212, 0.2), rgba(139, 92, 246, 0.2))';
+            e.currentTarget.style.color = '#38bdf8';
+          }}
+        >
+          <Sparkles size={16} />
+          상세기능
+        </button>
 
         {showInstallButton && (
           <button
@@ -385,7 +416,34 @@ export default function Navbar({ activeTab, setActiveTab, session, alumniProfile
               </button>
             );
           })}
-          
+
+          <div style={{ padding: '4px 0' }}>
+            <button
+              onClick={() => {
+                onOpenDetailModal();
+                setIsMenuOpen(false);
+              }}
+              style={{
+                background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.2), rgba(139, 92, 246, 0.2))',
+                color: '#38bdf8',
+                border: '1px solid rgba(56, 189, 248, 0.4)',
+                borderRadius: '10px',
+                padding: '12px 16px',
+                fontSize: '15px',
+                fontWeight: '700',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                cursor: 'pointer',
+                textAlign: 'left',
+                width: '100%'
+              }}
+            >
+              <Sparkles size={18} />
+              상세기능 (와디즈)
+            </button>
+          </div>
+
           {showInstallButton && (
             <>
               <div style={{ height: '1px', background: 'rgba(255, 255, 255, 0.1)', margin: '8px 0' }} />

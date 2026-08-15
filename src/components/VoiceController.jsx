@@ -264,6 +264,9 @@ export default function VoiceController({ setActiveTab, onLogout, alumniProfile 
     } else if (text.includes('매뉴얼') || text.includes('도움말') || text.includes('안내')) {
       window.dispatchEvent(new CustomEvent('open-user-manual-voice'));
       actionDescription = '사용자 매뉴얼을 불러옵니다.';
+    } else if (text.includes('상세') || text.includes('와디즈') || text.includes('특징')) {
+      window.dispatchEvent(new CustomEvent('open-detail-modal-voice'));
+      actionDescription = '와디즈 상세기능 페이지를 불러옵니다.';
     } else if (text.includes('시월이') || text.includes('챗봇')) {
       window.dispatchEvent(new CustomEvent('toggle-chatbot-voice'));
       actionDescription = '챗봇 시월이를 불러옵니다.';
