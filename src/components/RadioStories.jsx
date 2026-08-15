@@ -177,6 +177,37 @@ export default function RadioStories({ session, alumniProfile, setActiveTab }) {
     return femaleVoice || koVoices[0];
   };
 
+  // Preview Voice Sample Button Handler
+  const handlePreviewVoice = (e, preset) => {
+    e.stopPropagation(); // Don't trigger main tab button toggle
+    stopTTS();
+
+    if (!('speechSynthesis' in window)) {
+      alert('사용 중이신 브라우저는 음성 낭독(TTS)을 지원하지 않습니다.');
+      return;
+    }
+
+    try {
+      window.speechSynthesis.cancel();
+      const sampleTitle = preset.label.replace(/^[^\s]+\s*/, '');
+      const sampleText = `안녕하세요! 시월의 밤 라디오 ${sampleTitle}입니다. 감미로운 사연 함께 나누어요!`;
+      
+      const utterance = new SpeechSynthesisUtterance(sampleText);
+      utterance.lang = 'ko-KR';
+      utterance.rate = preset.rate || 0.88;
+      utterance.pitch = preset.pitch || 1.0;
+
+      const bestVoice = selectBestVoice(preset.gender === 'MALE' ? 'male' : 'female');
+      if (bestVoice) {
+        try { utterance.voice = bestVoice; } catch (vErr) {}
+      }
+
+      window.speechSynthesis.speak(utterance);
+    } catch (err) {
+      console.error('Preview error:', err);
+    }
+  };
+
   const handlePlayTTS = async (story) => {
     // If currently speaking this story, stop it
     if (speakingStoryId === story.id) {
@@ -393,23 +424,40 @@ export default function RadioStories({ session, alumniProfile, setActiveTab }) {
                     key={preset.id}
                     onClick={() => handleSelectVoice(preset.id)}
                     style={{
-                      padding: '6px 14px',
+                      padding: '6px 12px',
                       borderRadius: '10px',
                       border: isSelected ? '1px solid #c084fc' : '1px solid rgba(255,255,255,0.1)',
                       background: isSelected ? 'linear-gradient(135deg, rgba(192, 132, 252, 0.35), rgba(168, 85, 247, 0.2))' : 'rgba(255,255,255,0.04)',
-                      color: isSelected ? '#white' : 'var(--color-secondary)',
+                      color: isSelected ? 'white' : 'var(--color-secondary)',
                       fontSize: '12px',
                       fontWeight: '700',
                       cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '4px',
+                      gap: '6px',
                       boxShadow: isSelected ? '0 0 12px rgba(192, 132, 252, 0.3)' : 'none',
                       transition: 'all 0.2s ease'
                     }}
                   >
                     {isSelected && <CheckCircle size={13} color="#c084fc" />}
                     {preset.label}
+                    <span
+                      onClick={(e) => handlePreviewVoice(e, preset)}
+                      title="목소리 샘플 미리듣기"
+                      style={{
+                        background: 'rgba(255, 255, 255, 0.15)',
+                        padding: '2px 6px',
+                        borderRadius: '6px',
+                        fontSize: '11px',
+                        color: '#38bdf8',
+                        fontWeight: '800',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '2px'
+                      }}
+                    >
+                      ▶️ 미리듣기
+                    </span>
                   </button>
                 );
               })}
