@@ -163,21 +163,18 @@ export default function RadioStories({ session, alumniProfile, setActiveTab }) {
 
     if (gender === 'male') {
       const maleVoice = koVoices.find(v => 
-        v.name.includes('InJoon') || v.name.includes('YunJie') || v.name.includes('Male') || v.name.includes('남성')
+        v.name.includes('InJoon') || v.name.includes('YunJie') || v.name.includes('MinJae') || 
+        v.name.includes('Male') || v.name.includes('남성') || v.name.includes('남자')
       );
-      if (maleVoice) return maleVoice;
-    } else {
-      const femaleVoice = koVoices.find(v => 
-        v.name.includes('SunHi') || v.name.includes('Heami') || v.name.includes('Female') || v.name.includes('여성')
-      );
-      if (femaleVoice) return femaleVoice;
+      // 남성 DJ 선택 시 여성 성우 프로필 반환을 원천 차단하여 피치 변조가 중저음 남성 톤으로 적용되게 합니다.
+      return maleVoice || null;
     }
 
-    // Fallback: Natural / Online / Google voice
-    const naturalVoice = koVoices.find(v => 
-      v.name.includes('Natural') || v.name.includes('Online') || v.name.includes('Google')
+    const femaleVoice = koVoices.find(v => 
+      v.name.includes('SunHi') || v.name.includes('Heami') || v.name.includes('Female') || 
+      v.name.includes('여성') || v.name.includes('Yuna')
     );
-    return naturalVoice || koVoices[0];
+    return femaleVoice || koVoices[0];
   };
 
   const handlePlayTTS = async (story) => {
