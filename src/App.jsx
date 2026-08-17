@@ -620,11 +620,54 @@ export default function App() {
           <Auth key={`auth-${authKey}`} onAuthSuccess={(s) => { setSession(s); setActiveTab('board'); }} onSelectMember={handleSelectMember} />
         );
 
+      case 'cinema_standalone':
+      case 'cinema_embed':
+        return (
+          <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '10px 0' }}>
+            <Cinema />
+          </div>
+        );
+
       case 'cinema':
         return <Cinema />;
 
+      case 'radio_live_standalone':
+      case 'radio_live_embed':
+        return (
+          <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '10px 0' }}>
+            <Radio />
+          </div>
+        );
+
       case 'radio':
         return <Radio />;
+
+      case 'radio_standalone':
+      case 'radio_embed':
+        return (
+          <div style={{ maxWidth: '850px', margin: '0 auto', padding: '10px 0' }}>
+            <div style={{
+              textAlign: 'center',
+              padding: '16px 20px',
+              marginBottom: '24px',
+              background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.2), rgba(6, 182, 212, 0.2))',
+              borderRadius: '20px',
+              border: '1px solid rgba(168, 85, 247, 0.3)'
+            }}>
+              <h2 style={{ fontSize: '24px', fontWeight: '900', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', margin: 0 }}>
+                📻 8090 추억 라디오 단독 방송국
+              </h2>
+              <p style={{ color: 'var(--color-secondary)', fontSize: '13px', marginTop: '6px', margin: '6px 0 0 0' }}>
+                별밤 & 밤의 디스크쇼 감성의 추억 음악과 사연을 함께 청취하세요!
+              </p>
+            </div>
+            <RadioStories 
+              session={session} 
+              alumniProfile={alumniProfile} 
+              setActiveTab={setActiveTab} 
+            />
+          </div>
+        );
 
       case 'radio_stories':
         return (
@@ -696,7 +739,8 @@ export default function App() {
     }
   };
 
-  const hasBanner = isKakaoTalk || isInAppBrowser;
+  const isStandalone = activeTab === 'radio_standalone' || activeTab === 'radio_embed' || activeTab === 'radio_live_standalone' || activeTab === 'radio_live_embed' || activeTab === 'cinema_standalone' || activeTab === 'cinema_embed';
+  const hasBanner = !isStandalone && (isKakaoTalk || isInAppBrowser);
 
   return (
     <div className="app-container" style={{ paddingTop: hasBanner ? '40px' : '0' }}>
@@ -770,22 +814,24 @@ export default function App() {
         </div>
       )}
 
-      {/* Sticky Header Navbar */}
-      <Navbar 
-        activeTab={activeTab} 
-        setActiveTab={setActiveTab} 
-        session={session} 
-        alumniProfile={alumniProfile} 
-        activeUsers={activeUsers}
-        onLogout={handleLogout} 
-        onInstallApp={handleInstallApp}
-        onOpenDetailModal={() => setIsDetailModalOpen(true)}
-        isKakaoTalk={isKakaoTalk}
-        isInAppBrowser={isInAppBrowser}
-      />
+      {/* Sticky Header Navbar (Hidden in Standalone Radio Mode) */}
+      {!isStandalone && (
+        <Navbar 
+          activeTab={activeTab} 
+          setActiveTab={setActiveTab} 
+          session={session} 
+          alumniProfile={alumniProfile} 
+          activeUsers={activeUsers}
+          onLogout={handleLogout} 
+          onInstallApp={handleInstallApp}
+          onOpenDetailModal={() => setIsDetailModalOpen(true)}
+          isKakaoTalk={isKakaoTalk}
+          isInAppBrowser={isInAppBrowser}
+        />
+      )}
 
       {/* Main Pages Container */}
-      <main className="main-content" style={{ paddingTop: hasBanner ? '150px' : '110px' }}>
+      <main className="main-content" style={{ paddingTop: isStandalone ? '20px' : (hasBanner ? '150px' : '110px') }}>
         {loadingProfile ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '60vh' }}>
             <div style={{ display: 'inline-block', width: '30px', height: '30px', border: '3px solid rgba(255,255,255,0.1)', borderTopColor: 'var(--accent-cyan)', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
