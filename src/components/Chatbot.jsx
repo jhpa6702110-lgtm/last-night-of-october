@@ -50,7 +50,7 @@ export default function Chatbot({ session, alumniProfile }) {
     const cleanText = text.toLowerCase().trim();
     
     if (cleanText.includes('노래') || cleanText.includes('음악') || cleanText.includes('추천') || cleanText.includes('곡')) {
-      return `🎵 오늘 DJ 시월이가 추천하는 명곡:\n\n1. 🍂 **이용 - 잊혀진 계절**\n2. 🌊 **PoCo - Sea Of Heartbreak**\n\n메인 대문의 **'시월의 테마 라디오 플레이어'**에서 언제든 고음질로 감상하실 수 있습니다! 들어보실래요? 🎧`;
+      return `🎵 오늘 DJ 시월이가 추천하는 명곡:\n\n1. 🍂 **이용 - 잊혀진 계절**\n2. 🌊 **PoCo - Sea Of Heartbreak**\n3. 💡 **라라 / 황가람 - 나는 반딧불**\n4. 🎙️ **김기태 - 너를 보내고**\n5. 👑 **임영웅 - 그대 그리고 나**\n6. 🕊️ **소향 - Bridge Over Troubled Water**\n\n메인 대문의 **'시월의 테마 라디오 플레이어'**와 **'라디오 사연'** 신청곡 목록에서 언제든 감상하실 수 있습니다! 들어보실래요? 🎧`;
     }
 
     if (cleanText.includes('xp') || cleanText.includes('포인트') || cleanText.includes('점수')) {

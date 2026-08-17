@@ -8,7 +8,12 @@ const DEFAULT_PRESET_SONGS = [
   { id: 'song-1', title: '잊혀진 계절', artist: '이용', url: 'https://jinheestate.blog/wp-content/uploads/2026/07/잊혀진-계절.mp3' },
   { id: 'song-2', title: 'Sea Of Heartbreak (Original)', artist: 'Don Gibson', url: 'https://jinheestate.blog/wp-content/uploads/2026/07/Sea-Of-Heartbreak-Ori.mp3' },
   { id: 'song-3', title: 'Sea Of Heartbreak (PoCo)', artist: 'PoCo', url: 'https://jinheestate.blog/wp-content/uploads/2026/07/Sea-Of-Heartbreak-Ori-by-PoCo.mp3' },
-  { id: 'song-4', title: '잊혀진 계절 (이용 - 원곡)', artist: '이용', url: 'https://jinheestate.blog/wp-content/uploads/2026/07/잊혀진-계절-이용.mp3' }
+  { id: 'song-4', title: '잊혀진 계절 (이용 - 원곡)', artist: '이용', url: 'https://jinheestate.blog/wp-content/uploads/2026/07/잊혀진-계절-이용.mp3' },
+  { id: 'song-5', title: '나는 반딧불', artist: '라라', url: 'https://jinheestate.blog/wp-content/uploads/2026/08/나는-반딧불_라라.mp3' },
+  { id: 'song-6', title: '나는 반딧불', artist: '황가람', url: 'https://jinheestate.blog/wp-content/uploads/2026/08/나는-반딧불_황가람.mp3' },
+  { id: 'song-7', title: '너를 보내고', artist: '김기태', url: 'https://jinheestate.blog/wp-content/uploads/2026/08/너를보내고_김기태.mp3' },
+  { id: 'song-8', title: '그대 그리고 나', artist: '임영웅', url: 'https://jinheestate.blog/wp-content/uploads/2026/08/그대-그리고-나_임영웅.mp3' },
+  { id: 'song-9', title: 'Bridge Over Troubled Water', artist: '소향', url: 'https://jinheestate.blog/wp-content/uploads/2026/08/Bridge-Over-Troubled-Wate_소향.mp3' }
 ];
 
 export default function RadioStories({ session, alumniProfile, setActiveTab }) {

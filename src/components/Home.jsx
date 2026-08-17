@@ -37,6 +37,41 @@ const THEME_SONGS = [
     artist: '이용',
     url: 'https://jinheestate.blog/wp-content/uploads/2026/07/잊혀진-계절-이용.mp3',
     description: '네 번째 주제곡'
+  },
+  {
+    id: 'firefly_lala',
+    title: '나는 반딧불',
+    artist: '라라',
+    url: 'https://jinheestate.blog/wp-content/uploads/2026/08/나는-반딧불_라라.mp3',
+    description: '다섯 번째 주제곡'
+  },
+  {
+    id: 'firefly_hwang',
+    title: '나는 반딧불',
+    artist: '황가람',
+    url: 'https://jinheestate.blog/wp-content/uploads/2026/08/나는-반딧불_황가람.mp3',
+    description: '여섯 번째 주제곡'
+  },
+  {
+    id: 'sending_you_kim',
+    title: '너를 보내고',
+    artist: '김기태',
+    url: 'https://jinheestate.blog/wp-content/uploads/2026/08/너를보내고_김기태.mp3',
+    description: '일곱 번째 주제곡'
+  },
+  {
+    id: 'you_and_i_lim',
+    title: '그대 그리고 나',
+    artist: '임영웅',
+    url: 'https://jinheestate.blog/wp-content/uploads/2026/08/그대-그리고-나_임영웅.mp3',
+    description: '여덟 번째 주제곡'
+  },
+  {
+    id: 'bridge_sohyang',
+    title: 'Bridge Over Troubled Water',
+    artist: '소향',
+    url: 'https://jinheestate.blog/wp-content/uploads/2026/08/Bridge-Over-Troubled-Wate_소향.mp3',
+    description: '아홉 번째 주제곡'
   }
 ];
 
