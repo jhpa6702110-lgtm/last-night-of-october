@@ -1,175 +1,46 @@
-import React, { useState } from 'react';
-import { supabase, saveSupabaseCredentials, clearSupabaseCredentials } from '../utils/supabaseClient';
-import { LogIn, UserPlus, AlertCircle, CheckCircle, Mail, Lock, User, Phone, Calendar, Database } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { supabase } from '../utils/supabaseClient';
+import { LogIn, ShieldCheck, User, Sparkles, Crown, CheckCircle } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
-export default function Auth({ onAuthSuccess }) {
-  const [isLogin, setIsLogin] = useState(true);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [birthday, setBirthday] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState('');
-  const [successMsg, setSuccessMsg] = useState('');
+export default function Auth({ onAuthSuccess, onSelectMember }) {
+  const [alumniList, setAlumniList] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Database Connection configuration states & helpers
-  const [showDbConfig, setShowDbConfig] = useState(false);
-  const [tempUrl, setTempUrl] = useState(localStorage.getItem('supabase_url') || '');
-  const [tempKey, setTempKey] = useState(localStorage.getItem('supabase_anon_key') || '');
+  useEffect(() => {
+    fetchAlumniList();
+  }, []);
 
-  const handleSaveDbConfig = (e) => {
-    e.preventDefault();
-    if (!tempUrl.trim() || !tempKey.trim()) {
-      alert('Supabase URL과 Anon Key를 모두 입력해 주세요.');
-      return;
-    }
-    saveSupabaseCredentials(tempUrl, tempKey);
-  };
-
-  const handleResetDbConfig = () => {
-    if (window.confirm('저장된 설정을 지우고 기본 설정값(.env)으로 복원하시겠습니까?')) {
-      clearSupabaseCredentials();
+  const fetchAlumniList = async () => {
+    if (!supabase) return;
+    setLoading(true);
+    try {
+      const { data } = await supabase
+        .from('alumni')
+        .select('*')
+        .order('is_president', { ascending: false });
+      if (data && data.length > 0) {
+        setAlumniList(data);
+      }
+    } catch (err) {
+      console.warn('Error fetching alumni list:', err);
+    } finally {
+      setLoading(false);
     }
   };
 
   const triggerConfetti = () => {
     confetti({
-      particleCount: 100,
-      spread: 70,
+      particleCount: 120,
+      spread: 80,
       origin: { y: 0.6 }
     });
   };
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    if (!supabase) {
-      setErrorMsg('Supabase 설정이 완료되지 않았습니다. 관리자 설정을 확인해주세요.');
-      return;
-    }
-    setLoading(true);
-    setErrorMsg('');
-    setSuccessMsg('');
-
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) throw error;
-      
-      setSuccessMsg('로그인 성공!');
-      triggerConfetti();
-      setTimeout(() => {
-        onAuthSuccess(data.session);
-      }, 1000);
-    } catch (err) {
-      setErrorMsg(err.message || '로그인 중 오류가 발생했습니다.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSignup = async (e) => {
-    e.preventDefault();
-    if (!supabase) {
-      setErrorMsg('Supabase 설정이 완료되지 않았습니다. 관리자 설정을 확인해주세요.');
-      return;
-    }
-    setLoading(true);
-    setErrorMsg('');
-    setSuccessMsg('');
-
-    try {
-      // 1. Check if the name and phone match a pre-registered alumni profile
-      const cleanPhone = phone.replace(/[^0-9]/g, ''); // Extract numbers only
-      
-      // Query database
-      const { data: alumniProfiles, error: queryError } = await supabase
-        .from('alumni')
-        .select('*');
-
-      if (queryError) throw queryError;
-
-      // Find a matching pre-registered profile
-      const matchedProfile = alumniProfiles.find(profile => {
-        const dbPhoneClean = (profile.phone || '').replace(/[^0-9]/g, '');
-        return profile.name.trim() === name.trim() && dbPhoneClean === cleanPhone;
-      });
-
-      if (matchedProfile && matchedProfile.auth_id) {
-        throw new Error('이미 이 이름과 연락처로 가입된 계정이 있습니다. 로그인을 시도해 주세요.');
-      }
-
-      // 2. Proceed with Supabase Auth SignUp
-      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            name,
-            phone: cleanPhone,
-          }
-        }
-      });
-
-      if (signUpError) throw signUpError;
-
-      const user = signUpData.user;
-      if (!user) throw new Error('가입 처리 중 오류가 발생했습니다.');
-
-      // 3. Link or Create the alumni record
-      if (matchedProfile) {
-        // Link existing
-        const { error: updateError } = await supabase
-          .from('alumni')
-          .update({ 
-            auth_id: user.id,
-            email: email,
-            ...(birthday && !matchedProfile.birthday ? { birthday } : {})
-          })
-          .eq('id', matchedProfile.id);
-
-        if (updateError) throw updateError;
-      } else {
-        // Create new profile record
-        const { error: insertError } = await supabase
-          .from('alumni')
-          .insert({
-            auth_id: user.id,
-            name: name.trim(),
-            phone: phone.trim(),
-            email: email,
-            birthday: birthday || null,
-            description: '반갑습니다! 새로 가입한 친구입니다.',
-            is_president: false,
-            is_treasurer: false
-          });
-
-        if (insertError) throw insertError;
-      }
-
-      setSuccessMsg('회원가입 완료! 자동으로 로그인 중입니다...');
-      triggerConfetti();
-
-      // Automatically sign in the user
-      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (signInError) throw signInError;
-
-      setTimeout(() => {
-        onAuthSuccess(signInData.session);
-      }, 1500);
-
-    } catch (err) {
-      setErrorMsg(err.message || '회원가입 중 오류가 발생했습니다.');
-    } finally {
-      setLoading(false);
+  const handleMemberEntry = (alumnus) => {
+    triggerConfetti();
+    if (onSelectMember) {
+      onSelectMember(alumnus);
     }
   };
 
@@ -179,237 +50,152 @@ export default function Auth({ onAuthSuccess }) {
       alignItems: 'center',
       justifyContent: 'center',
       minHeight: 'calc(100vh - 120px)',
-      padding: '20px 0'
+      padding: '20px 16px'
     }}>
       <div className="glass fade-in" style={{
         width: '100%',
-        maxWidth: '480px',
-        padding: '40px 30px',
-        border: '1px solid rgba(255, 255, 255, 0.08)'
+        maxWidth: '560px',
+        padding: '40px 28px',
+        borderRadius: '28px',
+        border: '1px solid rgba(255, 255, 255, 0.12)',
+        boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)'
       }}>
         {/* Header */}
-        <div style={{ textAlign: 'center', marginBottom: '35px' }}>
+        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
           <div style={{
-            width: '60px',
-            height: '60px',
+            width: '64px',
+            height: '64px',
             borderRadius: '50%',
-            background: 'var(--accent-gradient)',
+            background: 'linear-gradient(135deg, #06b6d4, #a855f7)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            margin: '0 auto 15px auto',
-            boxShadow: 'var(--shadow-neon)'
+            margin: '0 auto 16px auto',
+            boxShadow: '0 0 25px rgba(6, 182, 212, 0.4)'
           }}>
-            {isLogin ? <LogIn size={28} color="#070b19" /> : <UserPlus size={28} color="#070b19" />}
+            <Sparkles size={30} color="#ffffff" />
           </div>
-          <h2 style={{ fontSize: '26px', fontWeight: '700', marginBottom: '8px' }}>
-            {isLogin ? '친구들의 공간 로그인' : '새로운 친구 등록 (가입)'}
+
+          <h2 style={{ fontSize: '26px', fontWeight: '900', marginBottom: '10px', letterSpacing: '-0.5px' }}>
+            🍂 시월의 마지막 밤 — 동창 1초 바로 입장
           </h2>
-          <p style={{ color: 'var(--color-secondary)', fontSize: '14px' }}>
-            {isLogin 
-              ? '시월의 마지막 밤에 오신 것을 환영합니다!' 
-              : '회장단이 등록한 이름과 휴대폰 번호로 가입할 수 있습니다.'}
+
+          <p style={{ color: 'var(--color-secondary)', fontSize: '15px', lineHeight: '1.6', maxWidth: '420px', margin: '0 auto' }}>
+            비밀번호 입력 없이 <span style={{ color: 'var(--accent-cyan)', fontWeight: '800' }}>내 이름을 터치</span>하시면<br />
+            추억 커뮤니티에 즉시 연결됩니다! 🚀
           </p>
         </div>
 
-        {/* Success/Error Alerts */}
-        {errorMsg && (
-          <div className="alert alert-error" style={{ display: 'flex', alignItems: 'flex-start' }}>
-            <AlertCircle size={18} style={{ flexShrink: 0, marginTop: '2px' }} />
-            <span>{errorMsg}</span>
-          </div>
-        )}
-        {successMsg && (
-          <div className="alert alert-success">
-            <CheckCircle size={18} />
-            <span>{successMsg}</span>
-          </div>
-        )}
-
-        {/* Auth Form */}
-        <form onSubmit={isLogin ? handleLogin : handleSignup}>
-          
-          {!isLogin && (
-            <>
-              <div className="input-group">
-                <label className="input-label">이름 (실명)</label>
-                <div style={{ position: 'relative' }}>
-                  <User size={18} color="var(--color-secondary)" style={{ position: 'absolute', left: '14px', top: '13px' }} />
-                  <input
-                    type="text"
-                    required
-                    placeholder="홍길동"
-                    className="input-field"
-                    style={{ paddingLeft: '44px' }}
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                  />
-                </div>
-              </div>
-
-              <div className="input-group">
-                <label className="input-label">휴대폰 번호</label>
-                <div style={{ position: 'relative' }}>
-                  <Phone size={18} color="var(--color-secondary)" style={{ position: 'absolute', left: '14px', top: '13px' }} />
-                  <input
-                    type="tel"
-                    required
-                    placeholder="010-1234-5678"
-                    className="input-field"
-                    style={{ paddingLeft: '44px' }}
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                  />
-                </div>
-              </div>
-
-              <div className="input-group">
-                <label className="input-label">생년월일 (선택)</label>
-                <div style={{ position: 'relative' }}>
-                  <Calendar size={18} color="var(--color-secondary)" style={{ position: 'absolute', left: '14px', top: '13px' }} />
-                  <input
-                    type="date"
-                    className="input-field"
-                    style={{ paddingLeft: '44px' }}
-                    value={birthday}
-                    onChange={(e) => setBirthday(e.target.value)}
-                  />
-                </div>
-              </div>
-            </>
-          )}
-
-          <div className="input-group">
-            <label className="input-label">이메일 주소</label>
-            <div style={{ position: 'relative' }}>
-              <Mail size={18} color="var(--color-secondary)" style={{ position: 'absolute', left: '14px', top: '13px' }} />
-              <input
-                type="email"
-                required
-                placeholder="example@email.com"
-                className="input-field"
-                style={{ paddingLeft: '44px' }}
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
-          </div>
-
-          <div className="input-group">
-            <label className="input-label">비밀번호</label>
-            <div style={{ position: 'relative' }}>
-              <Lock size={18} color="var(--color-secondary)" style={{ position: 'absolute', left: '14px', top: '13px' }} />
-              <input
-                type="password"
-                required
-                placeholder="••••••••"
-                className="input-field"
-                style={{ paddingLeft: '44px' }}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
-          </div>
-
-          <button
-            type="submit"
-            className="btn btn-primary"
-            disabled={loading}
-            style={{ width: '100%', marginTop: '10px', height: '48px' }}
-          >
-            {loading ? '처리 중...' : isLogin ? '로그인하기' : '가입하기'}
-          </button>
-        </form>
-
-        {/* Footer Toggle */}
-        <div style={{ textAlign: 'center', marginTop: '25px', fontSize: '14px', color: 'var(--color-secondary)' }}>
-          {isLogin ? (
-            <p>
-              아직 가입하지 않으셨나요?{' '}
-              <span
-                onClick={() => {
-                  setIsLogin(false);
-                  setErrorMsg('');
-                  setSuccessMsg('');
+        {/* 6 Fixed Alumni Cards Grid */}
+        <div style={{ marginBottom: '28px' }}>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(2, 1fr)',
+            gap: '12px'
+          }}>
+            {alumniList.map((alumnus) => (
+              <button
+                key={alumnus.id}
+                type="button"
+                onClick={() => handleMemberEntry(alumnus)}
+                className="glass hover-card"
+                style={{
+                  padding: '16px 14px',
+                  borderRadius: '18px',
+                  border: alumnus.is_president ? '2px solid rgba(245, 158, 11, 0.5)' : '1px solid rgba(255, 255, 255, 0.1)',
+                  background: alumnus.is_president 
+                    ? 'linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(15, 23, 42, 0.8))'
+                    : 'rgba(255, 255, 255, 0.04)',
+                  color: 'white',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '8px',
+                  textAlign: 'center',
+                  transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                  boxShadow: alumnus.is_president ? '0 4px 20px rgba(245, 158, 11, 0.2)' : 'none'
                 }}
-                style={{ color: 'var(--accent-cyan)', cursor: 'pointer', fontWeight: '600' }}
               >
-                회원가입
-              </span>
-            </p>
-          ) : (
-            <p>
-              이미 계정이 있으신가요?{' '}
-              <span
-                onClick={() => {
-                  setIsLogin(true);
-                  setErrorMsg('');
-                  setSuccessMsg('');
-                }}
-                style={{ color: 'var(--accent-cyan)', cursor: 'pointer', fontWeight: '600' }}
-              >
-                로그인
-              </span>
-            </p>
-          )}
+                {/* Avatar */}
+                <div style={{ position: 'relative' }}>
+                  <img
+                    src={alumnus.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${alumnus.name}`}
+                    alt={alumnus.name}
+                    style={{
+                      width: '52px',
+                      height: '52px',
+                      borderRadius: '50%',
+                      objectFit: 'cover',
+                      border: '2px solid rgba(255, 255, 255, 0.2)'
+                    }}
+                  />
+                  {alumnus.is_president && (
+                    <div style={{
+                      position: 'absolute',
+                      bottom: '-4px',
+                      right: '-4px',
+                      background: '#f59e0b',
+                      color: 'white',
+                      width: '20px',
+                      height: '20px',
+                      borderRadius: '50%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      boxShadow: '0 2px 6px rgba(0,0,0,0.5)'
+                    }}>
+                      <Crown size={11} fill="white" />
+                    </div>
+                  )}
+                </div>
+
+                {/* Name & Title */}
+                <div>
+                  <div style={{ fontSize: '16px', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'center' }}>
+                    {alumnus.name}
+                  </div>
+                  <div style={{ fontSize: '11px', color: 'var(--accent-cyan)', marginTop: '2px', fontWeight: '600' }}>
+                    {alumnus.is_president ? '👑 동창회장' : '★ 동문 회원'}
+                  </div>
+                </div>
+
+                {/* Action Badge */}
+                <div style={{
+                  fontSize: '12px',
+                  fontWeight: '800',
+                  color: 'white',
+                  background: 'linear-gradient(135deg, #06b6d4, #10b981)',
+                  padding: '6px 12px',
+                  borderRadius: '10px',
+                  width: '100%',
+                  marginTop: '4px',
+                  boxShadow: '0 4px 12px rgba(6, 182, 212, 0.3)'
+                }}>
+                  1초 바로 입장 ▶️
+                </div>
+              </button>
+            ))}
+          </div>
         </div>
 
-        {/* Database Config Toggle */}
-        <div style={{ marginTop: '20px', paddingTop: '15px', borderTop: '1px solid rgba(255, 255, 255, 0.05)', textAlign: 'center' }}>
-          <span
-            onClick={() => setShowDbConfig(!showDbConfig)}
-            style={{ fontSize: '12px', color: 'var(--color-secondary)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-          >
-            <Database size={12} />
-            {showDbConfig ? '설정 닫기' : '데이터베이스 설정 변경 (임시/디버그)'}
-          </span>
+        {/* Security Info Footnote */}
+        <div style={{
+          textAlign: 'center',
+          padding: '12px',
+          background: 'rgba(255, 255, 255, 0.02)',
+          borderRadius: '12px',
+          border: '1px solid rgba(255, 255, 255, 0.05)',
+          fontSize: '12px',
+          color: 'var(--color-secondary)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '6px'
+        }}>
+          <ShieldCheck size={16} color="var(--accent-green)" />
+          <span>지정 6인 동창 전용 무비밀번호 1초 원클릭 시스템</span>
         </div>
-
-        {showDbConfig && (
-          <div className="glass" style={{ marginTop: '15px', padding: '15px', textAlign: 'left', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
-            <h4 style={{ fontSize: '14px', fontWeight: '600', marginBottom: '10px', color: 'var(--color-primary)' }}>Supabase 설정 변경</h4>
-            <div className="input-group" style={{ marginBottom: '10px' }}>
-              <label className="input-label" style={{ fontSize: '11px' }}>Project URL</label>
-              <input
-                type="url"
-                placeholder="https://your-project-id.supabase.co"
-                className="input-field"
-                style={{ height: '36px', fontSize: '13px', padding: '0 10px' }}
-                value={tempUrl}
-                onChange={(e) => setTempUrl(e.target.value)}
-              />
-            </div>
-            <div className="input-group" style={{ marginBottom: '15px' }}>
-              <label className="input-label" style={{ fontSize: '11px' }}>Anon Key</label>
-              <input
-                type="password"
-                placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-                className="input-field"
-                style={{ height: '36px', fontSize: '13px', padding: '0 10px' }}
-                value={tempKey}
-                onChange={(e) => setTempKey(e.target.value)}
-              />
-            </div>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button
-                type="button"
-                onClick={handleSaveDbConfig}
-                className="btn btn-primary"
-                style={{ height: '32px', fontSize: '12px', padding: '0 12px', flex: 1, minHeight: 'auto' }}
-              >
-                저장 및 연결
-              </button>
-              <button
-                type="button"
-                onClick={handleResetDbConfig}
-                className="btn btn-secondary"
-                style={{ height: '32px', fontSize: '12px', padding: '0 12px', minHeight: 'auto' }}
-              >
-                기본값 복원
-              </button>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

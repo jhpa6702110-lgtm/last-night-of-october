@@ -640,3 +640,135 @@ body {
   transform: scale(0.95);
 }
 
+/* ==========================================================================
+   Bento Box Layout & Responsive Glassmorphic Cards
+   ========================================================================== */
+.bento-grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 16px;
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+.bento-card {
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  padding: 20px;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+}
+
+.bento-card:hover {
+  border-color: rgba(251, 146, 60, 0.4);
+  box-shadow: 0 12px 40px 0 rgba(251, 146, 60, 0.15);
+  transform: translateY(-3px);
+}
+
+/* Column spans for Bento layout */
+.bento-span-12 { grid-column: span 12; }
+.bento-span-8  { grid-column: span 8; }
+.bento-span-7  { grid-column: span 7; }
+.bento-span-6  { grid-column: span 6; }
+.bento-span-5  { grid-column: span 5; }
+.bento-span-4  { grid-column: span 4; }
+.bento-span-3  { grid-column: span 3; }
+
+@media (max-width: 1024px) {
+  .bento-span-8, .bento-span-7, .bento-span-5 { grid-column: span 12; }
+  .bento-span-6, .bento-span-4, .bento-span-3 { grid-column: span 6; }
+}
+
+@media (max-width: 640px) {
+  .bento-grid {
+    gap: 12px;
+    padding: 0 12px;
+  }
+  .bento-span-12, .bento-span-8, .bento-span-7, 
+  .bento-span-6, .bento-span-5, .bento-span-4, .bento-span-3 {
+    grid-column: span 12;
+  }
+}
+
+/* ==========================================================================
+   Skeleton Shimmer Loading State
+   ========================================================================== */
+@keyframes skeleton-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton-pulse {
+  background: linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.08) 37%, rgba(255,255,255,0.03) 63%);
+  background-size: 400% 100%;
+  animation: skeleton-shimmer 1.5s ease-in-out infinite;
+  border-radius: 8px;
+}
+
+/* ==========================================================================
+   Mobile Bottom Sticky Action Bar
+   ========================================================================== */
+.mobile-sticky-bottom-bar {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 999;
+  background: rgba(15, 23, 42, 0.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 8px 16px;
+  padding-bottom: calc(8px + env(safe-area-inset-bottom));
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.4);
+}
+
+@media (max-width: 768px) {
+  .mobile-sticky-bottom-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  body {
+    padding-bottom: 70px !important;
+  }
+}
+
+/* ==========================================================================
+   Social & Kakao Share Button Styling
+   ========================================================================== */
+.share-btn-kakao {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #FEE500;
+  color: #191919;
+  font-weight: 600;
+  font-size: 0.875rem;
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(254, 229, 0, 0.25);
+}
+
+.share-btn-kakao:hover {
+  background: #FADA0A;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(254, 229, 0, 0.35);
+}
+
+.share-btn-kakao:active {
+  transform: translateY(0);
+}
+
+

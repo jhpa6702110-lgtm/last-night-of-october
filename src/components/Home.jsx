@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../utils/supabaseClient';
-import { Image, Users, BookOpen, AlertCircle, X, ChevronRight, HelpCircle, Award, MessageSquare, Film, Key, Play, Pause, Volume2, VolumeX, Music, SkipBack, SkipForward, Sparkles, Cake, Heart, Trophy } from 'lucide-react';
+import { Image, Users, BookOpen, AlertCircle, X, ChevronRight, HelpCircle, Award, MessageSquare, Film, Key, Play, Pause, Volume2, VolumeX, Music, SkipBack, SkipForward, Sparkles, Cake, Heart, Trophy, Share2, Upload, Camera, Radio, Send } from 'lucide-react';
+import { shareContent } from '../utils/kakaoShare';
 
 const DEFAULT_HEROS = [
   'https://images.unsplash.com/photo-1509114397022-ed747cca3f65?auto=format&fit=crop&q=80&w=1600', // Starry night
@@ -47,6 +48,8 @@ export default function Home({ session, alumniProfile, setActiveTab, onOpenDetai
   const [topRankers, setTopRankers] = useState([]);
   const [activeImageUrl, setActiveImageUrl] = useState(null);
   const [showUserManual, setShowUserManual] = useState(false);
+  const [monthlyEventInfo, setMonthlyEventInfo] = useState(null);
+  const [latestStories, setLatestStories] = useState([]);
 
   // Audio Player states for background theme song
   const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
@@ -342,6 +345,62 @@ export default function Home({ session, alumniProfile, setActiveTab, onOpenDetai
           .limit(3);
         
         if (rankers) setTopRankers(rankers);
+
+        // 6. Check current month birthdays & active family events
+        const currentMonth = new Date().getMonth() + 1; // 1-12
+
+        const { data: alumniBirthdays } = await supabase
+          .from('alumni')
+          .select('name, birthday');
+
+        const { data: activeEvents } = await supabase
+          .from('family_events')
+          .select('*');
+
+        let bdayList = [];
+        if (alumniBirthdays) {
+          bdayList = alumniBirthdays.filter(a => {
+            if (!a.birthday) return false;
+            // Clean up and extract month
+            const cleanStr = a.birthday.replace(/[^0-9]/g, '');
+            let month = null;
+            const parts = a.birthday.split(/[-/.]/);
+            if (parts.length >= 2) {
+              month = parseInt(parts[1], 10);
+            } else if (cleanStr.length >= 6) {
+              month = parseInt(cleanStr.substring(4, 6), 10);
+            }
+            return month === currentMonth;
+          });
+        }
+
+        const validEvents = activeEvents || [];
+
+        if (bdayList.length > 0 || validEvents.length > 0) {
+          let msg = '';
+          if (bdayList.length > 0) {
+            const names = bdayList.map(b => b.name).join(', ');
+            msg = `🎉 ${currentMonth}월 생일: ${names} 동창님의 생일을 축하해 주세요!`;
+          } else {
+            msg = `🌹 이번 달 경조사 소식이 등록되어 있습니다. 확인해 보세요!`;
+          }
+          setMonthlyEventInfo({
+            title: `🎂 ${currentMonth}월 생일 & 🌹 경조사 소식`,
+            message: msg,
+            count: bdayList.length + validEvents.length
+          });
+        } else {
+          setMonthlyEventInfo(null);
+        }
+
+        // 7. Fetch latest 2 radio stories for the 8090 Radio Bento Card
+        const { data: storyRows } = await supabase
+          .from('radio_stories')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(2);
+
+        if (storyRows) setLatestStories(storyRows);
       } catch (err) {
         console.error('Error fetching Home data:', err);
       }
@@ -376,15 +435,18 @@ export default function Home({ session, alumniProfile, setActiveTab, onOpenDetai
       ))}
       <div className="hero-slider-overlay" />
 
-      {/* Hero Core Content */}
+      {/* Hero Core Content Header */}
       <div style={{
-        paddingTop: '80px',
-        paddingBottom: '60px',
+        paddingTop: '60px',
+        paddingBottom: '40px',
         textAlign: 'left',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'flex-start',
-        maxWidth: '700px',
+        maxWidth: '1280px',
+        margin: '0 auto',
+        paddingLeft: '16px',
+        paddingRight: '16px',
         zIndex: 5
       }}>
         {/* Badge */}
@@ -392,44 +454,55 @@ export default function Home({ session, alumniProfile, setActiveTab, onOpenDetai
           padding: '6px 16px',
           borderRadius: '50px',
           fontSize: '14px',
-          fontWeight: '500',
+          fontWeight: '600',
           color: 'var(--accent-cyan)',
-          marginBottom: '20px',
+          marginBottom: '16px',
           display: 'inline-flex',
           alignItems: 'center',
           gap: '6px'
         }}>
-          <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--accent-cyan)', display: 'inline-block' }} />
-          친구들과 함께하는 추억 공간
+          <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--accent-cyan)', display: 'inline-block' }} />
+          🍂 8090 학창 시절 추억과 음악이 있는 동창 커뮤니티
         </div>
 
         {/* Heading */}
         <h1 style={{
-          fontSize: 'clamp(40px, 8vw, 64px)',
+          fontSize: 'clamp(36px, 6vw, 56px)',
           fontWeight: '800',
           lineHeight: '1.15',
-          marginBottom: '20px',
+          marginBottom: '16px',
           letterSpacing: '-1.5px'
         }}>
-          시월의<br />
-          <span className="text-gradient">마지막 밤</span>
+          시월의 <span className="text-gradient">마지막 밤</span>
         </h1>
 
         {/* Description */}
         <p style={{
-          fontSize: '18px',
+          fontSize: '17px',
           color: 'var(--color-secondary)',
           lineHeight: '1.6',
-          marginBottom: '35px',
-          maxWidth: '550px'
+          marginBottom: '24px',
+          maxWidth: '650px'
         }}>
-          친구들과 함께하는 특별한 순간들을 공유하고 간직해 보세요. 
-          우리들만의 소중한 사진과 앨범이 안전하게 보관되는 공간입니다.
+          학창 시절 우리들만의 소중한 추억 사진, 명곡 오디오, 사연을 간직하고 친구들과 공유하는 특별한 공간입니다.
         </p>
+      </div>
 
-        {/* Theme Song Radio Player (Only for logged-in alumni) */}
-        {session && alumniProfile && (
-          <div className="radio-player-card fade-in">
+      {/* Bento Grid Layout Section */}
+      <div className="bento-grid" style={{ marginBottom: '40px' }}>
+
+        {/* Bento Card 1: Theme Song LP Player (Span 7) */}
+        <div className="bento-card bento-span-7 fade-in">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '15px', fontWeight: '700', color: 'var(--accent-cyan)' }}>
+                <Music size={18} />
+                <span>시월의 테마 라디오 플레이어</span>
+              </div>
+              <span style={{ fontSize: '11px', background: 'rgba(6, 182, 212, 0.15)', color: 'var(--accent-cyan)', padding: '2px 8px', borderRadius: '10px' }}>
+                LIVE
+              </span>
+            </div>
+
             <div className="radio-visual-section">
               {/* LP Turntable Graphic */}
               <div className="lp-disc-container">
@@ -440,9 +513,8 @@ export default function Home({ session, alumniProfile, setActiveTab, onOpenDetai
                   </div>
                   <div className="lp-disc-center-hole" />
                 </div>
-                {/* LP Tonearm Graphic */}
                 <svg className="lp-tonearm" style={{ transform: isPlaying ? 'rotate(18deg)' : 'rotate(0deg)' }} viewBox="0 0 40 60" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M25 8C25 9.10457 24.1046 10 23 10C21.8954 10 21 9.10457 21 8C21 6.89543 21.8954 6 23 6C24.1046 6 25 6.89543 25 8Z" fill="#a0aec0"/>
+                  <path d="M25 8C25 9.10457 24.1046 10 23 10C21.8954 10 21 9.10457 23 8C21.8954 6 23 6.89543 25 8Z" fill="#a0aec0"/>
                   <path d="M23 8L15 28L18 52" stroke="#cbd5e1" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
                   <rect x="15" y="48" width="6" height="8" rx="1" transform="rotate(15 15 48)" fill="#718096"/>
                 </svg>
@@ -469,7 +541,6 @@ export default function Home({ session, alumniProfile, setActiveTab, onOpenDetai
 
             {/* Controls and progress row */}
             <div className="radio-controls-row">
-              {/* Control Buttons Group (Prev, Play/Pause, Next) */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
                 <button className="radio-control-sub-btn" onClick={prevTrack} aria-label="이전 곡">
                   <SkipBack size={14} fill="currentColor" />
@@ -482,7 +553,6 @@ export default function Home({ session, alumniProfile, setActiveTab, onOpenDetai
                 </button>
               </div>
 
-              {/* Progress Slider */}
               <div className="radio-progress-container">
                 <input
                   type="range"
@@ -498,7 +568,6 @@ export default function Home({ session, alumniProfile, setActiveTab, onOpenDetai
                 </div>
               </div>
 
-              {/* Volume Slider */}
               <div className="radio-volume-container">
                 <button 
                   onClick={() => setIsMuted(!isMuted)} 
@@ -528,16 +597,14 @@ export default function Home({ session, alumniProfile, setActiveTab, onOpenDetai
               gap: '6px',
               marginTop: '10px',
               borderTop: '1px solid rgba(255, 255, 255, 0.08)',
-              paddingTop: '12px'
+              paddingTop: '10px'
             }}>
               {THEME_SONGS.map((song, idx) => {
                 const isActive = idx === currentTrackIndex;
                 return (
                   <button
                     key={song.id}
-                    onClick={() => {
-                      setCurrentTrackIndex(idx);
-                    }}
+                    onClick={() => setCurrentTrackIndex(idx)}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
@@ -548,27 +615,12 @@ export default function Home({ session, alumniProfile, setActiveTab, onOpenDetai
                       border: isActive ? '1px solid rgba(6, 182, 212, 0.3)' : '1px solid rgba(255, 255, 255, 0.04)',
                       color: isActive ? 'var(--accent-cyan)' : 'var(--color-secondary)',
                       cursor: 'pointer',
-                      textAlign: 'left',
-                      transition: 'var(--transition-smooth)'
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!isActive) e.currentTarget.style.background = 'rgba(255, 255, 255, 0.06)';
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!isActive) e.currentTarget.style.background = 'rgba(255, 255, 255, 0.02)';
+                      textAlign: 'left'
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                       <span style={{ fontSize: '11px', opacity: 0.6, width: '14px', display: 'flex', alignItems: 'center' }}>
-                        {isActive && isPlaying ? (
-                          <div style={{ display: 'flex', gap: '2px', alignItems: 'flex-end', height: '10px', width: '10px' }}>
-                            <div className="eq-bar-tiny-1" style={{ width: '2px', background: 'var(--accent-cyan)', borderRadius: '1px 1px 0 0' }} />
-                            <div className="eq-bar-tiny-2" style={{ width: '2px', background: 'var(--accent-cyan)', borderRadius: '1px 1px 0 0' }} />
-                            <div className="eq-bar-tiny-3" style={{ width: '2px', background: 'var(--accent-cyan)', borderRadius: '1px 1px 0 0' }} />
-                          </div>
-                        ) : (
-                          `0${idx + 1}`
-                        )}
+                        0{idx + 1}
                       </span>
                       <div style={{ display: 'flex', flexDirection: 'column' }}>
                         <span style={{ fontSize: '13px', fontWeight: '600', color: isActive ? 'var(--accent-cyan)' : 'var(--color-primary)' }}>
@@ -586,114 +638,329 @@ export default function Home({ session, alumniProfile, setActiveTab, onOpenDetai
                 );
               })}
             </div>
+          </div>
 
-            {/* Autoplay blocked fallback guide */}
-            {autoplayBlocked && (
-              <div className="radio-autoplay-banner">
-                <span>📻 터치하여 시월의 마지막 밤 주제곡을 들어보세요!</span>
+        {/* Bento Card 2: 8090 Radio Stories & Song Requests (Span 5) */}
+        <div className="bento-card bento-span-5" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '15px', fontWeight: '700', color: '#a855f7' }}>
+                <Radio size={18} />
+                <span>8090 별밤 & 사연 우체통</span>
+              </div>
+              <button
+                onClick={() => setActiveTab('radio_stories')}
+                style={{ background: 'none', border: 'none', color: 'var(--color-secondary)', fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+              >
+                사연함 가기 <ChevronRight size={14} />
+              </button>
+            </div>
+
+            <p style={{ fontSize: '12px', color: 'var(--color-secondary)', marginBottom: '14px', lineHeight: '1.4' }}>
+              이문세의 별밤, 이종환의 밤의 디스크쇼처럼 학창시절 이불 속 추억의 사연과 신청곡을 나누어보세요!
+            </p>
+
+            {latestStories.length === 0 ? (
+              <div style={{
+                padding: '16px 12px',
+                borderRadius: '12px',
+                background: 'rgba(168, 85, 247, 0.08)',
+                border: '1px dashed rgba(168, 85, 247, 0.3)',
+                textAlign: 'center'
+              }}>
+                <div style={{ fontSize: '13px', fontWeight: '700', color: '#c084fc', marginBottom: '4px' }}>
+                  ✉️ 첫 사연의 주인공이 되어보세요!
+                </div>
+                <div style={{ fontSize: '11px', color: 'var(--color-secondary)' }}>
+                  친구들에게 전하고 싶은 사연과 신청곡을 편지처럼 남겨보세요.
+                </div>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {latestStories.slice(0, 2).map((story, idx) => (
+                  <div
+                    key={story.id || idx}
+                    onClick={() => setActiveTab('radio_stories')}
+                    style={{
+                      padding: '10px 12px',
+                      borderRadius: '12px',
+                      background: 'rgba(255, 255, 255, 0.03)',
+                      border: '1px solid rgba(255, 255, 255, 0.06)',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                      <span style={{ fontSize: '12px', fontWeight: '700', color: 'var(--accent-cyan)' }}>
+                        ✉️ {story.sender_name || '동창'} ➔ {story.recipient_name || '친구들'}
+                      </span>
+                      <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)' }}>
+                        {new Date(story.created_at || Date.now()).toLocaleDateString()}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '12px', color: 'white', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginBottom: '4px' }}>
+                      "{story.story_content}"
+                    </div>
+                    {story.song_title && (
+                      <div style={{ fontSize: '11px', color: '#f59e0b', fontWeight: '600' }}>
+                        🎵 신청곡: {story.song_title} {story.artist_name ? `(${story.artist_name})` : ''}
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
             )}
           </div>
+
+          <div style={{ marginTop: '16px', paddingTop: '12px', borderTop: '1px solid rgba(255, 255, 255, 0.08)', display: 'flex', gap: '8px' }}>
+            <button
+              onClick={() => setActiveTab('radio_stories')}
+              style={{
+                flex: 1,
+                background: 'linear-gradient(135deg, #a855f7, #ec4899)',
+                color: 'white',
+                border: 'none',
+                padding: '10px',
+                borderRadius: '10px',
+                fontSize: '13px',
+                fontWeight: '700',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+                boxShadow: '0 4px 12px rgba(168, 85, 247, 0.3)'
+              }}
+            >
+              <Send size={14} /> 사연 & 신청곡 보내기
+            </button>
+
+            <button
+              className="share-btn-kakao"
+              style={{ padding: '0 12px' }}
+              onClick={() => shareContent({
+                title: '📻 8090 별밤 & 밤의 디스크쇼 추억 사연 채널',
+                text: '학창 시절 별밤과 밤의 디스크쇼 시절 추억의 사연과 신청곡을 들려주세요!',
+                url: window.location.href
+              })}
+            >
+              <Share2 size={15} /> 공유
+            </button>
+          </div>
+        </div>
+
+        {/* Bento Card 3: Recent Memory Photo Highlights (Span 12) */}
+        <div className="bento-card bento-span-12" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '15px', fontWeight: '700', color: 'var(--accent-green)' }}>
+                <Camera size={18} />
+                <span>최근 함께한 추억 사진</span>
+              </div>
+              <button
+                onClick={() => setActiveTab('gallery')}
+                style={{ background: 'none', border: 'none', color: 'var(--color-secondary)', fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+              >
+                전체보기 <ChevronRight size={14} />
+              </button>
+            </div>
+
+            {recentPhotos.length === 0 ? (
+              <div style={{ padding: '20px 0', textAlign: 'center', color: 'var(--color-secondary)', fontSize: '13px' }}>
+                아직 등록된 사진이 없습니다. 첫 추억 사진을 공유해 보세요!
+              </div>
+            ) : (
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+                gap: '12px'
+              }}>
+                {recentPhotos.slice(0, 4).map((photo, idx) => (
+                  <div
+                    key={photo.id || idx}
+                    onClick={() => setActiveImageUrl(photo.image_url)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '12px',
+                      padding: '8px 10px',
+                      borderRadius: '12px',
+                      background: 'rgba(255, 255, 255, 0.03)',
+                      border: '1px solid rgba(255, 255, 255, 0.06)',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    <img
+                      src={photo.image_url}
+                      alt={photo.title || '추억사진'}
+                      style={{ width: '44px', height: '44px', borderRadius: '8px', objectFit: 'cover', flexShrink: 0 }}
+                    />
+                    <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                      <span style={{ fontSize: '13px', fontWeight: '700', color: 'white', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {photo.title || '우리의 소중한 추억'}
+                      </span>
+                      <span style={{ fontSize: '11px', color: 'var(--color-secondary)', marginTop: '2px' }}>
+                        ✍️ {photo.author_name || '동창 회원'}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Bento Card 3: Family Events & Birthday Banner (Span 12) - Only shown if there are events/birthdays */}
+        {monthlyEventInfo && (
+          <div
+            className="bento-card bento-span-12"
+            onClick={() => setActiveTab('family_events')}
+            style={{
+              cursor: 'pointer',
+              background: 'linear-gradient(135deg, rgba(244, 63, 94, 0.15), rgba(168, 85, 247, 0.15))',
+              border: '1px solid rgba(244, 63, 94, 0.3)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '16px'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+              <div style={{
+                width: '46px',
+                height: '46px',
+                borderRadius: '14px',
+                background: 'linear-gradient(135deg, #f43f5e, #ec4899)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'white',
+                boxShadow: '0 4px 12px rgba(244, 63, 94, 0.4)'
+              }}>
+                <Cake size={24} />
+              </div>
+
+              <div>
+                <div style={{ fontSize: '17px', fontWeight: '800', color: 'white', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  {monthlyEventInfo.title}
+                  <span style={{ fontSize: '11px', background: '#f43f5e', color: 'white', padding: '2px 8px', borderRadius: '10px', fontWeight: '800' }}>
+                    {monthlyEventInfo.count}건
+                  </span>
+                </div>
+                <div style={{ fontSize: '13px', color: 'var(--color-secondary)', marginTop: '2px' }}>
+                  {monthlyEventInfo.message}
+                </div>
+              </div>
+            </div>
+
+            <button
+              className="btn"
+              style={{
+                background: 'rgba(244, 63, 94, 0.2)',
+                color: '#f43f5e',
+                border: '1px solid rgba(244, 63, 94, 0.4)',
+                padding: '8px 16px',
+                borderRadius: '10px',
+                fontSize: '13px',
+                fontWeight: '700',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}
+            >
+              소식 보러가기 <ChevronRight size={16} />
+            </button>
+          </div>
         )}
 
-        {/* Buttons */}
-        <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
-          <button
-            onClick={() => setActiveTab(session ? 'gallery' : 'login')}
-            className="btn btn-primary"
-            style={{ padding: '14px 28px' }}
-          >
-            친구들과 시작하기
-            <ChevronRight size={18} />
-          </button>
-          
-          <a
-            href="#recent-section"
-            className="btn btn-secondary"
-            style={{ padding: '14px 24px' }}
-          >
-            최근 사진 보기
-          </a>
+        {/* Bento Card 4: Stats Counter & Quick Actions (Span 12) */}
+        <div className="bento-card bento-span-12">
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: '20px',
+            textAlign: 'center',
+            marginBottom: '20px',
+            borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+            paddingBottom: '20px'
+          }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <div style={{ color: 'var(--accent-violet)', marginBottom: '4px' }}>
+                <Image size={22} />
+              </div>
+              <span style={{ fontSize: '28px', fontWeight: '800' }} className="text-gradient">
+                {stats.photos}+
+              </span>
+              <span style={{ fontSize: '12px', color: 'var(--color-secondary)' }}>공유된 사진</span>
+            </div>
 
-          <button
-            onClick={() => setShowUserManual(true)}
-            className="btn btn-secondary"
-            style={{ 
-              padding: '14px 24px', 
-              borderColor: 'rgba(34, 211, 238, 0.4)', 
-              color: 'var(--accent-cyan)',
-              background: 'rgba(34, 211, 238, 0.05)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px'
-            }}
-          >
-            <HelpCircle size={16} />
-            사용자 매뉴얼
-          </button>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', borderLeft: '1px solid rgba(255,255,255,0.08)', borderRight: '1px solid rgba(255,255,255,0.08)' }}>
+              <div style={{ color: 'var(--accent-cyan)', marginBottom: '4px' }}>
+                <Users size={22} />
+              </div>
+              <span style={{ fontSize: '28px', fontWeight: '800' }} className="text-gradient">
+                {stats.friends}
+              </span>
+              <span style={{ fontSize: '12px', color: 'var(--color-secondary)' }}>등록된 친구</span>
+            </div>
 
-          <button
-            onClick={onOpenDetailModal}
-            className="btn"
-            style={{ 
-              padding: '14px 24px', 
-              borderColor: 'rgba(168, 85, 247, 0.5)', 
-              color: '#ffffff',
-              background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.3), rgba(168, 85, 247, 0.3))',
-              boxShadow: '0 4px 15px rgba(6, 182, 212, 0.2)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              fontWeight: '700'
-            }}
-          >
-            <Sparkles size={18} color="#06b6d4" />
-            상세기능 (와디즈)
-          </button>
-        </div>
-      </div>
-
-      {/* Stats Counter Board */}
-      <div className="glass" style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(3, 1fr)',
-        padding: '30px 20px',
-        width: '100%',
-        maxWidth: '750px',
-        marginTop: '20px',
-        marginBottom: '60px',
-        gap: '20px',
-        textAlign: 'center'
-      }}>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <div style={{ color: 'var(--accent-violet)', marginBottom: '8px' }}>
-            <Image size={24} />
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <div style={{ color: 'var(--accent-green)', marginBottom: '4px' }}>
+                <BookOpen size={22} />
+              </div>
+              <span style={{ fontSize: '28px', fontWeight: '800' }} className="text-gradient">
+                {stats.albums}
+              </span>
+              <span style={{ fontSize: '12px', color: 'var(--color-secondary)' }}>추억 앨범</span>
+            </div>
           </div>
-          <span style={{ fontSize: '32px', fontWeight: '800', fontFamily: 'Outfit' }} className="text-gradient">
-            {stats.photos}+
-          </span>
-          <span style={{ fontSize: '13px', color: 'var(--color-secondary)', marginTop: '4px' }}>공유된 사진</span>
+
+          {/* Quick Action Button Toolbar */}
+          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'center' }}>
+            <button
+              onClick={() => setActiveTab(session ? 'gallery' : 'login')}
+              className="btn btn-primary"
+              style={{ padding: '12px 22px', fontSize: '14px' }}
+            >
+              <Upload size={16} />
+              추억 사진 공유하기
+            </button>
+            
+            <button
+              onClick={() => setShowUserManual(true)}
+              className="btn btn-secondary"
+              style={{ 
+                padding: '12px 20px', 
+                borderColor: 'rgba(34, 211, 238, 0.4)', 
+                color: 'var(--accent-cyan)',
+                background: 'rgba(34, 211, 238, 0.05)',
+                fontSize: '14px'
+              }}
+            >
+              <HelpCircle size={16} />
+              사용자 매뉴얼
+            </button>
+
+            <button
+              onClick={onOpenDetailModal}
+              className="btn"
+              style={{ 
+                padding: '12px 20px', 
+                borderColor: 'rgba(168, 85, 247, 0.5)', 
+                color: '#ffffff',
+                background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.3), rgba(168, 85, 247, 0.3))',
+                boxShadow: '0 4px 15px rgba(6, 182, 212, 0.2)',
+                fontSize: '14px',
+                fontWeight: '700'
+              }}
+            >
+              <Sparkles size={16} color="#06b6d4" />
+              상세기능 (와디즈)
+            </button>
+          </div>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', borderLeft: '1px solid rgba(255,255,255,0.08)', borderRight: '1px solid rgba(255,255,255,0.08)' }}>
-          <div style={{ color: 'var(--accent-cyan)', marginBottom: '8px' }}>
-            <Users size={24} />
-          </div>
-          <span style={{ fontSize: '32px', fontWeight: '800', fontFamily: 'Outfit' }} className="text-gradient">
-            {stats.friends}
-          </span>
-          <span style={{ fontSize: '13px', color: 'var(--color-secondary)', marginTop: '4px' }}>등록된 친구</span>
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <div style={{ color: 'var(--accent-green)', marginBottom: '8px' }}>
-            <BookOpen size={24} />
-          </div>
-          <span style={{ fontSize: '32px', fontWeight: '800', fontFamily: 'Outfit' }} className="text-gradient">
-            {stats.albums}
-          </span>
-          <span style={{ fontSize: '13px', color: 'var(--color-secondary)', marginTop: '4px' }}>추억 앨범</span>
-        </div>
       </div>
 
       {/* Family Events & Birthday Quick Widget Banner */}

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../utils/supabaseClient';
-import { Trophy, Crown, Award, Star, Flame, Heart, Sparkles, Medal, User, MessageSquare, Image, Calendar, ChevronRight } from 'lucide-react';
+import { Trophy, Crown, Award, Star, Flame, Heart, Sparkles, Medal, User, MessageSquare, Image, Calendar, ChevronRight, Share2 } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { shareContent } from '../utils/kakaoShare';
 
 export default function HallOfFame({ session, alumniProfile, setActiveTab }) {
   const [activeTab, setActiveSubTab] = useState('total'); // 'total', 'attendance', 'communication'
@@ -132,7 +133,7 @@ export default function HallOfFame({ session, alumniProfile, setActiveTab }) {
           👑 이달의 출석왕 & 명예의 전당
         </h2>
         <p style={{ color: 'var(--color-secondary)', fontSize: '16px', marginTop: '8px', maxWidth: '600px', margin: '8px auto 0 auto' }}>
-          소중한 추억과 우정을 가꾸어 나가는 자랑스러운 최고 동문 챔피언들을 소개합니다!
+          소중한 추억과 우정을 가꾸어 나가는 명예로운 동문 챔피언들을 소개합니다!
         </p>
       </div>
 
@@ -169,13 +170,27 @@ export default function HallOfFame({ session, alumniProfile, setActiveTab }) {
                 gap: '8px',
                 boxShadow: isActive ? `0 0 15px ${tab.color}40` : 'none',
                 transition: 'all 0.2s'
-              }}
-            >
+              }}>
               <Icon size={18} />
               {tab.label}
             </button>
           );
         })}
+      </div>
+
+      {/* KakaoTalk Ranking Share Button */}
+      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '40px' }}>
+        <button
+          className="share-btn-kakao"
+          style={{ padding: '10px 20px', fontSize: '14px' }}
+          onClick={() => shareContent({
+            title: '👑 10월의 마지막 밤 - 이달의 명예의 전당',
+            text: '우리 친구들의 열정 활동 랭킹과 우정 포인트를 확인해 보세요!',
+            url: window.location.href
+          })}
+        >
+          <Share2 size={16} /> 카톡으로 랭킹 공유하기
+        </button>
       </div>
 
       {/* TOP 3 PODIUM SECTION */}

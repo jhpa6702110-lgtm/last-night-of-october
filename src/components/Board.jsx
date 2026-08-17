@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../utils/supabaseClient';
 import { Search, Plus, X, Eye, MessageSquare, MessageCircle, Megaphone, FileText } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { shareBoardToKakao } from '../utils/kakaoShare';
+import { shareContent } from '../utils/kakaoShare';
 
 export default function Board({ _session, alumniProfile, onAwardActivityPoint }) {
   const [posts, setPosts] = useState([]);
@@ -557,11 +557,12 @@ export default function Board({ _session, alumniProfile, onAwardActivityPoint })
         </div>
       </div>
 
-      {/* Board Post Table List */}
+      {/* Board Post Table List with Skeleton Loader */}
       {loading ? (
-        <div style={{ textAlign: 'center', padding: '60px' }}>
-          <div style={{ display: 'inline-block', width: '30px', height: '30px', border: '3px solid rgba(255,255,255,0.1)', borderTopColor: 'var(--accent-cyan)', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-          <p style={{ marginTop: '15px', color: 'var(--color-secondary)' }}>게시판을 불러오는 중입니다...</p>
+        <div className="glass" style={{ padding: '20px', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {[1, 2, 3, 4, 5].map(i => (
+            <div key={i} className="skeleton-pulse" style={{ width: '100%', height: '48px', borderRadius: '10px' }} />
+          ))}
         </div>
       ) : sortedPosts.length === 0 ? (
         <div className="glass" style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--color-secondary)' }}>
@@ -903,7 +904,11 @@ export default function Board({ _session, alumniProfile, onAwardActivityPoint })
                   {/* KakaoTalk Share Button */}
                   <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '35px' }}>
                     <button
-                      onClick={() => shareBoardToKakao(selectedPost)}
+                      onClick={() => shareContent({
+                        title: `📌 10월의 마지막 밤 - ${selectedPost.title}`,
+                        text: `${selectedPost.content?.slice(0, 80) || ''} (작성자: ${selectedPost.author_name || '동창'})`,
+                        url: window.location.href
+                      })}
                       style={{
                         background: '#fee500',
                         color: '#1e293b',

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase, saveSupabaseCredentials, clearSupabaseCredentials } from '../utils/supabaseClient';
-import { Database, Image, Users, Download, CheckCircle, HelpCircle, Save, Trash2, BookOpen } from 'lucide-react';
+import { Database, Image, Users, Download, CheckCircle, HelpCircle, Save, Trash2, BookOpen, Edit2, Plus, X, User, Phone, Calendar, Mail } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 export default function Admin({ _session, _alumniProfile }) {
@@ -18,6 +18,78 @@ export default function Admin({ _session, _alumniProfile }) {
   // Hero Upload State
   const [heroFile, setHeroFile] = useState(null);
   const [uploadingHero, setUploadingHero] = useState(false);
+
+  // Edit Member Modal State
+  const [editingFriend, setEditingFriend] = useState(null);
+  const [editName, setEditName] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [editPhone, setEditPhone] = useState('');
+  const [editBirthday, setEditBirthday] = useState('');
+  const [editIsPresident, setEditIsPresident] = useState(false);
+  const [editIsTreasurer, setEditIsTreasurer] = useState(false);
+  const [editPoints, setEditPoints] = useState(0);
+  const [savingMember, setSavingMember] = useState(false);
+
+  const handleOpenEditModal = (friend) => {
+    setEditingFriend(friend);
+    setEditName(friend.name || '');
+    setEditEmail(friend.email || '');
+    setEditPhone(friend.phone || '');
+
+    // Clean format birthday string for <input type="date" />
+    let cleanBday = friend.birthday || '';
+    if (cleanBday) {
+      const digitsOnly = cleanBday.replace(/[^0-9]/g, '');
+      if (digitsOnly.length >= 8) {
+        // e.g. 1967020211 -> 1967-02-11 or YYYY-MM-DD
+        const yyyy = digitsOnly.substring(0, 4);
+        const mm = digitsOnly.substring(digitsOnly.length - 4, digitsOnly.length - 2);
+        const dd = digitsOnly.substring(digitsOnly.length - 2);
+        cleanBday = `${yyyy}-${mm}-${dd}`;
+      } else {
+        const parts = cleanBday.split(/[-/.]/);
+        if (parts.length >= 3) {
+          cleanBday = `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
+        }
+      }
+    }
+    setEditBirthday(cleanBday);
+    setEditIsPresident(friend.is_president || false);
+    setEditIsTreasurer(friend.is_treasurer || false);
+    setEditPoints(friend.points || 0);
+  };
+
+  const handleSaveMember = async (e) => {
+    e.preventDefault();
+    if (!editingFriend || !supabase) return;
+    setSavingMember(true);
+
+    try {
+      const { error } = await supabase
+        .from('alumni')
+        .update({
+          name: editName.trim(),
+          email: editEmail.trim() || null,
+          phone: editPhone.trim() || null,
+          birthday: editBirthday || null,
+          is_president: editIsPresident,
+          is_treasurer: editIsTreasurer,
+          points: parseInt(editPoints, 10) || 0
+        })
+        .eq('id', editingFriend.id);
+
+      if (error) throw error;
+
+      confetti({ particleCount: 80, spread: 60, origin: { y: 0.6 } });
+      alert(`✅ ${editName} 님의 동창 정보가 성공적으로 수정 및 저장되었습니다!`);
+      setEditingFriend(null);
+      fetchAdminData();
+    } catch (err) {
+      alert(`❌ 회원 정보 수정 실패: ${err.message}`);
+    } finally {
+      setSavingMember(false);
+    }
+  };
 
   const fetchAdminData = async () => {
     if (!supabase) return;
@@ -608,7 +680,7 @@ CREATE TABLE point_logs (
           </div>
 
           <div style={{ overflowX: 'auto', width: '100%' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '600px' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '700px' }}>
               <thead>
                 <tr style={{ borderBottom: '1.5px solid rgba(255,255,255,0.1)' }}>
                   <th style={{ padding: '12px 10px', color: 'var(--color-secondary)', fontSize: '14px' }}>이름</th>
@@ -616,7 +688,8 @@ CREATE TABLE point_logs (
                   <th style={{ padding: '12px 10px', color: 'var(--color-secondary)', fontSize: '14px' }}>전화번호</th>
                   <th style={{ padding: '12px 10px', color: 'var(--color-secondary)', fontSize: '14px' }}>생년월일</th>
                   <th style={{ padding: '12px 10px', color: 'var(--color-secondary)', fontSize: '14px' }}>직책</th>
-                  <th style={{ padding: '12px 10px', color: 'var(--color-secondary)', fontSize: '14px' }}>가입 상태</th>
+                  <th style={{ padding: '12px 10px', color: 'var(--color-secondary)', fontSize: '14px' }}>최근 방문</th>
+                  <th style={{ padding: '12px 10px', color: 'var(--color-secondary)', fontSize: '14px', textAlign: 'center' }}>정보 수정</th>
                 </tr>
               </thead>
               <tbody>
@@ -626,6 +699,9 @@ CREATE TABLE point_logs (
                   else if (friend.is_president) role = '회장';
                   else if (friend.is_treasurer) role = '홈피지기';
 
+                  const todayStr = new Date().toISOString().slice(0, 10);
+                  const isToday = friend.last_visited_at === todayStr;
+
                   return (
                     <tr key={friend.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                       <td style={{ padding: '12px 10px', fontSize: '14px', fontWeight: '600' }}>{friend.name}</td>
@@ -634,20 +710,192 @@ CREATE TABLE point_logs (
                       <td style={{ padding: '12px 10px', fontSize: '14px', color: 'var(--color-secondary)' }}>{friend.birthday || '-'}</td>
                       <td style={{ padding: '12px 10px', fontSize: '14px' }}>{role}</td>
                       <td style={{ padding: '12px 10px', fontSize: '14px' }}>
-                        {friend.auth_id ? (
-                          <span style={{ color: 'var(--accent-green)', display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: '600' }}>
-                            <CheckCircle size={14} />
-                            가입 완료
+                        {isToday ? (
+                          <span style={{ color: 'var(--accent-green)', display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: '700' }}>
+                            🟢 오늘 방문
+                          </span>
+                        ) : friend.last_visited_at ? (
+                          <span style={{ color: 'var(--accent-cyan)', display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: '600' }}>
+                            📅 {friend.last_visited_at}
                           </span>
                         ) : (
-                          <span style={{ color: 'var(--color-secondary)' }}>미가입 (대기)</span>
+                          <span style={{ color: 'rgba(255,255,255,0.35)' }}>💤 방문 기록 없음</span>
                         )}
+                      </td>
+                      <td style={{ padding: '12px 10px', textAlign: 'center' }}>
+                        <button
+                          onClick={() => handleOpenEditModal(friend)}
+                          className="btn btn-secondary"
+                          style={{
+                            padding: '6px 12px',
+                            fontSize: '12px',
+                            fontWeight: '700',
+                            borderRadius: '8px',
+                            minHeight: '32px',
+                            gap: '4px',
+                            background: 'rgba(6, 182, 212, 0.15)',
+                            color: 'var(--accent-cyan)',
+                            border: '1px solid rgba(6, 182, 212, 0.3)'
+                          }}
+                        >
+                          <Edit2 size={13} /> 수정
+                        </button>
                       </td>
                     </tr>
                   );
                 })}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* EDIT MEMBER MODAL */}
+      {editingFriend && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.8)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 10000,
+          padding: '20px'
+        }}>
+          <div className="glass fade-in" style={{
+            width: '100%',
+            maxWidth: '480px',
+            padding: '30px',
+            borderRadius: '20px',
+            border: '1px solid rgba(255, 255, 255, 0.15)',
+            boxShadow: '0 20px 50px rgba(0,0,0,0.6)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '18px', fontWeight: '800', color: 'white' }}>
+                <Edit2 size={20} color="var(--accent-cyan)" />
+                <span>✏️ {editingFriend.name} 동창 정보 수정</span>
+              </div>
+              <button
+                onClick={() => setEditingFriend(null)}
+                style={{ background: 'transparent', border: 'none', color: 'var(--color-secondary)', cursor: 'pointer' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveMember} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div className="input-group">
+                <label className="input-label">이름 (실명)</label>
+                <div style={{ position: 'relative' }}>
+                  <User size={16} color="var(--color-secondary)" style={{ position: 'absolute', left: '12px', top: '12px' }} />
+                  <input
+                    type="text"
+                    required
+                    className="input-field"
+                    style={{ paddingLeft: '40px' }}
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="input-group">
+                <label className="input-label">이메일 주소</label>
+                <div style={{ position: 'relative' }}>
+                  <Mail size={16} color="var(--color-secondary)" style={{ position: 'absolute', left: '12px', top: '12px' }} />
+                  <input
+                    type="email"
+                    placeholder="example@email.com"
+                    className="input-field"
+                    style={{ paddingLeft: '40px' }}
+                    value={editEmail}
+                    onChange={(e) => setEditEmail(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="input-group">
+                <label className="input-label">연락처 (휴대폰 번호)</label>
+                <div style={{ position: 'relative' }}>
+                  <Phone size={16} color="var(--color-secondary)" style={{ position: 'absolute', left: '12px', top: '12px' }} />
+                  <input
+                    type="tel"
+                    placeholder="010-1234-5678"
+                    className="input-field"
+                    style={{ paddingLeft: '40px' }}
+                    value={editPhone}
+                    onChange={(e) => setEditPhone(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="input-group">
+                <label className="input-label">생년월일 (YYYY-MM-DD)</label>
+                <div style={{ position: 'relative' }}>
+                  <Calendar size={16} color="var(--color-secondary)" style={{ position: 'absolute', left: '12px', top: '12px' }} />
+                  <input
+                    type="date"
+                    className="input-field"
+                    style={{ paddingLeft: '40px' }}
+                    value={editBirthday}
+                    onChange={(e) => setEditBirthday(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="input-group">
+                <label className="input-label">누적 우정 포인트 (XP)</label>
+                <input
+                  type="number"
+                  className="input-field"
+                  value={editPoints}
+                  onChange={(e) => setEditPoints(e.target.value)}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '15px', marginTop: '6px', background: 'rgba(255,255,255,0.03)', padding: '12px', borderRadius: '10px' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={editIsPresident}
+                    onChange={(e) => setEditIsPresident(e.target.checked)}
+                  />
+                  <span>👑 동창회장 권한</span>
+                </label>
+
+                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={editIsTreasurer}
+                    onChange={(e) => setEditIsTreasurer(e.target.checked)}
+                  />
+                  <span>💻 홈페이지기 권한</span>
+                </label>
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+                <button
+                  type="submit"
+                  disabled={savingMember}
+                  className="btn btn-primary"
+                  style={{ flex: 1, minHeight: '44px', fontWeight: '700' }}
+                >
+                  {savingMember ? '저장 중...' : '💾 정보 수정 저장하기'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEditingFriend(null)}
+                  className="btn btn-secondary"
+                  style={{ flex: 1, minHeight: '44px' }}
+                >
+                  취소
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

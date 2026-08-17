@@ -161,20 +161,32 @@ export default function App() {
   const [setupKey, setSetupKey] = useState('');
   const configured = isSupabaseConfigured();
 
-  // 1. Subscribe to Supabase Auth State changes
+  // 1. Subscribe to Supabase Auth State changes & restore active member profile
   useEffect(() => {
     if (!configured) return;
 
-    // Get current session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-    });
+    // Check if passwordless active member is saved in localStorage
+    const storedMemberId = localStorage.getItem('october_active_member_id');
+    if (storedMemberId) {
+      supabase.from('alumni').select('*').eq('id', storedMemberId).single().then(({ data }) => {
+        if (data) {
+          const mockSession = { user: { id: data.id, email: data.email || `${data.name}@october.local` } };
+          setSession(mockSession);
+          setAlumniProfile(data);
+          checkAttendanceAndDeduction(data);
+        }
+      });
+    } else {
+      // Get current Supabase session
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        setSession(session);
+      });
+    }
 
-    // Listen for changes
+    // Listen for Auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      if (!session) {
-        setAlumniProfile(null);
+      if (session) {
+        setSession(session);
       }
     });
 
@@ -429,9 +441,24 @@ export default function App() {
     };
   }, [configured, alumniProfile?.id]);
 
+  const handleSelectMember = async (alumnus) => {
+    if (!alumnus) return;
+    localStorage.setItem('october_active_member_id', alumnus.id);
+    const mockSession = { user: { id: alumnus.id, email: alumnus.email || `${alumnus.name}@october.local` } };
+    setSession(mockSession);
+    setAlumniProfile(alumnus);
+    await checkAttendanceAndDeduction(alumnus);
+    setActiveTab('home');
+  };
+
   const handleLogout = async () => {
+    localStorage.removeItem('october_active_member_id');
     if (configured) {
-      await supabase.auth.signOut();
+      try {
+        await supabase.auth.signOut();
+      } catch (err) {
+        console.warn('Signout error:', err);
+      }
     }
     setSession(null);
     setAlumniProfile(null);
@@ -541,6 +568,7 @@ export default function App() {
             setSession(sess);
             setActiveTab('home');
           }} 
+          onSelectMember={handleSelectMember}
         />
       );
     }
@@ -565,7 +593,7 @@ export default function App() {
             onAwardActivityPoint={handleAwardActivityPoint}
           />
         ) : (
-          <Auth key={`auth-${authKey}`} onAuthSuccess={(s) => { setSession(s); setActiveTab('gallery'); }} />
+          <Auth key={`auth-${authKey}`} onAuthSuccess={(s) => { setSession(s); setActiveTab('gallery'); }} onSelectMember={handleSelectMember} />
         );
 
       case 'album':
@@ -577,7 +605,7 @@ export default function App() {
             onAwardActivityPoint={handleAwardActivityPoint}
           />
         ) : (
-          <Auth key={`auth-${authKey}`} onAuthSuccess={(s) => { setSession(s); setActiveTab('album'); }} />
+          <Auth key={`auth-${authKey}`} onAuthSuccess={(s) => { setSession(s); setActiveTab('album'); }} onSelectMember={handleSelectMember} />
         );
 
       case 'board':
@@ -589,7 +617,7 @@ export default function App() {
             onAwardActivityPoint={handleAwardActivityPoint}
           />
         ) : (
-          <Auth key={`auth-${authKey}`} onAuthSuccess={(s) => { setSession(s); setActiveTab('board'); }} />
+          <Auth key={`auth-${authKey}`} onAuthSuccess={(s) => { setSession(s); setActiveTab('board'); }} onSelectMember={handleSelectMember} />
         );
 
       case 'cinema':
@@ -642,7 +670,7 @@ export default function App() {
             alumniProfile={alumniProfile} 
           />
         ) : (
-          <Auth key={`auth-${authKey}`} onAuthSuccess={(s) => { setSession(s); setActiveTab('friends'); }} />
+          <Auth key={`auth-${authKey}`} onAuthSuccess={(s) => { setSession(s); setActiveTab('friends'); }} onSelectMember={handleSelectMember} />
         );
 
       case 'admin':

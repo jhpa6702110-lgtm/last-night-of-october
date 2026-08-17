@@ -8,14 +8,14 @@ export default function Chatbot({ session, alumniProfile }) {
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef(null);
 
-  // Initialize greeting message
+  // Initialize greeting message with 8090 DJ persona
   useEffect(() => {
     const userName = alumniProfile?.name || '동창';
     setMessages([
       {
         id: 'welcome',
         sender: 'bot',
-        text: `안녕하세요, ${userName} 동창님! 🍁\n'시월의 마지막 밤' 동창회 안내 챗봇 '시월이'입니다. 오늘 어떤 점이 궁금하신가요? 아래 추천 질문을 누르시거나 직접 물어보세요!`,
+        text: `반갑습니다, ${userName} 동창님! 📻🎧\n'10월의 마지막 밤' 추억 라디오 DJ **시월이**입니다.\n학창 시절 명곡 추천, 사진 공유, 포인트 획득 방법 등 무엇이든 편하게 물어보세요!`,
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       }
     ]);
@@ -39,51 +39,47 @@ export default function Chatbot({ session, alumniProfile }) {
   }, []);
 
   const quickReplies = [
+    { key: 'music', label: '🎵 8090 명곡 추천' },
     { key: 'xp', label: '★ 포인트(XP) 모으는 법' },
     { key: 'gallery', label: '📸 사진 등록 방법' },
-    { key: 'ranking', label: '👑 열정 랭킹 확인' },
-    { key: 'signup', label: '🔐 회원가입 안 될 때' },
-    { key: 'info', label: '🍁 시월이 정체는?' }
+    { key: 'radio', label: '📻 사연 신청 방법' },
+    { key: 'ranking', label: '👑 열정 랭킹 확인' }
   ];
 
   const getBotResponse = (text) => {
     const cleanText = text.toLowerCase().trim();
     
+    if (cleanText.includes('노래') || cleanText.includes('음악') || cleanText.includes('추천') || cleanText.includes('곡')) {
+      return `🎵 오늘 DJ 시월이가 추천하는 명곡:\n\n1. 🍂 **이용 - 잊혀진 계절**\n2. 🌊 **PoCo - Sea Of Heartbreak**\n\n메인 대문의 **'시월의 테마 라디오 플레이어'**에서 언제든 고음질로 감상하실 수 있습니다! 들어보실래요? 🎧`;
+    }
+
     if (cleanText.includes('xp') || cleanText.includes('포인트') || cleanText.includes('점수')) {
-      return `★ 활동 포인트(XP) 안내:\n\n동창회 사이트에서 활동하시면 포인트가 쌓이고 홈 화면의 '열정 랭킹'에 오르게 됩니다!\n\n1. 회원 가입 성공: +50 XP\n2. 갤러리 사진 공유: +10 XP\n3. 게시판 게시글 작성: +10 XP\n4. 각 게시글에 댓글 작성: +2 XP\n5. 매일 사이트 접속 시 출석 보너스: +1 XP\n(※ 3일 이상 미접속 시 하루 -1 XP 감점되니 자주 놀러 오세요! 😅)`;
+      return `★ 활동 포인트(XP) 모으는 법:\n\n1. 회원 가입 성공: +50 XP\n2. 갤러리 사진 공유: +10 XP\n3. 게시판 게시글 작성: +10 XP\n4. 댓글 작성: +2 XP\n5. 매일 출석 보너스: +1 XP\n\n포인트를 모아 메인 대문의 '👑 명예의 전당 황금 왕관'을 차지하세요! 🏆`;
     }
     
     if (cleanText.includes('사진') || cleanText.includes('갤러리') || cleanText.includes('앨범') || cleanText.includes('업로드')) {
-      return `📸 사진 및 앨범 공유 안내:\n\n1. **갤러리**: 상단 메뉴의 '갤러리' 탭에 들어가 [사진 공유하기] 버튼을 누르고 이미지 파일과 제목을 채워 등록해 주세요.\n2. **앨범**: 소모임, 총동창회 등 특정 행사별로 사진을 모아서 앨범 형태로 관리합니다.\n\n사진을 올리실 때마다 +10 XP가 지급됩니다!`;
+      return `📸 사진 및 앨범 공유 안내:\n\n1. **추억 갤러리**: 상단 메뉴나 화면 하단 모바일 바의 📷 아이콘을 눌러 사진을 올려주세요.\n2. **앨범**: 소모임, 여행, 수학여행 사진을 모아서 간직할 수 있습니다.\n\n사진 1장 업로드할 때마다 **+10 XP**가 적립됩니다!`;
     }
     
+    if (cleanText.includes('사연') || cleanText.includes('라디오') || cleanText.includes('방송')) {
+      return `📻 라디오 사연 신청 안내:\n\n'라디오사연' 탭으로 이동하시면 친구들에게 전하고 싶은 추억 사연과 신청곡을 남기실 수 있습니다.\n채택된 사연은 라디오 방송을 통해 플레이됩니다!`;
+    }
+
     if (cleanText.includes('랭킹') || cleanText.includes('순위') || cleanText.includes('명예') || cleanText.includes('전당') || cleanText.includes('1등')) {
-      return `👑 열정 랭킹(명예의 전당) 안내:\n\n홈 화면 중간에 보시면 현재 가장 활발하게 활동 중인 동창 Top 3가 표시되는 '👑 열정 랭킹' 구역이 있습니다. 포인트를 많이 쌓아 명예의 전당 황금 왕관을 차지해 보세요!`;
+      return `👑 명예의 전당 안내:\n\n'명예의전당' 탭에서 동창님들의 우정 포인트와 활동 현황을 함께 확인하실 수 있습니다. 카카오톡으로 동창 소식을 바로 공유할 수도 있어요!`;
     }
     
-    if (cleanText.includes('가입') || cleanText.includes('회원가입') || cleanText.includes('비밀번호') || cleanText.includes('로그인')) {
-      return `🔐 회원가입 및 본인 인증 안내:\n\n본 사이트는 프라이빗 동창 공간입니다. 회장단이 미리 등록해 둔 주소록 정보(이름, 전화번호)와 일치해야 가입 및 비밀번호 설정이 가능합니다.\n\n가입 인증에 실패하시는 경우, 회장단에 성명과 전화번호가 올바르게 사전 등록되었는지 확인을 요청해 주세요.`;
-    }
-
     if (cleanText.includes('시월') || cleanText.includes('누구') || cleanText.includes('정체') || cleanText.includes('소개')) {
-      return `🍁 챗봇 시월이 소개:\n\n저는 '시월의 마지막 밤' 동창회 홈페이지를 이용하시는 동창님들을 돕기 위해 태어난 인공지능 안내 비서입니다. 사이트 사용법이나 포인트 등 궁금한 게 생기시면 언제든 저를 클릭해 주세요!`;
-    }
-
-    if (cleanText.includes('영화') || cleanText.includes('시네마') || cleanText.includes('비디오') || cleanText.includes('영상')) {
-      return `🎬 영화관 안내:\n\n'영화관' 탭으로 이동하시면 우리 동창들이 감상할 수 있는 감동적인 영상 및 공유 영화 리스트가 준비되어 있습니다. 힐링이 필요할 때 이용해 보세요!`;
-    }
-
-    if (cleanText.includes('라디오') || cleanText.includes('음악') || cleanText.includes('방송')) {
-      return `📻 라디오방송 안내:\n\n'라디오방송' 탭에서는 좋은 음악, 실시간 음악 사연 재생, 동창 라디오 녹음 스트리밍을 제공합니다. 추억의 음악을 들으며 소통해 보세요!`;
+      return `🍁 AI DJ 시월이 소개:\n\n저는 '10월의 마지막 밤' 동창 커뮤니티의 8090 음악 & 추억 라디오 DJ 시월이입니다. 궁금한 기능이나 음악이 필요할 땐 언제나 찾아주세요! 📻`;
     }
 
     if (cleanText.includes('안녕') || cleanText.includes('반갑') || cleanText.includes('하이')) {
       const name = alumniProfile?.name || '동창';
-      return `안녕 하세요, ${name} 동창님! 반갑습니다! 😊 오늘 알려드릴 동창회 소식이 있나요? 도움이 필요하시면 무엇이든 물어보세요!`;
+      return `안녕하세요, ${name} 동창님! 오늘 어떤 추억 노래나 이야기를 나누고 싶으신가요? 😊`;
     }
 
     // Default Fallback
-    return `동창님, '${text}'에 대해 답변하기 어렵네요. 😅\n\n'포인트', '사진', '가입', '라디오', '영화관' 등 관련 있는 단어를 입력해 보시거나, 대화창 하단의 추천 질문 버튼을 눌러보세요!`;
+    return `동창님, '${text}'에 대한 사연을 이해했어요! 📻\n\n'명곡 추천', '포인트 모으는 법', '사진 업로드', '라디오 사연' 등 원하시는 단어를 입력하시거나 아래 버튼을 선택해 보세요!`;
   };
 
   const handleSendMessage = (textToSend) => {

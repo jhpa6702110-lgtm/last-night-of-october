@@ -41,7 +41,8 @@ export default function Navbar({ activeTab, setActiveTab, session, alumniProfile
   const hasBanner = isKakaoTalk || isInAppBrowser;
 
   return (
-    <nav className="glass" style={{
+    <>
+      <nav className="glass" style={{
       position: 'fixed',
       top: hasBanner ? '55px' : '15px',
       left: '50%',
@@ -552,5 +553,107 @@ export default function Navbar({ activeTab, setActiveTab, session, alumniProfile
         }
       `}</style>
     </nav>
+
+    {/* Mobile Bottom Sticky Navigation & Action Bar */}
+    <div className="mobile-sticky-bottom-bar">
+      <button
+        onClick={() => handleTabClick('home')}
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '3px',
+          background: 'none',
+          border: 'none',
+          color: activeTab === 'home' ? 'var(--accent-cyan)' : 'var(--color-secondary)',
+          fontSize: '11px',
+          fontWeight: activeTab === 'home' ? '700' : '500',
+          cursor: 'pointer'
+        }}
+      >
+        <Home size={20} />
+        <span>홈</span>
+      </button>
+
+      <button
+        onClick={() => handleTabClick(session ? 'gallery' : 'login')}
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '3px',
+          background: 'none',
+          border: 'none',
+          color: activeTab === 'gallery' ? 'var(--accent-cyan)' : 'var(--color-secondary)',
+          fontSize: '11px',
+          fontWeight: activeTab === 'gallery' ? '700' : '500',
+          cursor: 'pointer'
+        }}
+      >
+        <Image size={20} />
+        <span>추억사진</span>
+      </button>
+
+      {/* Central Highlighted Upload Button */}
+      <button
+        onClick={() => handleTabClick(session ? 'gallery' : 'login')}
+        style={{
+          width: '46px',
+          height: '46px',
+          borderRadius: '50%',
+          background: 'linear-gradient(135deg, #06b6d4, #a855f7)',
+          color: 'white',
+          border: 'none',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          boxShadow: '0 4px 16px rgba(6, 182, 212, 0.4)',
+          transform: 'translateY(-10px)',
+          cursor: 'pointer'
+        }}
+        aria-label="추억 업로드"
+      >
+        <Sparkles size={22} />
+      </button>
+
+      <button
+        onClick={() => handleTabClick('radio_stories')}
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '3px',
+          background: 'none',
+          border: 'none',
+          color: activeTab === 'radio_stories' ? 'var(--accent-cyan)' : 'var(--color-secondary)',
+          fontSize: '11px',
+          fontWeight: activeTab === 'radio_stories' ? '700' : '500',
+          cursor: 'pointer'
+        }}
+      >
+        <Radio size={20} />
+        <span>라디오사연</span>
+      </button>
+
+      <button
+        onClick={() => handleTabClick('hall_of_fame')}
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '3px',
+          background: 'none',
+          border: 'none',
+          color: activeTab === 'hall_of_fame' ? 'var(--accent-cyan)' : 'var(--color-secondary)',
+          fontSize: '11px',
+          fontWeight: activeTab === 'hall_of_fame' ? '700' : '500',
+          cursor: 'pointer'
+        }}
+      >
+        <Trophy size={20} />
+        <span>명예의전당</span>
+      </button>
+    </div>
+  </>
   );
 }

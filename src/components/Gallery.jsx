@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../utils/supabaseClient';
-import { Search, Plus, ThumbsUp, Eye, MessageSquare, X, UploadCloud, MessageCircle } from 'lucide-react';
+import { Search, Plus, ThumbsUp, Eye, MessageSquare, X, UploadCloud, MessageCircle, Share2 } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { shareImageToKakao } from '../utils/kakaoShare';
+import { shareContent } from '../utils/kakaoShare';
 
 const isVideoUrl = (url) => {
   if (!url) return false;
@@ -814,11 +814,20 @@ export default function Gallery({ session, alumniProfile, onAwardActivityPoint }
         </div>
       </div>
 
-      {/* Gallery Cards Grid */}
+      {/* Gallery Cards Grid with Skeleton Loader */}
       {loading ? (
-        <div style={{ textAlign: 'center', padding: '60px' }}>
-          <div style={{ display: 'inline-block', width: '30px', height: '30px', border: '3px solid rgba(255,255,255,0.1)', borderTopColor: 'var(--accent-cyan)', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-          <p style={{ marginTop: '15px', color: 'var(--color-secondary)' }}>갤러리를 불러오는 중입니다...</p>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+          gap: '20px'
+        }}>
+          {[1, 2, 3, 4, 5, 6].map(i => (
+            <div key={i} className="glass" style={{ padding: '16px', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div className="skeleton-pulse" style={{ width: '100%', height: '200px', borderRadius: '12px' }} />
+              <div className="skeleton-pulse" style={{ width: '70%', height: '20px' }} />
+              <div className="skeleton-pulse" style={{ width: '40%', height: '14px' }} />
+            </div>
+          ))}
         </div>
       ) : filteredPosts.length === 0 ? (
         <div className="glass" style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--color-secondary)' }}>

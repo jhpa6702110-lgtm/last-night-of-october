@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../utils/supabaseClient';
 import { FolderPlus, BookOpen, ChevronLeft, Plus, X, UploadCloud, Trash2 } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { shareImageToKakao } from '../utils/kakaoShare';
+import { shareContent } from '../utils/kakaoShare';
 
 export default function Album({ session, alumniProfile, onAwardActivityPoint }) {
   const [albums, setAlbums] = useState([]);
@@ -1159,7 +1159,15 @@ export default function Album({ session, alumniProfile, onAwardActivityPoint }) 
 
                 {/* KakaoTalk Share Button */}
                 <button
-                  onClick={() => shareImageToKakao(albumImages[activeImageIndex], 'album')}
+                  onClick={() => {
+                    const currentImg = albumImages[activeImageIndex];
+                    shareContent({
+                      title: `📸 10월의 마지막 밤 - ${selectedAlbum?.title || '추억 앨범'}`,
+                      text: `${currentImg?.caption || '학창 시절 추억 사진'} (올린이: ${currentImg?.uploaded_by_name || '동창'})`,
+                      imageUrl: currentImg?.image_url,
+                      url: window.location.href
+                    });
+                  }}
                   style={{
                     background: '#fee500',
                     color: '#1e293b',

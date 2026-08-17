@@ -645,9 +645,22 @@ export default function RadioStories({ session, alumniProfile, setActiveTab }) {
         </button>
       </div>
 
-      {/* Stories List */}
+      {/* Stories List with Skeleton Loading */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-        {stories.map((story) => {
+        {loading ? (
+          [1, 2, 3].map(i => (
+            <div key={i} className="glass" style={{ padding: '24px', borderRadius: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div className="skeleton-pulse" style={{ width: '40%', height: '24px' }} />
+              <div className="skeleton-pulse" style={{ width: '100%', height: '60px' }} />
+              <div className="skeleton-pulse" style={{ width: '30%', height: '18px' }} />
+            </div>
+          ))
+        ) : stories.length === 0 ? (
+          <div className="glass" style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--color-secondary)' }}>
+            아직 도착한 사연이 없습니다. 라디오 사연과 신청곡을 남겨보세요!
+          </div>
+        ) : (
+          stories.map((story) => {
           const isSpeaking = speakingStoryId === story.id;
           const isPlayingBGM = activeAudioStoryId === story.id;
           const extraLikes = likesMap[story.id] || 0;
@@ -917,7 +930,7 @@ export default function RadioStories({ session, alumniProfile, setActiveTab }) {
 
             </div>
           );
-        })}
+        }))}
       </div>
 
       {/* MODAL: ADD STORY & SONG REQUEST */}
