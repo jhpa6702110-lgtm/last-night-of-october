@@ -935,42 +935,7 @@ export default function Radio({ setActiveTab }) {
           </div>
         </div>
 
-        {/* Radio Tab Switcher */}
-        {setActiveTab && (
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-            <button
-              style={{
-                padding: '6px 14px',
-                borderRadius: '20px',
-                background: 'var(--accent-gradient)',
-                color: 'white',
-                fontWeight: '700',
-                fontSize: '13px',
-                border: 'none',
-                cursor: 'pointer',
-                boxShadow: '0 2px 8px rgba(6, 182, 212, 0.3)'
-              }}
-            >
-              🎙️ 라디오 라이브
-            </button>
-            <button
-              onClick={() => setActiveTab('radio_stories')}
-              style={{
-                padding: '6px 14px',
-                borderRadius: '20px',
-                background: 'rgba(255, 255, 255, 0.06)',
-                color: 'var(--color-secondary)',
-                fontWeight: '600',
-                fontSize: '13px',
-                border: '1px solid rgba(255, 255, 255, 0.12)',
-                cursor: 'pointer',
-                transition: 'all 0.2s'
-              }}
-            >
-              ✉️ 라디오 사연함
-            </button>
-          </div>
-        )}
+
 
         {/* Top Control widgets */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

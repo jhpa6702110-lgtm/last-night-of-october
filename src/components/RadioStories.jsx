@@ -559,39 +559,7 @@ export default function RadioStories({ session, alumniProfile, setActiveTab }) {
         gap: '16px'
       }}>
         <div>
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '12px' }}>
-            <button
-              onClick={() => setActiveTab('radio')}
-              style={{
-                padding: '6px 14px',
-                borderRadius: '20px',
-                background: 'rgba(255, 255, 255, 0.08)',
-                color: 'var(--color-secondary)',
-                fontWeight: '600',
-                fontSize: '13px',
-                border: '1px solid rgba(255, 255, 255, 0.15)',
-                cursor: 'pointer',
-                transition: 'all 0.2s'
-              }}
-            >
-              🎙️ 라디오 라이브
-            </button>
-            <button
-              style={{
-                padding: '6px 14px',
-                borderRadius: '20px',
-                background: 'linear-gradient(135deg, #a855f7, #ec4899)',
-                color: 'white',
-                fontWeight: '700',
-                fontSize: '13px',
-                border: 'none',
-                cursor: 'pointer',
-                boxShadow: '0 2px 8px rgba(168, 85, 247, 0.3)'
-              }}
-            >
-              ✉️ 라디오 사연함
-            </button>
-          </div>
+
           <h2 style={{ fontSize: 'clamp(22px, 5vw, 32px)', fontWeight: '800', color: 'white', margin: 0, letterSpacing: '-0.5px' }}>
             📻 라디오 사연 & 추억의 신청곡
           </h2>
