@@ -540,7 +540,7 @@ function ThreeVisualizer({ isPlaying, isLoading, theme, settings }) {
 }
 
 // Main Radio Component
-export default function Radio() {
+export default function Radio({ setActiveTab }) {
   const [selectedChannel, setSelectedChannel] = useState(CHANNELS[0]);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -930,10 +930,47 @@ export default function Radio() {
             <RadioIcon size={20} className={isPlaying && !isLoading ? 'rotate-animation' : ''} />
           </div>
           <div>
-            <h2 style={{ fontSize: '20px', fontWeight: '800', margin: 0, letterSpacing: '-0.5px' }}>실시간 라디오방송</h2>
-            <p style={{ fontSize: '12px', color: theme.textSecondary, marginTop: '2px' }}>고음질 라이브 오디오 플레이어</p>
+            <h2 style={{ fontSize: '20px', fontWeight: '800', margin: 0, letterSpacing: '-0.5px' }}>📻 실시간 라디오 라이브</h2>
+            <p style={{ fontSize: '12px', color: theme.textSecondary, marginTop: '2px' }}>KBS, MBC, SBS, CBS, EBS, TBS 고음질 라이브 방송</p>
           </div>
         </div>
+
+        {/* Radio Tab Switcher */}
+        {setActiveTab && (
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <button
+              style={{
+                padding: '6px 14px',
+                borderRadius: '20px',
+                background: 'var(--accent-gradient)',
+                color: 'white',
+                fontWeight: '700',
+                fontSize: '13px',
+                border: 'none',
+                cursor: 'pointer',
+                boxShadow: '0 2px 8px rgba(6, 182, 212, 0.3)'
+              }}
+            >
+              🎙️ 라디오 라이브
+            </button>
+            <button
+              onClick={() => setActiveTab('radio_stories')}
+              style={{
+                padding: '6px 14px',
+                borderRadius: '20px',
+                background: 'rgba(255, 255, 255, 0.06)',
+                color: 'var(--color-secondary)',
+                fontWeight: '600',
+                fontSize: '13px',
+                border: '1px solid rgba(255, 255, 255, 0.12)',
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+            >
+              ✉️ 라디오 사연함
+            </button>
+          </div>
+        )}
 
         {/* Top Control widgets */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

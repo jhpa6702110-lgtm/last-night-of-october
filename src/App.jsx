@@ -635,12 +635,12 @@ export default function App() {
       case 'radio_live_embed':
         return (
           <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '10px 0' }}>
-            <Radio />
+            <Radio setActiveTab={setActiveTab} />
           </div>
         );
 
       case 'radio':
-        return <Radio />;
+        return <Radio setActiveTab={setActiveTab} />;
 
       case 'radio_standalone':
       case 'radio_embed':

@@ -533,9 +533,24 @@ export default function Home({ session, alumniProfile, setActiveTab, onOpenDetai
                 <Music size={18} />
                 <span>시월의 테마 라디오 플레이어</span>
               </div>
-              <span style={{ fontSize: '11px', background: 'rgba(6, 182, 212, 0.15)', color: 'var(--accent-cyan)', padding: '2px 8px', borderRadius: '10px' }}>
-                LIVE
-              </span>
+              <button
+                onClick={() => setActiveTab('radio')}
+                style={{
+                  background: 'rgba(6, 182, 212, 0.15)',
+                  color: 'var(--accent-cyan)',
+                  border: '1px solid rgba(6, 182, 212, 0.3)',
+                  padding: '4px 10px',
+                  borderRadius: '10px',
+                  fontSize: '11px',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}
+              >
+                <Radio size={12} /> 라디오 라이브 방송관 <ChevronRight size={12} />
+              </button>
             </div>
 
             <div className="radio-visual-section">

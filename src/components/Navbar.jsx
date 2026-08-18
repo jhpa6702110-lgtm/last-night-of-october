@@ -21,6 +21,7 @@ export default function Navbar({ activeTab, setActiveTab, session, alumniProfile
   const navItems = [
     { id: 'home', label: '홈', icon: Home, public: true },
     { id: 'radio_stories', label: '라디오사연', icon: Radio, public: true },
+    { id: 'radio', label: '라디오 라이브', icon: Radio, public: true },
     { id: 'map_carpool', label: '길안내·카풀', icon: Navigation, public: true },
     { id: 'hall_of_fame', label: '명예의전당', icon: Trophy, public: true },
     { id: 'family_events', label: '생일·경조사', icon: Cake, public: true },
@@ -28,7 +29,6 @@ export default function Navbar({ activeTab, setActiveTab, session, alumniProfile
     { id: 'gallery', label: '갤러리', icon: Image, public: false },
     { id: 'album', label: '앨범', icon: BookOpen, public: false },
     { id: 'cinema', label: '영화관', icon: Film, public: true },
-    { id: 'radio', label: '라이브라디오', icon: Radio, public: true },
     { id: 'friends', label: '친구들', icon: Users, public: false },
     ...(isAdmin ? [{ id: 'admin', label: '관리자', icon: Lock, public: false }] : []),
   ];
@@ -576,7 +576,7 @@ export default function Navbar({ activeTab, setActiveTab, session, alumniProfile
       </button>
 
       <button
-        onClick={() => handleTabClick(session ? 'gallery' : 'login')}
+        onClick={() => handleTabClick('radio')}
         style={{
           display: 'flex',
           flexDirection: 'column',
@@ -584,14 +584,14 @@ export default function Navbar({ activeTab, setActiveTab, session, alumniProfile
           gap: '3px',
           background: 'none',
           border: 'none',
-          color: activeTab === 'gallery' ? 'var(--accent-cyan)' : 'var(--color-secondary)',
+          color: (activeTab === 'radio' || activeTab === 'radio_live_standalone') ? 'var(--accent-cyan)' : 'var(--color-secondary)',
           fontSize: '11px',
-          fontWeight: activeTab === 'gallery' ? '700' : '500',
+          fontWeight: (activeTab === 'radio' || activeTab === 'radio_live_standalone') ? '700' : '500',
           cursor: 'pointer'
         }}
       >
-        <Image size={20} />
-        <span>추억사진</span>
+        <Radio size={20} />
+        <span>라디오라이브</span>
       </button>
 
       {/* Central Highlighted Upload Button */}
@@ -636,7 +636,7 @@ export default function Navbar({ activeTab, setActiveTab, session, alumniProfile
       </button>
 
       <button
-        onClick={() => handleTabClick('hall_of_fame')}
+        onClick={() => handleTabClick(session ? 'gallery' : 'login')}
         style={{
           display: 'flex',
           flexDirection: 'column',
@@ -644,14 +644,14 @@ export default function Navbar({ activeTab, setActiveTab, session, alumniProfile
           gap: '3px',
           background: 'none',
           border: 'none',
-          color: activeTab === 'hall_of_fame' ? 'var(--accent-cyan)' : 'var(--color-secondary)',
+          color: activeTab === 'gallery' ? 'var(--accent-cyan)' : 'var(--color-secondary)',
           fontSize: '11px',
-          fontWeight: activeTab === 'hall_of_fame' ? '700' : '500',
+          fontWeight: activeTab === 'gallery' ? '700' : '500',
           cursor: 'pointer'
         }}
       >
-        <Trophy size={20} />
-        <span>명예의전당</span>
+        <Image size={20} />
+        <span>추억사진</span>
       </button>
     </div>
   </>
