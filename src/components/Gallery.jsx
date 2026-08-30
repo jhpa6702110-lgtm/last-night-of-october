@@ -1289,7 +1289,12 @@ export default function Gallery({ session, alumniProfile, onAwardActivityPoint }
                       {/* KakaoTalk Share Button */}
                       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '24px' }}>
                         <button
-                          onClick={() => shareImageToKakao(selectedPost, 'gallery')}
+                          onClick={() => shareContent({
+                            title: `📸 10월의 마지막 밤 - ${selectedPost.title}`,
+                            text: `${selectedPost.description || '소셜 갤러리 추억 사진'} (작성자: ${selectedPost.author_name || '동창'})`,
+                            imageUrl: selectedPost.image_url,
+                            url: window.location.href
+                          })}
                           style={{
                             background: '#fee500',
                             color: '#1e293b',

@@ -18,6 +18,7 @@ export const initKakaoSDK = () => {
  * @param {Object} options - { title, text, url, imageUrl }
  */
 export const shareContent = async ({ title, text, url, imageUrl }) => {
+  initKakaoSDK();
   const targetUrl = url || window.location.href;
   const shareTitle = title || '10월의 마지막 밤';
   const shareText = text || '학창 시절 추억과 노래가 있는 동창회 커뮤니티';
