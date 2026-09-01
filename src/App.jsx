@@ -12,6 +12,7 @@ import Board from './components/Board';
 import Chatbot from './components/Chatbot';
 import VoiceController from './components/VoiceController';
 import WadizDetailModal from './components/WadizDetailModal';
+import AutumnTripModal from './components/AutumnTripModal';
 import FamilyEvents from './components/FamilyEvents';
 import HallOfFame from './components/HallOfFame';
 import MapCarpool from './components/MapCarpool';
@@ -67,14 +68,28 @@ export default function App() {
   const [isKakaoTalk, setIsKakaoTalk] = useState(false);
   const [isInAppBrowser, setIsInAppBrowser] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [isAutumnTripModalOpen, setIsAutumnTripModalOpen] = useState(false);
+
+  const checkAndOpenTravelModal = () => {
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const hideDate = localStorage.getItem('october_hide_travel_popup_date');
+    if (hideDate !== todayStr) {
+      setIsAutumnTripModalOpen(true);
+    }
+  };
 
   useEffect(() => {
     const handleVoiceDetailModal = () => {
       setIsDetailModalOpen(true);
     };
+    const handleAutumnTripModal = () => {
+      setIsAutumnTripModalOpen(true);
+    };
     window.addEventListener('open-detail-modal-voice', handleVoiceDetailModal);
+    window.addEventListener('open-autumn-trip-modal', handleAutumnTripModal);
     return () => {
       window.removeEventListener('open-detail-modal-voice', handleVoiceDetailModal);
+      window.removeEventListener('open-autumn-trip-modal', handleAutumnTripModal);
     };
   }, []);
 
@@ -174,6 +189,7 @@ export default function App() {
           setSession(mockSession);
           setAlumniProfile(data);
           checkAttendanceAndDeduction(data);
+          checkAndOpenTravelModal();
         }
       });
     } else {
@@ -449,6 +465,7 @@ export default function App() {
     setAlumniProfile(alumnus);
     await checkAttendanceAndDeduction(alumnus);
     setActiveTab('home');
+    checkAndOpenTravelModal();
   };
 
   const handleLogout = async () => {
@@ -825,6 +842,7 @@ export default function App() {
           onLogout={handleLogout} 
           onInstallApp={handleInstallApp}
           onOpenDetailModal={() => setIsDetailModalOpen(true)}
+          onOpenAutumnTripModal={() => setIsAutumnTripModalOpen(true)}
           isKakaoTalk={isKakaoTalk}
           isInAppBrowser={isInAppBrowser}
         />
@@ -866,6 +884,12 @@ export default function App() {
         isOpen={isDetailModalOpen}
         onClose={() => setIsDetailModalOpen(false)}
         setActiveTab={setActiveTab}
+      />
+
+      {/* 2026 Autumn Trip Popup Modal */}
+      <AutumnTripModal
+        isOpen={isAutumnTripModalOpen}
+        onClose={() => setIsAutumnTripModalOpen(false)}
       />
     </div>
   );

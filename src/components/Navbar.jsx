@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Home, Image, BookOpen, Users, Lock, LogOut, LogIn, Menu, X, Download, Film, Radio, MessageSquare, Sparkles, Cake, Trophy, Navigation } from 'lucide-react';
 
-export default function Navbar({ activeTab, setActiveTab, session, alumniProfile, activeUsers = [], onLogout, onInstallApp, onOpenDetailModal, isKakaoTalk, isInAppBrowser }) {
+export default function Navbar({ activeTab, setActiveTab, session, alumniProfile, activeUsers = [], onLogout, onInstallApp, onOpenDetailModal, onOpenAutumnTripModal, isKakaoTalk, isInAppBrowser }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
 
@@ -173,6 +173,37 @@ export default function Navbar({ activeTab, setActiveTab, session, alumniProfile
             </button>
           );
         })}
+
+        <button
+          onClick={onOpenAutumnTripModal}
+          style={{
+            background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(239, 68, 68, 0.2))',
+            color: '#fbbf24',
+            border: '1px solid rgba(251, 191, 36, 0.4)',
+            borderRadius: '10px',
+            padding: '6px 12px',
+            fontSize: '13px',
+            fontWeight: '700',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            whiteSpace: 'nowrap',
+            cursor: 'pointer',
+            boxShadow: '0 0 10px rgba(245, 158, 11, 0.2)',
+            transition: 'var(--transition-smooth)'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'linear-gradient(135deg, rgba(245, 158, 11, 0.35), rgba(239, 68, 68, 0.35))';
+            e.currentTarget.style.color = '#ffffff';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(239, 68, 68, 0.2))';
+            e.currentTarget.style.color = '#fbbf24';
+          }}
+        >
+          <Sparkles size={16} />
+          🍂 가을여행
+        </button>
 
         <button
           onClick={onOpenDetailModal}
@@ -422,7 +453,32 @@ export default function Navbar({ activeTab, setActiveTab, session, alumniProfile
             );
           })}
 
-          <div style={{ padding: '4px 0' }}>
+          <div style={{ padding: '4px 0', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <button
+              onClick={() => {
+                onOpenAutumnTripModal();
+                setIsMenuOpen(false);
+              }}
+              style={{
+                background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(239, 68, 68, 0.2))',
+                color: '#fbbf24',
+                border: '1px solid rgba(251, 191, 36, 0.4)',
+                borderRadius: '10px',
+                padding: '12px 16px',
+                fontSize: '15px',
+                fontWeight: '700',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                cursor: 'pointer',
+                textAlign: 'left',
+                width: '100%'
+              }}
+            >
+              <Sparkles size={18} />
+              🍂 2026 가을여행 일정
+            </button>
+
             <button
               onClick={() => {
                 onOpenDetailModal();

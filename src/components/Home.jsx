@@ -516,11 +516,45 @@ export default function Home({ session, alumniProfile, setActiveTab, onOpenDetai
           fontSize: '17px',
           color: 'var(--color-secondary)',
           lineHeight: '1.6',
-          marginBottom: '24px',
+          marginBottom: '20px',
           maxWidth: '650px'
         }}>
           학창 시절 우리들만의 소중한 추억 사진, 명곡 오디오, 사연을 간직하고 친구들과 공유하는 특별한 공간입니다.
         </p>
+
+        {/* 2026 Autumn Trip Quick Banner Button */}
+        <div style={{ marginBottom: '28px' }}>
+          <button
+            onClick={() => window.dispatchEvent(new CustomEvent('open-autumn-trip-modal'))}
+            style={{
+              background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.25), rgba(239, 68, 68, 0.25))',
+              border: '1px solid rgba(245, 158, 11, 0.5)',
+              color: '#fef08a',
+              padding: '10px 20px',
+              borderRadius: '16px',
+              fontSize: '14px',
+              fontWeight: '800',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              boxShadow: '0 4px 20px rgba(245, 158, 11, 0.25)',
+              transition: 'all 0.25s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.boxShadow = '0 6px 25px rgba(245, 158, 11, 0.4)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 4px 20px rgba(245, 158, 11, 0.25)';
+            }}
+          >
+            <Sparkles size={16} color="#fbbf24" />
+            <span>🍂 2026년 시월의밤 가을여행 일정 안내 팝업 보기</span>
+            <ChevronRight size={16} color="#fbbf24" />
+          </button>
+        </div>
       </div>
 
       {/* Bento Grid Layout Section */}
