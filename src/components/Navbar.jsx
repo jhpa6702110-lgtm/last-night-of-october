@@ -16,7 +16,7 @@ export default function Navbar({ activeTab, setActiveTab, session, alumniProfile
 
   const isAdmin = alumniProfile?.is_president || alumniProfile?.is_treasurer;
 
-  const showInstallButton = !(isStandalone || isKakaoTalk || isInAppBrowser);
+  const showInstallButton = !isStandalone;
 
   const navItems = [
     { id: 'home', label: '홈', icon: Home, public: true },
@@ -330,21 +330,42 @@ export default function Navbar({ activeTab, setActiveTab, session, alumniProfile
         )}
       </div>
 
-      {/* Mobile Hamburger Toggle */}
-      <button
-        className="mobile-nav-toggle"
-        onClick={() => setIsMenuOpen(!isMenuOpen)}
-        style={{
-          background: 'transparent',
-          border: 'none',
-          color: 'var(--color-primary)',
-          cursor: 'pointer',
-          display: 'none',
-          padding: '6px'
-        }}
-      >
-        {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
-      </button>
+      {/* Mobile Top Install & Hamburger Group */}
+      <div className="mobile-nav-toggle" style={{ display: 'none', alignItems: 'center', gap: '8px' }}>
+        {showInstallButton && (
+          <button
+            onClick={onInstallApp}
+            style={{
+              background: 'rgba(34, 211, 238, 0.12)',
+              color: 'var(--accent-cyan)',
+              border: '1px solid rgba(34, 211, 238, 0.4)',
+              borderRadius: '8px',
+              padding: '5px 10px',
+              fontSize: '12px',
+              fontWeight: '700',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              cursor: 'pointer'
+            }}
+          >
+            <Download size={14} />
+            앱 설치
+          </button>
+        )}
+        <button
+          onClick={() => setIsMenuOpen(!isMenuOpen)}
+          style={{
+            background: 'transparent',
+            border: 'none',
+            color: 'var(--color-primary)',
+            cursor: 'pointer',
+            padding: '6px'
+          }}
+        >
+          {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
+        </button>
+      </div>
 
       {/* Mobile Drawer menu */}
       {isMenuOpen && (
@@ -604,7 +625,7 @@ export default function Navbar({ activeTab, setActiveTab, session, alumniProfile
             display: none !important;
           }
           .mobile-nav-toggle {
-            display: block !important;
+            display: flex !important;
           }
         }
       `}</style>

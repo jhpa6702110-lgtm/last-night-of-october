@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../utils/supabaseClient';
-import { Image, Users, BookOpen, AlertCircle, X, ChevronRight, HelpCircle, Award, MessageSquare, Film, Key, Play, Pause, Volume2, VolumeX, Music, SkipBack, SkipForward, Sparkles, Cake, Heart, Trophy, Share2, Upload, Camera, Radio, Send } from 'lucide-react';
+import { Image, Users, BookOpen, AlertCircle, X, ChevronRight, HelpCircle, Award, MessageSquare, Film, Key, Play, Pause, Volume2, VolumeX, Music, SkipBack, SkipForward, Sparkles, Cake, Heart, Trophy, Share2, Upload, Camera, Radio, Send, Download } from 'lucide-react';
 import { shareContent } from '../utils/kakaoShare';
 
 const DEFAULT_HEROS = [
@@ -75,7 +75,7 @@ const THEME_SONGS = [
   }
 ];
 
-export default function Home({ session, alumniProfile, setActiveTab, onOpenDetailModal }) {
+export default function Home({ session, alumniProfile, setActiveTab, onOpenDetailModal, onInstallApp }) {
   const [heroImages, setHeroImages] = useState(DEFAULT_HEROS);
   const [currentHeroIndex, setCurrentHeroIndex] = useState(0);
   const [stats, setStats] = useState({ photos: 0, friends: 0, albums: 0 });
@@ -1006,6 +1006,25 @@ export default function Home({ session, alumniProfile, setActiveTab, onOpenDetai
 
           {/* Quick Action Button Toolbar */}
           <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'center' }}>
+            {onInstallApp && (
+              <button
+                onClick={onInstallApp}
+                className="btn btn-secondary"
+                style={{ 
+                  padding: '12px 22px', 
+                  borderColor: 'rgba(34, 211, 238, 0.6)', 
+                  color: 'var(--accent-cyan)',
+                  background: 'rgba(34, 211, 238, 0.1)',
+                  fontSize: '14px',
+                  fontWeight: '700',
+                  boxShadow: '0 0 12px rgba(34, 211, 238, 0.2)'
+                }}
+              >
+                <Download size={16} />
+                바탕화면에 앱 설치
+              </button>
+            )}
+
             <button
               onClick={() => setActiveTab(session ? 'gallery' : 'login')}
               className="btn btn-primary"

@@ -154,13 +154,22 @@ export default function App() {
   }, []);
 
   const handleInstallApp = async () => {
+    const userAgent = window.navigator.userAgent.toLowerCase();
+    const isKakao = userAgent.includes('kakaotalk');
+    const isInApp = userAgent.includes('inapp') || userAgent.includes('naver') || userAgent.includes('snapchat') || userAgent.includes('line');
+
+    if (isKakao || isInApp) {
+      alert('카카오톡 / 인앱 브라우저 안내:\n\n인앱 브라우저 내부에서는 직접 앱 설치가 제한될 수 있습니다.\n\n우측 상단 메뉴(⋮ 또는 공유) ➔ [다른 브라우저로 열기](Chrome 또는 Safari)를 선택하신 후 [바탕화면에 앱 설치]를 눌러주세요!');
+      return;
+    }
+
     if (isIOS) {
-      alert('아이폰(iOS) 설치 안내:\n\n사파리(Safari) 브라우저 하단의 [공유] (📤) 아이콘을 클릭한 뒤, 아래로 스크롤하여 [홈 화면에 추가] (➕) 버튼을 눌러주시면 바탕화면에 앱 아이콘이 설치됩니다!');
+      alert('아이폰(iOS) 바탕화면 앱 설치 안내:\n\n1. 사파리(Safari) 브라우저로 접속해 주세요.\n2. 화면 하단 중앙의 [공유] (📤) 버튼을 터치합니다.\n3. 목록을 내려 [홈 화면에 추가] (➕)를 터치하면 바탕화면에 앱 아이콘이 생성됩니다!');
       return;
     }
 
     if (!deferredPrompt) {
-      alert('설치 안내:\n\n1. 모바일(크롬/삼성인터넷) 또는 PC(크롬/웨일): 브라우저 주소창 우측 끝에 있는 [앱 설치] 아이콘(또는 점 3개 메뉴 ➔ 홈 화면에 추가)을 클릭하여 설치하실 수 있습니다.\n\n2. 아이폰(Safari): 하단의 공유(📤) 버튼을 누르고 [홈 화면에 추가](➕)를 터치해 주세요!\n\n(이미 설치가 완료된 경우 바탕화면의 아이콘을 클릭해 재접속해 주세요.)');
+      alert('바탕화면 앱 설치 안내:\n\n1. 안드로이드 (크롬/삼성인터넷): 브라우저 상단 주소창 우측 아이콘 또는 점 3개 메뉴(⋮) ➔ [홈 화면에 추가] / [앱 설치]를 누르시면 설치됩니다.\n\n2. 이미 설치된 경우 스마트폰 바탕화면의 [시월의 마지막 밤] 앱을 바로 실행해 주세요!');
       return;
     }
 
@@ -598,6 +607,7 @@ export default function App() {
             alumniProfile={alumniProfile} 
             setActiveTab={setActiveTab} 
             onOpenDetailModal={() => setIsDetailModalOpen(true)}
+            onInstallApp={handleInstallApp}
           />
         );
       
@@ -742,7 +752,7 @@ export default function App() {
             alumniProfile={alumniProfile} 
           />
         ) : (
-          <Home session={session} alumniProfile={alumniProfile} setActiveTab={setActiveTab} />
+          <Home session={session} alumniProfile={alumniProfile} setActiveTab={setActiveTab} onInstallApp={handleInstallApp} />
         );
 
       default:
@@ -751,6 +761,7 @@ export default function App() {
             session={session} 
             alumniProfile={alumniProfile} 
             setActiveTab={setActiveTab} 
+            onInstallApp={handleInstallApp}
           />
         );
     }
