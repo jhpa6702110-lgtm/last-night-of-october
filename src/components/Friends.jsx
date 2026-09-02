@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../utils/supabaseClient';
-import { Search, Plus, Phone, Calendar, Edit3, X, UploadCloud, User, Mail } from 'lucide-react';
+import { Search, Plus, Phone, Calendar, Edit3, X, UploadCloud, User, Mail, MapPin } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 export default function Friends({ session, alumniProfile }) {
@@ -17,6 +17,7 @@ export default function Friends({ session, alumniProfile }) {
   const [formName, setFormName] = useState('');
   const [formPhone, setFormPhone] = useState('');
   const [formEmail, setFormEmail] = useState('');
+  const [formAddress, setFormAddress] = useState('');
   const [formBirthday, setFormBirthday] = useState('');
   const [formDesc, setFormDesc] = useState('');
   const [formIsPresident, setFormIsPresident] = useState(false);
@@ -150,6 +151,7 @@ export default function Friends({ session, alumniProfile }) {
     setFormName('');
     setFormPhone('');
     setFormEmail('');
+    setFormAddress('');
     setFormBirthday('');
     setFormDesc('');
     setFormIsPresident(false);
@@ -201,6 +203,7 @@ export default function Friends({ session, alumniProfile }) {
           name: formName,
           phone: formPhone,
           email: formEmail,
+          address: formAddress,
           birthday: formBirthday || null,
           description: formDesc,
           is_president: formIsPresident,
@@ -226,6 +229,7 @@ export default function Friends({ session, alumniProfile }) {
     setFormName(friend.name);
     setFormPhone(friend.phone || '');
     setFormEmail(friend.email || '');
+    setFormAddress(friend.address || '');
     setFormBirthday(friend.birthday || '');
     setFormDesc(friend.description || '');
     setFormIsPresident(friend.is_president || false);
@@ -271,6 +275,7 @@ export default function Friends({ session, alumniProfile }) {
         name: formName,
         phone: formPhone,
         email: formEmail,
+        address: formAddress,
         birthday: formBirthday || null,
         description: formDesc,
         avatar_url: avatarUrl,
@@ -328,6 +333,7 @@ export default function Friends({ session, alumniProfile }) {
     const matchesSearch = 
       friend.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (friend.phone || '').includes(searchQuery) ||
+      (friend.address || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
       (friend.description || '').toLowerCase().includes(searchQuery.toLowerCase());
     return matchesSearch;
   });
@@ -634,6 +640,11 @@ export default function Friends({ session, alumniProfile }) {
                 <span style={{ fontWeight: '500' }}>{selectedFriendForView.email || '미등록'}</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '14px' }}>
+                <MapPin size={16} color="var(--accent-cyan)" />
+                <span style={{ color: 'var(--color-secondary)' }}>주소:</span>
+                <span style={{ fontWeight: '500' }}>{selectedFriendForView.address || '미등록'}</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '14px' }}>
                 <Calendar size={16} color="var(--accent-violet)" />
                 <span style={{ color: 'var(--color-secondary)' }}>생년월일:</span>
                 <span style={{ fontWeight: '500' }}>{selectedFriendForView.birthday ? new Date(selectedFriendForView.birthday).toLocaleDateString() : '미등록'}</span>
@@ -700,6 +711,17 @@ export default function Friends({ session, alumniProfile }) {
                   className="input-field"
                   value={formEmail}
                   onChange={(e) => setFormEmail(e.target.value)}
+                />
+              </div>
+
+              <div className="input-group">
+                <label className="input-label">주소</label>
+                <input
+                  type="text"
+                  placeholder="서울특별시 강남구 테헤란로 123"
+                  className="input-field"
+                  value={formAddress}
+                  onChange={(e) => setFormAddress(e.target.value)}
                 />
               </div>
 
@@ -840,6 +862,17 @@ export default function Friends({ session, alumniProfile }) {
                   className="input-field"
                   value={formEmail}
                   onChange={(e) => setFormEmail(e.target.value)}
+                />
+              </div>
+
+              <div className="input-group">
+                <label className="input-label">주소</label>
+                <input
+                  type="text"
+                  placeholder="서울특별시 강남구 테헤란로 123"
+                  className="input-field"
+                  value={formAddress}
+                  onChange={(e) => setFormAddress(e.target.value)}
                 />
               </div>
 

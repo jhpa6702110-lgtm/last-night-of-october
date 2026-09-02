@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS alumni (
   name TEXT NOT NULL,
   phone TEXT,
   email TEXT, -- 이메일 주소 추가
+  address TEXT, -- 주소 추가
   birthday DATE,
   avatar_url TEXT,
   description TEXT,

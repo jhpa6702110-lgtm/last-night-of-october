@@ -333,6 +333,8 @@ CREATE TABLE alumni (
   auth_id UUID UNIQUE,
   name TEXT NOT NULL,
   phone TEXT,
+  email TEXT,
+  address TEXT,
   birthday DATE,
   avatar_url TEXT,
   description TEXT,
