@@ -3,9 +3,10 @@
   "name": "시월의 마지막 밤",
   "icons": [
     {
-      "src": "/favicon.svg",
-      "type": "image/svg+xml",
-      "sizes": "any"
+      "src": "/icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any maskable"
     },
     {
       "src": "/icon-512.png",
@@ -14,9 +15,14 @@
       "purpose": "any maskable"
     },
     {
-      "src": "/icon-192.png",
+      "src": "/apple-touch-icon.png",
       "type": "image/png",
-      "sizes": "192x192"
+      "sizes": "180x180"
+    },
+    {
+      "src": "/favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any"
     }
   ],
   "start_url": "/",
