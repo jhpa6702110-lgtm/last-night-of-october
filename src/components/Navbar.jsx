@@ -632,7 +632,7 @@ export default function Navbar({ activeTab, setActiveTab, session, alumniProfile
       </button>
 
       <button
-        onClick={() => handleTabClick('radio')}
+        onClick={() => handleTabClick(session ? 'friends' : 'login')}
         style={{
           display: 'flex',
           flexDirection: 'column',
@@ -640,14 +640,14 @@ export default function Navbar({ activeTab, setActiveTab, session, alumniProfile
           gap: '3px',
           background: 'none',
           border: 'none',
-          color: (activeTab === 'radio' || activeTab === 'radio_live_standalone') ? 'var(--accent-cyan)' : 'var(--color-secondary)',
+          color: activeTab === 'friends' ? 'var(--accent-cyan)' : 'var(--color-secondary)',
           fontSize: '11px',
-          fontWeight: (activeTab === 'radio' || activeTab === 'radio_live_standalone') ? '700' : '500',
+          fontWeight: activeTab === 'friends' ? '700' : '500',
           cursor: 'pointer'
         }}
       >
-        <Radio size={20} />
-        <span>라디오라이브</span>
+        <Users size={20} />
+        <span>친구들</span>
       </button>
 
       {/* Central Highlighted Upload Button */}

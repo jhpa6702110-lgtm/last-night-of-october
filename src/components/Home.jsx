@@ -979,7 +979,11 @@ export default function Home({ session, alumniProfile, setActiveTab, onOpenDetai
               <span style={{ fontSize: '12px', color: 'var(--color-secondary)' }}>공유된 사진</span>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', borderLeft: '1px solid rgba(255,255,255,0.08)', borderRight: '1px solid rgba(255,255,255,0.08)' }}>
+            <div 
+              onClick={() => setActiveTab(session ? 'friends' : 'login')}
+              style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', borderLeft: '1px solid rgba(255,255,255,0.08)', borderRight: '1px solid rgba(255,255,255,0.08)' }}
+              title="친구들 명단 보러가기"
+            >
               <div style={{ color: 'var(--accent-cyan)', marginBottom: '4px' }}>
                 <Users size={22} />
               </div>
