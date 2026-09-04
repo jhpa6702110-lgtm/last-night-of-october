@@ -4,7 +4,7 @@ export default function Cinema() {
   return (
     <div className="fade-in" style={{ 
       width: '100%', 
-      height: 'calc(100vh - 120px)', 
+      height: 'calc(100vh - 40px)', 
       minHeight: '600px',
       borderRadius: '16px', 
       overflow: 'hidden', 

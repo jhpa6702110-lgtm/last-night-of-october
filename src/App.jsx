@@ -767,7 +767,7 @@ export default function App() {
     }
   };
 
-  const isStandalone = activeTab === 'radio_standalone' || activeTab === 'radio_embed' || activeTab === 'radio_live_standalone' || activeTab === 'radio_live_embed' || activeTab === 'cinema_standalone' || activeTab === 'cinema_embed';
+  const isStandalone = activeTab === 'radio_standalone' || activeTab === 'radio_embed' || activeTab === 'radio_live_standalone' || activeTab === 'radio_live_embed' || activeTab === 'cinema_standalone' || activeTab === 'cinema_embed' || activeTab === 'cinema';
   const hasBanner = !isStandalone && (isKakaoTalk || isInAppBrowser);
 
   return (
